@@ -266,3 +266,4 @@ docker compose up -d --build   # 重建并替换容器（数据卷不动）
 | 健康检查不通过 | 启动超过 15 秒或内容接口异常 | `docker exec atom-world node -e "fetch('http://127.0.0.1:8080/api/content/health').then(r=>console.log(r.status))"` |
 | 证书签发失败 | 域名未解析到本机 / 80 被占 | 确认 DNS A 记录指向服务器，`docker compose --profile tls` 需要 80/443 |
 | 改了 .env 不生效 | 环境变量在构建/启动时注入 | 修改后 `docker compose up -d --force-recreate` |
+| 安装时提示 `install scripts not yet covered by allowScripts`（esbuild/fsevents） | npm 11.3+ 默认阻止安装脚本 | 仓库已在 `package.json` 的 `allowScripts` 字段批准这两个包，`npm ci` 不再告警；若自行新增依赖需要安装脚本，用 `npm install-scripts approve <pkg>` 审批（勿随意批准不明来源的包） |

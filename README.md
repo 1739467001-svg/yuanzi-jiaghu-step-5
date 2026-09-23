@@ -22,6 +22,8 @@ npm run dev
 
 打开 http://127.0.0.1:5173 。也可以双击 `启动原子江湖.command`（5173 被占用时会自动改用空闲端口）。
 
+> npm 11.3+ 默认阻止依赖的安装脚本；esbuild 与 fsevents 的安装脚本已在 `package.json` 的 `allowScripts` 字段中批准，`npm ci` 无告警。若看到 `install scripts not yet covered by allowScripts` 提示，按 docs/DEPLOY.md 第 11 节排障表处理。
+
 **部署到服务器（Docker，推荐）**：`cp .env.example .env` 后 `docker compose up -d --build`，一条命令在任何云服务器跑起完整联机体验——含账号、权威世界、AI 私聊与运营后台；有域名时加 `--profile tls` 自动 HTTPS（Caddy）。数据落命名卷，容器重建不丢。镜像要点、升级回滚与排障见 [docs/DEPLOY.md](docs/DEPLOY.md) 第 11 节。不用 Docker 时也可 `npm run build && npm start`（默认 `0.0.0.0:8080`）。
 
 **部署到 Vercel（前端静态托管 + 世界服务端分离）**：权威世界需要长驻进程与 WebSocket，Vercel 的 serverless 模型不支持，因此采用前后端分离——仓库已含 `vercel.json`（导入即用，构建 `npm run build`、输出 `dist/`）；世界服务端用 `docker compose up -d --build` 或任意 Node 主机部署，前端构建时设 `VITE_API_BASE=https://<服务端域名>` 与 `VITE_WS_URL=wss://<服务端域名>/ws/world`，服务端设 `ATOM_ALLOWED_ORIGINS=https://<前端域名>` 放行跨源。完整步骤与排障见 [docs/DEPLOY.md](docs/DEPLOY.md) 第 10 节。
