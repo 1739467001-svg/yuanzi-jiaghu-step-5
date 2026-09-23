@@ -610,3 +610,18 @@
 - 验收脚本：`scripts/smoke-browser.mjs` 支持 `TEST_API_BASE`（分离部署时 API 断言打世界服务端）。
 
 验证：同源模式全量回归（84 单测 + 六套 e2e + 双校验）全过；**分离模式本地实测**——前端 5173 + 世界服务端 5211（带 Origin 白名单），`test:e2e-mp` 与 `test:e2e` 两套完整通过（注册登录、WS 跨源、共坐、私聊、后台撤回/发布均正常）。过程中修复：单测在 Node 下加载 endpoints.js 时 `import.meta.env` 为 undefined（已加保护）。
+
+## 阶段 31：云 Docker 部署架构（2026-09-23 执行）
+
+目标：把整体架构固化为云服务器友好的 Docker 形态——一条命令部署、自动 HTTPS、数据持久化、非 root 运行、可健康检查、可升级回滚。
+
+已完成：
+
+- **多阶段 Dockerfile**：构建阶段装全部依赖并打包前端；运行阶段仅生产依赖 + `dist/ server/ src/ public/`（经模拟验证：该文件集 + 仅生产依赖可完整运行），非 root 用户、tini 信号转发（优雅关机）、HEALTHCHECK 探活 `/api/content/health`。
+- **docker-compose.yml**：`world` 服务（端口 8080、命名卷 `atom-data` 持久化账号/发布/记忆/审计、json-file 日志轮转、restart 策略、环境变量全部经 .env 注入）；`caddy` 服务（`--profile tls` 启用）自动 HTTPS + WebSocket 升级 + 静态资源长缓存。
+- **docker/Caddyfile**：按域名自动签证书，反代 `world:8080`。
+- **.env.example**：补齐 Docker 相关配置（DOMAIN / ATOM_ALLOWED_ORIGINS / ATOM_ROOMS），与既有模型/预算/鉴权变量合并成完整部署清单。
+- **docs/DEPLOY.md 第 11 节**：Docker 优先的部署路径（快速开始、架构图、镜像要点、升级回滚、常见问题排障表）。
+- 验收脚本稳健性：茶楼被 AI 坐满时（产品正常行为）"找同桌"的等待从 20 秒加到 2 分钟。
+
+验证：本机无 Docker 运行时，采用**容器外等价验证**——按 Dockerfile 运行阶段的文件集原样组装（dist/server/src/public + package*.json）、`npm ci --omit=dev`、以生产模式启动：页面/API/哈希资源/品牌资产/GLB 全部 200；`test:e2e-mp` 与 `test:e2e` 两套完整通过（证明 COPY 文件集完整、运行时不依赖开发依赖）。同源模式全量回归（84 单测 + 六套 e2e + 双校验）亦全过。

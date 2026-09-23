@@ -1,27 +1,80 @@
-# 世界服务端（权威世界 + API + WebSocket）一键部署。
-# 前端两种用法：
-#   1) 同源：直接访问 http://localhost:8080（本服务自带静态文件，无需其他部署）。
-#   2) 分离：前端部署到 Vercel 等静态托管，构建时设置
-#      VITE_API_BASE=https://world.example.com
-#      VITE_WS_URL=wss://world.example.com/ws/world
-#      并把下方 ATOM_ALLOWED_ORIGINS 改成前端域名（WS 跨源校验必须登记）。
+# 原子江湖 · 云服务器 Docker 部署
+#
+# 快速开始（有域名，自动 HTTPS）：
+#   cp .env.example .env && vim .env        # 填 DOMAIN 与 ATOM_ALLOWED_ORIGINS
+#   docker compose --profile tls up -d --build
+#
+# 快速开始（无域名，先跑起来）：
+#   docker compose up -d --build            # 访问 http://<服务器IP>:8080
+#
+# 数据持久化在命名卷 atom-data（账号/发布/记忆/审计日志）。
+
+name: atom-jianghu
+
 services:
+  # 世界服务端：静态前端 + API + 权威世界 WebSocket（本项目全部服务端能力）
   world:
-    build: .
-    image: atom-jianghu-world
-    ports: ['8080:8080']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: atom-jianghu/world:latest
+    container_name: atom-world
+    restart: unless-stopped
+    ports: ["8080:8080"]
     environment:
       - HOST=0.0.0.0
       - PORT=8080
       - ATOM_DATA_DIR=/app/data
-      # 多个域名用逗号分隔；留空表示仅允许同源（分离部署必须填前端域名）
+      # 跨域白名单：前端若分离部署（如 Vercel），填前端域名；同源部署可留空
       - ATOM_ALLOWED_ORIGINS=${ATOM_ALLOWED_ORIGINS:-}
-      # 可选：房间配置 / 账号模式 / 模型与预算等，见 docs/DEPLOY.md
-      # - ATOM_ROOMS=jianghu:原子江湖·主镇:20
-      # - ATOM_AUTH_MODE=local
+      - ATOM_ROOMS=${ATOM_ROOMS:-}
+      - ATOM_ROOM_CAPACITY=${ATOM_ROOM_CAPACITY:-20}
+      - ATOM_RECLAIM_WINDOW_MS=${ATOM_RECLAIM_WINDOW_MS:-15000}
+      # 账号与模型（按需，见 .env.example）
+      - ATOM_AUTH_MODE=${ATOM_AUTH_MODE:-local}
+      - ATOM_ADMIN_TOKEN=${ATOM_ADMIN_TOKEN:-atom-local-demo}
+      - ATOM_LLM_API_KEY=${ATOM_LLM_API_KEY:-}
+      - ATOM_LLM_BASE_URL=${ATOM_LLM_BASE_URL:-}
+      - ATOM_LLM_MODEL=${ATOM_LLM_MODEL:-}
+      - ATOM_DAILY_BUDGET=${ATOM_DAILY_BUDGET:-}
+      - ATOM_DAILY_CALL_LIMIT=${ATOM_DAILY_CALL_LIMIT:-}
+      - ATOM_MAX_CONCURRENT=${ATOM_MAX_CONCURRENT:-}
+      - ATOM_EMBEDDING_API_KEY=${ATOM_EMBEDDING_API_KEY:-}
+      - ATOM_EMBEDDING_BASE_URL=${ATOM_EMBEDDING_BASE_URL:-}
+      - ATOM_EMBEDDING_MODEL=${ATOM_EMBEDDING_MODEL:-}
     volumes:
       - atom-data:/app/data
+    networks: [atom]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/content/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  # 反向代理（--profile tls 启用）：自动 HTTPS 证书 + WebSocket 升级 + 静态资源压缩缓存
+  caddy:
+    profiles: ["tls"]
+    image: caddy:2-alpine
+    container_name: atom-caddy
     restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    depends_on: [world]
+    environment:
+      - DOMAIN=${DOMAIN:?启用 tls 需要设置 DOMAIN（如 world.example.com）}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [atom]
+
+networks:
+  atom: {}
 
 volumes:
-  atom-data:
+  atom-data: {}
+  caddy-data: {}
+  caddy-config: {}

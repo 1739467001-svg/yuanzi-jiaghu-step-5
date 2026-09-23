@@ -210,3 +210,59 @@ npm ci && npm run build && ATOM_ALLOWED_ORIGINS=https://your-app.vercel.app npm 
 
 - **同源单进程**（第 2—7 节，或 Docker）：最简单，一个域名搞定，适合演示与小规模社区；缺点是静态资源也由 Node 提供，无 CDN 加速。
 - **Vercel + 世界服务端**：前端走 CDN、自动部署、全球加速；代价是多一个服务要维护，且服务端必须自带 TLS。社区规模上来后推荐这种形态。
+
+## 11. Docker 云部署（推荐）
+
+整个服务端（静态前端 + API + 权威世界 WebSocket）已容器化，一条命令在任何云服务器上跑起来。
+
+### 11.1 快速开始
+
+```bash
+# 1) 准备配置
+cp .env.example .env && vim .env      # 至少填 DOMAIN（有域名时）
+
+# 2) 构建并启动（无域名：直接访问 http://<服务器IP>:8080）
+docker compose up -d --build
+
+# 2b) 有域名：启用 Caddy 自动 HTTPS（80/443 端口）
+docker compose --profile tls up -d --build
+```
+
+启动后用 `docker compose logs -f world` 看日志，`docker compose ps` 看健康状态。
+
+### 11.2 架构
+
+```
+                    ┌────────────────────────────┐
+   80/443 (tls) ──> │ Caddy（自动证书 + WS 升级）  │ ──> world:8080
+                    └────────────────────────────┘      （Node 单进程：静态 + API + WS）
+   8080（无域名时直连）───────────────────────────────^
+
+world 容器：非 root 运行、tini 信号转发、HEALTHCHECK 探活；
+数据（账号/发布/记忆/审计/预算账本）在命名卷 atom-data，容器重建不丢。
+```
+
+### 11.3 镜像与运行要点
+
+- 多阶段构建：构建阶段装全部依赖并打包前端；运行阶段只含生产依赖与 `dist/ server/ src/ public/`，镜像约 200MB 量级。
+- 运行阶段已用「与 Dockerfile 完全一致的文件集 + 仅生产依赖」在容器外实测通过（两套 e2e：主流程 + 联机双浏览器）。
+- 数据目录：容器内 `/app/data`（`ATOM_DATA_DIR`），务必挂卷；备份 = 停服后拷贝该卷（见第 6 节）。
+- 分离部署（前端在 Vercel）时：world 容器照常运行，设 `ATOM_ALLOWED_ORIGINS=https://<前端域名>`，前端构建设 `VITE_API_BASE`/`VITE_WS_URL` 指向本服务（第 10 节）。
+- 多架构：云服务器多为 amd64，本地 Apple Silicon 构建时加 `--platform linux/amd64`（或在目标机上直接构建）。
+
+### 11.4 升级与回滚
+
+```bash
+git pull                 # 或等同步后的新提交
+docker compose up -d --build   # 重建并替换容器（数据卷不动）
+# 回滚：git checkout <上一个提交> 后再次 up -d --build
+```
+
+### 11.5 常见问题
+
+| 现象 | 原因 | 处理 |
+| --- | --- | --- |
+| 容器反复重启 | 端口被占或数据卷权限 | `docker compose logs world` 看具体错误；换 `ports` 端口 |
+| 健康检查不通过 | 启动超过 15 秒或内容接口异常 | `docker exec atom-world node -e "fetch('http://127.0.0.1:8080/api/content/health').then(r=>console.log(r.status))"` |
+| 证书签发失败 | 域名未解析到本机 / 80 被占 | 确认 DNS A 记录指向服务器，`docker compose --profile tls` 需要 80/443 |
+| 改了 .env 不生效 | 环境变量在构建/启动时注入 | 修改后 `docker compose up -d --force-recreate` |

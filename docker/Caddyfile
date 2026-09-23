@@ -1,0 +1,16 @@
+# Caddy 反代配置（docker compose --profile tls 启用）：
+# 自动申请与续期 HTTPS 证书，反向代理到世界服务端（含 WebSocket 升级）。
+{
+  admin off
+  auto_https disable_redirects
+}
+
+{$DOMAIN} {
+  encode zstd gzip
+
+  # 静态资源长缓存（Vite 产物带内容哈希）
+  @assets path /assets/*
+  header @assets Cache-Control "public, max-age=31536000, immutable"
+
+  reverse_proxy world:8080
+}

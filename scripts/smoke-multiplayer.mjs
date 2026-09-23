@@ -199,9 +199,10 @@ try{
   await page.waitForFunction(()=>document.querySelector('.seat-chip.mine'),null,{timeout:6000});
  };
  let table=null;
- for(let attempt=0;attempt<10&&!table;attempt++){
+ for(let attempt=0;attempt<24&&!table;attempt++){
   const free=await pickTableForTwo();
-  if(!free){await a.waitForTimeout(2000);continue;}
+  // 茶楼可能被 AI 侠客坐满（产品正常行为）：AI 落座 25—33 秒即离开，耐心等空位。
+  if(!free){await a.waitForTimeout(5000);continue;}
   await walkToTeahouse(b);
   await openTeaPanel(b);
   if(await b.locator('.seat-chip.mine').count()){
