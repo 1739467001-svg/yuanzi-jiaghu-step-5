@@ -132,3 +132,81 @@ WantedBy=multi-user.target
 - 账号体系默认本地实现（scrypt + 会话文件）；已提供外部身份接入点（JWKS/内省 + subject 稳定映射），接入社区账号体系见上文。
 - 单进程单房间；水平扩展需引入共享状态（后续阶段）。
 - 私人对话原文不写日志；故障排查使用请求 ID 与元数据。
+
+## 10. Vercel 部署：前端静态托管 + 世界服务端分离
+
+### 10.1 为什么不能把整个应用部署到 Vercel
+
+Vercel 是 serverless / 静态托管平台，与本项目的架构前提不兼容，直接导入仓库会失败或只能得到空壳：
+
+| Vercel 的限制 | 对本项目的影响 |
+| --- | --- |
+| 没有长驻进程（函数按请求拉起、随时回收） | 权威世界的内存状态（角色位置、房间、AI 日程）无法常驻 |
+| 不支持 WebSocket 升级（`/ws/world`） | 联机世界、位置同步、私聊全部不可用 |
+| 函数内文件系统只读且易失 | 账号、发布状态、记忆、审计日志写在 `data/`，无法持久 |
+
+因此仓库里没有（也不应有）把 `server/index.mjs` 当 Vercel 函数的配置。**正确的云部署形态是前后端分离**：前端（静态资源）放 Vercel，世界服务端（Node 长驻进程）放容器平台或云主机。
+
+### 10.2 架构与数据流
+
+```
+浏览器 ──HTTPS──> Vercel（静态：index.html / assets / admin.html）
+   │  │
+   │  └──/api/* ──HTTPS──> 世界服务端（内容/鉴权/记忆/聊天 API）
+   └────/ws/world ──WSS──> 世界服务端（权威世界广播）
+```
+
+客户端默认同源（单进程部署无需任何配置）；分离部署由构建期环境变量指定服务端地址：
+
+| 变量 | 作用 | 示例 |
+| --- | --- | --- |
+| `VITE_API_BASE` | 世界服务端的 HTTP 根，所有 `/api/*` 与 `/admin.html` 都走它 | `https://world.example.com` |
+| `VITE_WS_URL` | 世界服务端的 WS 根 | `wss://world.example.com/ws/world` |
+
+### 10.3 第一步：部署世界服务端（必须先做）
+
+任选其一，关键是**长期运行 + 可写磁盘 + 支持 WebSocket**：
+
+**A. Docker（任意容器平台 / 自己的云主机）**
+
+```bash
+# 构建并启动（数据落在命名卷 atom-data 里）
+ATOM_ALLOWED_ORIGINS=https://your-app.vercel.app docker compose up -d --build
+```
+
+**B. 云主机直接跑**（详见本文第 2—7 节）
+
+```bash
+npm ci && npm run build && ATOM_ALLOWED_ORIGINS=https://your-app.vercel.app npm start
+```
+
+世界服务端**必须配 HTTPS/WSS**（浏览器不允许 https 页面连接 ws://）。三种常见做法：平台自带 TLS（Railway/Render/Fly.io 默认提供）、云主机 + Nginx 反代（第 4 节）、或套 CDN。
+
+> `ATOM_ALLOWED_ORIGINS` 必须填前端域名（多个用逗号）——WS 升级会校验 Origin，同源才放行；不填则联机世界连不上。
+
+### 10.4 第二步：Vercel 部署前端
+
+仓库已含 `vercel.json`（构建 `npm run build`，输出 `dist/`，SPA 回退），在 Vercel 导入仓库后：
+
+1. Framework Preset 选 **Vite**（或 Other，构建命令与输出目录已由 `vercel.json` 指定）；
+2. 在项目 Settings → Environment Variables 添加：
+   - `VITE_API_BASE` = `https://<世界服务端域名>`
+   - `VITE_WS_URL` = `wss://<世界服务端域名>/ws/world`
+3. Deploy。以后每次推送 main 分支自动重新部署。
+
+漏配这两个变量时，站点仍能打开（作品浏览走内置快照降级），但进入联机世界会明确提示"未配置世界服务端"，不会静默失败。
+
+### 10.5 联调与排障
+
+| 现象 | 原因 | 处理 |
+| --- | --- | --- |
+| 能打开站点但进不了联机世界，提示未配置 | 环境变量未设或未重新部署 | 设置 `VITE_API_BASE`/`VITE_WS_URL` 后 Redeploy |
+| WS 连接被拒（控制台 403/握手失败） | 世界服务端未登记前端域名 | 在服务端设 `ATOM_ALLOWED_ORIGINS=https://<vercel域名>` 并重启 |
+| 浏览器报 Mixed Content | 前端是 https、服务端是 http/ws | 给世界服务端配 TLS，或改用自带 TLS 的平台 |
+| 登录/发布/记忆不生效 | `/api/*` 打到了 Vercel 而非服务端 | 确认 `VITE_API_BASE` 指向世界服务端 |
+| 运营后台 401 | 后台在服务端上，需服务端地址访问 | 直接访问 `https://<世界服务端域名>/admin.html` |
+
+### 10.6 与同源部署的选择
+
+- **同源单进程**（第 2—7 节，或 Docker）：最简单，一个域名搞定，适合演示与小规模社区；缺点是静态资源也由 Node 提供，无 CDN 加速。
+- **Vercel + 世界服务端**：前端走 CDN、自动部署、全球加速；代价是多一个服务要维护，且服务端必须自带 TLS。社区规模上来后推荐这种形态。

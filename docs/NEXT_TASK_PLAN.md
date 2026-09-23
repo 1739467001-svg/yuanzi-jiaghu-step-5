@@ -595,3 +595,18 @@
   2. 服务端对"只连不发 hello"的连接没有超时，永久占用连接与广播开销——`server/world.mjs` 增加 15 秒 hello 超时（`helloTimeoutMs` 可配），单测覆盖。
 - 脚本加固：spawn 的服务端进程退出即快速失败（首轮 2 小时因端口残留静默打到旧代码服务，内存指标丢失）；内存采样失败显式断言失败。复跑 30 分钟（最新代码）：内存 54.3→45.3MB（-9.1MB）、161 次入座、零违例。
 - 72 小时口径固化为 `npm run soak:72h`（增量报告，建议专用机器执行）。完整数据：`docs/VERIFICATION.md` 与 `artifacts/soak-report.json`。
+
+## 阶段 30：云部署架构——Vercel 前后端分离（2026-09-23 执行）
+
+背景：直接把这套单进程应用导入 Vercel 会失败——Vercel 是 serverless/静态托管，没有长驻进程（权威世界的内存状态无法常驻）、不支持 WebSocket 升级（联机世界不可用）、函数文件系统只读且易失（账号/发布/记忆/审计写在 data/ 无法持久）。因此架构改为**前后端分离**，而不是把服务端硬塞进函数。
+
+已完成：
+
+- 客户端端点解耦（`src/net/endpoints.js`）：默认同源（单进程部署零配置）；分离部署用构建期环境变量 `VITE_API_BASE`（HTTP 根）与 `VITE_WS_URL`（WS 根）指向世界服务端。全部 15 处 API 调用、WS 连接、管理后台统一走配置；未配置时行为与原来完全一致。
+- 服务端跨域支持：`server/index.mjs` 新增 CORS 中间件（复用 WS 的 Origin 白名单：同源放行、`ATOM_ALLOWED_ORIGINS` 内的来源放行、预检直接通过）；`server/chat.mjs` 原来的"仅同源"校验改为同一套白名单策略；dev/preview 服务同样处理。
+- 防呆：跑在 Vercel 却未配置服务端地址时，进入联机世界明确提示，不静默降级。
+- 部署件：`vercel.json`（静态构建 + SPA 回退 + 资源长缓存）、`Dockerfile` 与 `.dockerignore`（世界服务端容器化）、`docker-compose.yml`（含 `ATOM_ALLOWED_ORIGINS` 与数据卷）。
+- `docs/DEPLOY.md` 第 10 节：为什么不能整体上 Vercel、架构图、两步部署（先世界服务端再 Vercel 前端）、联调排障表、与同源部署的取舍。
+- 验收脚本：`scripts/smoke-browser.mjs` 支持 `TEST_API_BASE`（分离部署时 API 断言打世界服务端）。
+
+验证：同源模式全量回归（84 单测 + 六套 e2e + 双校验）全过；**分离模式本地实测**——前端 5173 + 世界服务端 5211（带 Origin 白名单），`test:e2e-mp` 与 `test:e2e` 两套完整通过（注册登录、WS 跨源、共坐、私聊、后台撤回/发布均正常）。过程中修复：单测在 Node 下加载 endpoints.js 时 `import.meta.env` 为 undefined（已加保护）。

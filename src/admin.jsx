@@ -1,4 +1,5 @@
 import {useState,useEffect,useCallback} from 'react';
+import {apiUrl} from './net/endpoints.js';
 import {createRoot} from 'react-dom/client';
 import {Check,Undo2,FileText,RefreshCw,ShieldAlert,BadgeCheck,Ban,Search,ExternalLink} from 'lucide-react';
 
@@ -7,7 +8,7 @@ const STATUS_LABEL={草稿:'草稿',待审核:'待审核',已发布:'已发布',
 const ACTION_LABEL={publish_edition:'发布赛事',withdraw_edition:'撤回赛事',publish_work:'发布作品',withdraw_work:'撤回作品',rollback_edition:'回滚赛事'};
 const STATUS_STYLE={'已发布':'ok','已撤回':'bad','待审核':'wait','草稿':'wait'};
 
-async function api(path,{method='GET',body}={}){
+async function api(path,{method='GET',body}={}){path=apiUrl(path);
  const token=sessionStorage.getItem(TOKEN_KEY)||'';
  const response=await fetch(path,{method,headers:{'Content-Type':'application/json','x-atom-admin':token},body:body?JSON.stringify(body):undefined});
  const data=await response.json().catch(()=>({}));

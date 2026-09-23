@@ -1,0 +1,8 @@
+node_modules
+dist
+data
+artifacts
+.git
+references
+*.log
+.DS_Store

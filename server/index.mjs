@@ -11,6 +11,7 @@ import {authPlugin} from './auth.mjs';
 import {memoryApiPlugin} from './memory-api.mjs';
 import {chatPlugin} from './chat.mjs';
 import {createRoomHub,roomsApiPlugin} from './rooms.mjs';
+import {originAllowed} from './world.mjs';
 import {configureEmbeddings,embeddingsEnabled} from './embeddings.mjs';
 import {followsApiPlugin} from './follows.mjs';
 import {isAdminRequest} from './publication-store.mjs';
@@ -60,6 +61,20 @@ memoryApiPlugin().configureServer(shim);
 followsApiPlugin().configureServer(shim);
 roomsApiPlugin(hub,{env:process.env,isAdminRequest}).configureServer(shim);
 chatPlugin(process.env).configureServer(shim);
+
+// 跨域（前端分离部署到 Vercel 等静态托管时）：Origin 在白名单内才发放 CORS 头，
+// 预检请求直接通过；同源部署不受影响（浏览器不发 Origin 或同源直接放行）。
+middlewares.unshift((req,res,next)=>{
+ const origin=req.headers.origin;
+ if(origin&&originAllowed(req,allowedOrigins)){
+  res.setHeader('Access-Control-Allow-Origin',origin);
+  res.setHeader('Vary','Origin');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type,x-atom-admin');
+  if(req.method==='OPTIONS'){res.statusCode=204;res.end();return;}
+ }
+ next();
+});
 
 const server=http.createServer((req,res)=>{
  let index=0;

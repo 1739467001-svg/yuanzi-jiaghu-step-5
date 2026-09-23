@@ -1,4 +1,5 @@
 import {useState,useMemo,useRef,useEffect} from 'react';
+import {apiUrl,worldWsUrl,missingWorldServer} from './net/endpoints.js';
 import {ArrowUpRight,ArrowRight,Compass,BookOpen,MessageCircle,Sun,Moon,Settings2,Volume2,VolumeX,Plus,Minus,LocateFixed,RotateCcw,ChevronRight,ChevronLeft,Search,Bookmark,MapPin,Users,Send,Sparkles,Leaf,Footprints,Check,Trash2,SlidersHorizontal,ExternalLink,PanelRightClose,PanelRightOpen,X,Clock,Sparkle,Wifi,WifiOff,UserPlus,LogOut,ShieldOff,Coffee} from 'lucide-react';
 import World from './world/World.jsx';
 import {preloadModels} from './world/glb.js';
@@ -85,7 +86,7 @@ export default function App(){
  useEffect(()=>{
   if(world!=='online'||staticDemo)return;
   let alive=true;
-  const load=()=>fetch('/api/rooms').then(r=>r.ok?r.json():null).then(d=>{if(alive&&d?.rooms)setRooms(d.rooms);}).catch(()=>{});
+  const load=()=>fetch(apiUrl('/api/rooms')).then(r=>r.ok?r.json():null).then(d=>{if(alive&&d?.rooms)setRooms(d.rooms);}).catch(()=>{});
   load();const timer=setInterval(load,10000);
   return()=>{alive=false;clearInterval(timer);};
  },[world,staticDemo]);
@@ -109,23 +110,23 @@ export default function App(){
  useEffect(()=>{
   if(!account){setMemories([]);setFollows([]);return;}
   let alive=true;
-  fetch(`/api/memories?token=${encodeURIComponent(account.token)}&agentId=`).then(r=>r.ok?r.json():null).then(d=>{
+  fetch(apiUrl(`/api/memories?token=${encodeURIComponent(account.token)}&agentId=`)).then(r=>r.ok?r.json():null).then(d=>{
    if(!alive)return;
    setMemories(d?.items||[]);
    const local=readStore('memories',[]);
    if(Array.isArray(local)&&local.length)setMemoryOffer(local);
   }).catch(()=>{});
-  fetch(`/api/follows?token=${encodeURIComponent(account.token)}`).then(r=>r.ok?r.json():null).then(d=>{if(alive)setFollows(d?.items||[]);}).catch(()=>{});
+  fetch(apiUrl(`/api/follows?token=${encodeURIComponent(account.token)}`)).then(r=>r.ok?r.json():null).then(d=>{if(alive)setFollows(d?.items||[]);}).catch(()=>{});
   return()=>{alive=false;};
  },[account]);
  // 鉴权模式：local（本地注册）或 external（社区账号体系）。
- useEffect(()=>{if(staticDemo)return;fetch('/api/auth/config').then(r=>r.ok?r.json():null).then(d=>{if(d?.mode)setAuthProvider(d.mode);}).catch(()=>{});},[staticDemo]);
+ useEffect(()=>{if(staticDemo)return;fetch(apiUrl('/api/auth/config')).then(r=>r.ok?r.json():null).then(d=>{if(d?.mode)setAuthProvider(d.mode);}).catch(()=>{});},[staticDemo]);
  // 恢复登录态：令牌无效时清理。
  useEffect(()=>{
   const token=readStore('authToken','');
   if(!token||staticDemo)return;
   let alive=true;
-  fetch('/api/auth/me?token='+encodeURIComponent(token)).then(r=>r.ok?r.json():null).then(d=>{
+  fetch(apiUrl('/api/auth/me?token='+encodeURIComponent(token))).then(r=>r.ok?r.json():null).then(d=>{
    if(!alive)return;
    if(d?.user)setAccount({...d.user,token});else writeStore('authToken','');
   }).catch(()=>{});
@@ -134,12 +135,12 @@ export default function App(){
  async function submitAuth(){
   setAuthBusy(true);setAuthError('');
   try{
-   const r=await fetch(authMode==='register'?'/api/auth/register':'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(authForm)});
+   const r=await fetch(apiUrl(authMode==='register'?'/api/auth/register':'/api/auth/login'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(authForm)});
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(d.error||'操作失败');
    writeStore('authToken',d.token);
    setAccount({...d.user,token:d.token});
-   setAuthOpen(false);setWorld('online');
+   setAuthOpen(false);{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');
    notice(`欢迎来到联机江湖，${d.user.name}`);
   }catch(e){setAuthError(e.message);}
   finally{setAuthBusy(false);}
@@ -147,25 +148,25 @@ export default function App(){
  async function submitExternal(){
   setAuthBusy(true);setAuthError('');
   try{
-   const r=await fetch('/api/auth/external',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:externalToken.trim()})});
+   const r=await fetch(apiUrl('/api/auth/external'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:externalToken.trim()})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(d.error||'社区账号验证失败');
    writeStore('authToken',d.token);
    setAccount({...d.user,token:d.token});
-   setAuthOpen(false);setWorld('online');
+   setAuthOpen(false);{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');
    notice(`欢迎来到联机江湖，${d.user.name}`);
   }catch(e){setAuthError(e.message);}
   finally{setAuthBusy(false);}
  }
  async function logout(){
-  try{await fetch('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account?.token||''})});}catch{}
+  try{await fetch(apiUrl('/api/auth/logout'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account?.token||''})});}catch{}
   writeStore('authToken','');setAccount(null);setWorld('demo');notice('已退出登录，回到本地演示');
  }
  async function saveProfile(){
   const name=profileDraft.name.trim()||'少侠';
   if(account){
    try{
-    const r=await fetch('/api/auth/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,name,color:profileDraft.color})});
+    const r=await fetch(apiUrl('/api/auth/profile'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,name,color:profileDraft.color})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(d.error||'保存失败');
     setAccount(a=>({...a,...d.user}));
@@ -176,8 +177,7 @@ export default function App(){
  }
  useEffect(()=>{
   if(world!=='online'||staticDemo||!account)return;
-  const proto=window.location.protocol==='https:'?'wss':'ws';
-  const client=new OnlineClient({url:`${proto}://${window.location.host}/ws/world`,token:account.token,room,handlers:{
+  const client=new OnlineClient({url:worldWsUrl(),token:account.token,room,handlers:{
    onOpen:()=>setOnlineState('connecting'),
    onWelcome:d=>{setQueue(null);setOnlineState('online');if(d.activity?.length)setOnlineActivity(d.activity);notice('已进入联机世界，点击地面行走');},
    onRoomQueued:d=>{setQueue({position:d.position,waiting:d.waiting});setOnlineState('queued');notice(`房间已满（${d.capacity} 位），你排在第 ${d.position} 位`);},
@@ -212,7 +212,7 @@ export default function App(){
  const tableMates=mySeat?seats.filter(x=>x.seat!==mySeat&&x.seat.slice(0,5)===mySeat.slice(0,5)):[];
  const mySeatDef=mySeat?SEATS.find(s=>s.id===mySeat):null;
  function notice(text){setToast(text);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),3500);}
- useEffect(()=>{if(!staticDemo)fetch('/api/status').then(r=>r.ok?r.json():null).then(d=>{if(d)setMode(d.mode);}).catch(()=>{});return()=>{clearTimeout(toastTimer.current);abortRef.current?.abort();};},[]);
+ useEffect(()=>{if(!staticDemo)fetch(apiUrl('/api/status')).then(r=>r.ok?r.json():null).then(d=>{if(d)setMode(d.mode);}).catch(()=>{});return()=>{clearTimeout(toastTimer.current);abortRef.current?.abort();};},[]);
  useEffect(()=>{const id=new URLSearchParams(window.location.search).get('work');const w=allWorks.find(w=>w.id===id);if(w){setEditionId(w.editionId);setLocation('hall');setPanel('gallery');setWorkId(id);}else setWorkId(null);},[allWorks]);
  useEffect(()=>{if(catalogState.source==='snapshot-fallback')notice('内容接口暂不可用，已切换本地内容快照，作品阅读不受影响');else if(catalogState.exhibition?.mismatch)notice('展陈布局版本与内容服务不一致，请刷新或联系运营核对');},[catalogState.source,catalogState.exhibition?.mismatch]);
  useEffect(()=>{if(chatScroll.current)chatScroll.current.scrollTop=chatScroll.current.scrollHeight;},[messages,sending]);
@@ -229,7 +229,7 @@ export default function App(){
   if(!account){setAuthMode('login');setAuthError('');setAuthOpen(true);notice('关注需要先登录名帖');return;}
   const wasFollowing=isFollowing(type,id);
   try{
-   const r=await fetch(wasFollowing?'/api/follows/remove':'/api/follows',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,targetType:type,targetId:id})});
+   const r=await fetch(apiUrl(wasFollowing?'/api/follows/remove':'/api/follows'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,targetType:type,targetId:id})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(d.error||'操作失败');
    setFollows(v=>wasFollowing?v.filter(f=>!(f.targetType===type&&f.targetId===id)):[{targetType:type,targetId:id,createdAt:Date.now()},...v]);
@@ -248,12 +248,12 @@ export default function App(){
  function startChat(id){if(!account){setAuthMode('login');setAuthError('');setAuthOpen(true);notice('与侠客私聊需要先登录名帖');return;}if(chatId)closeChat();engine.hold(id);setChatId(id);setPanel('chat');setMessages(v=>({...v,[id]:v[id]||[{role:'assistant',content:AGENTS.find(a=>a.id===id).line}]}));setDraft('');}
  function openPlace(id){setPlaceId(id);openPanel('place');}
  async function sendMessage(text=draft){text=text.trim();if(!text||sending||!chatId)return;const id=chatId,rev=memoryRev.current;const historyMessages=messages[id]||[];const liveIds=new Set(liveWorks.map(w=>w.id));const observations=(agents.find(a=>a.id===id)?.views||[]).filter(v=>liveIds.has(v.workId)).map(v=>({workId:v.workId,title:v.title,tagline:v.tagline,impression:v.impression,opinion:v.opinion}));setDraft('');setSending(true);setMessages(v=>({...v,[id]:[...(v[id]||[]),{role:'user',content:text}]}));const controller=new AbortController();abortRef.current=controller;
-  try{let d;if(staticDemo){d=demoReply({message:text,agentId:id,memories:remember?memoryFor(memories,id):[],observations});}else{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,agentId:id,token:account?.token||'',history:historyMessages,observations}),signal:controller.signal});d=await r.json();if(!r.ok)throw new Error(d.error||'暂时无法回复');}if(controller.signal.aborted||rev!==memoryRev.current)return;setMode(d.mode);setMessages(v=>({...v,[id]:[...(v[id]||[]),{role:'assistant',content:d.text,workIds:d.workIds}]}));
+  try{let d;if(staticDemo){d=demoReply({message:text,agentId:id,memories:remember?memoryFor(memories,id):[],observations});}else{const r=await fetch(apiUrl('/api/chat'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,agentId:id,token:account?.token||'',history:historyMessages,observations}),signal:controller.signal});d=await r.json();if(!r.ok)throw new Error(d.error||'暂时无法回复');}if(controller.signal.aborted||rev!==memoryRev.current)return;setMode(d.mode);setMessages(v=>({...v,[id]:[...(v[id]||[]),{role:'assistant',content:d.text,workIds:d.workIds}]}));
    // 用户主动开启并主动表达兴趣时才保存；记忆写入账号（服务端），不写入浏览器。
-   if(remember&&account&&/我.*(喜欢|感兴趣|想学|在做)|记住/.test(text)){fetch('/api/memories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,agentId:id,text,source:'你主动表达的兴趣'})}).then(r=>r.ok?r.json():null).then(saved=>{if(saved?.entry)setMemories(v=>[saved.entry,...v].slice(0,60));}).catch(()=>{});}
+   if(remember&&account&&/我.*(喜欢|感兴趣|想学|在做)|记住/.test(text)){fetch(apiUrl('/api/memories'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,agentId:id,text,source:'你主动表达的兴趣'})}).then(r=>r.ok?r.json():null).then(saved=>{if(saved?.entry)setMemories(v=>[saved.entry,...v].slice(0,60));}).catch(()=>{});}
   }catch(e){if(e.name!=='AbortError')setMessages(v=>({...v,[id]:[...(v[id]||[]),{role:'assistant',content:e.message,error:true}]}));}finally{if(abortRef.current===controller)setSending(false);}
  }
- function deleteMemory(id){memoryRev.current++;abortRef.current?.abort();setSending(false);setMessages({});if(account){const path=id?`/api/memories/delete`:`/api/memories/clear`;fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(id?{token:account.token,id}:{token:account.token,agentId:chatId||''})}).then(r=>r.ok?r.json():null).then(d=>{if(d)setMemories(m=>id?m.filter(x=>x.id!==id):[]);}).catch(()=>{});}else setMemories(m=>id?m.filter(x=>x.id!==id):[]);notice(id?'记忆已删除，相关对话上下文已清除':'所有私人记忆与对话上下文已清除');}
+ function deleteMemory(id){memoryRev.current++;abortRef.current?.abort();setSending(false);setMessages({});if(account){const path=id?`/api/memories/delete`:`/api/memories/clear`;fetch(apiUrl(path),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(id?{token:account.token,id}:{token:account.token,agentId:chatId||''})}).then(r=>r.ok?r.json():null).then(d=>{if(d)setMemories(m=>id?m.filter(x=>x.id!==id):[]);}).catch(()=>{});}else setMemories(m=>id?m.filter(x=>x.id!==id):[]);notice(id?'记忆已删除，相关对话上下文已清除':'所有私人记忆与对话上下文已清除');}
  function changeRemember(value){memoryRev.current++;abortRef.current?.abort();setSending(false);setRemember(value);setMessages({});}
  async function share(){try{await navigator.clipboard.writeText(window.location.href);notice('作品链接已复制');}catch{notice('可复制地址栏中的作品链接');}}
  function workCard(w){return <button className="work-card" key={w.id} onClick={()=>openWork(w.id)}><div className="work-image"><img src={w.thumb} alt={w.title} loading="lazy"/><span style={{boxShadow:`inset 3px 0 ${(currentEdition?.trackColors||{})[w.track]||'transparent'}`}}>{w.track}</span>{exhibitedIds.has(w.id)&&<span className="exhibiting-badge">展陈中</span>}{bookmarks.includes(w.id)&&<Bookmark size={17} fill="currentColor"/>}</div><div className="work-copy"><h3>{w.title}</h3><p>{w.tagline}</p><footer><span>{w.author}</span><ArrowUpRight size={16}/></footer></div></button>;}
@@ -262,7 +262,7 @@ export default function App(){
   <header className="topbar">
    <button className="brand" onClick={()=>{closePanel();setLocation('town');apiRef.current?.reset();}} aria-label="回到原子江湖"><span className="brand-seal">原<span>子</span></span><span className="brand-word">原子江湖<small>ATOMHUB · A LIVING WORLD</small></span></button>
    <nav aria-label="主导航"><button className={location==='town'&&!['journal','about'].includes(panel)?'active':''} onClick={()=>{closePanel();setLocation('town');}}><Compass size={17}/>漫游小镇</button><button className={location==='hall'?'active':''} onClick={enterHall}><BookOpen size={17}/>武林大会</button><button className={panel==='journal'?'active':''} onClick={()=>openPanel('journal')}><Bookmark size={16}/>游历手札{bookmarks.length>0&&<b>{bookmarks.length}</b>}</button></nav>
-   <div className="top-actions">{staticDemo?<span className="world-status"><i/>本地世界</span>:<button className={`world-status mode-switch ${world}`} onClick={()=>{if(world==='online'){setWorld('demo');return;}if(!account){setAuthMode('register');setAuthForm({name:nickname==='初来江湖的你'?'':nickname,password:'',color:playerColor});setAuthError('');setAuthOpen(true);return;}setWorld('online');}} aria-label="切换世界模式">{world==='online'?<><Wifi size={13}/>{onlineState==='online'?'联机世界':onlineState==='queued'?`排队中 ${queue?.position||1}`:onlineState==='connecting'?'连接中…':onlineState==='taken-over'?'已被接管':'重连中…'}</>:<><WifiOff size={13}/>{account?'进入联机':'登录进入联机'}</>}</button>}<button className="profile-button" onClick={()=>openPanel('settings')} aria-label="定制我的侠客"><Avatar size={34}/><span>{account?account.name:nickname==='初来江湖的你'?'少侠':nickname}</span><ChevronRight size={14}/></button></div>
+   <div className="top-actions">{staticDemo?<span className="world-status"><i/>本地世界</span>:<button className={`world-status mode-switch ${world}`} onClick={()=>{if(world==='online'){setWorld('demo');return;}if(!account){setAuthMode('register');setAuthForm({name:nickname==='初来江湖的你'?'':nickname,password:'',color:playerColor});setAuthError('');setAuthOpen(true);return;}{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');}} aria-label="切换世界模式">{world==='online'?<><Wifi size={13}/>{onlineState==='online'?'联机世界':onlineState==='queued'?`排队中 ${queue?.position||1}`:onlineState==='connecting'?'连接中…':onlineState==='taken-over'?'已被接管':'重连中…'}</>:<><WifiOff size={13}/>{account?'进入联机':'登录进入联机'}</>}</button>}<button className="profile-button" onClick={()=>openPanel('settings')} aria-label="定制我的侠客"><Avatar size={34}/><span>{account?account.name:nickname==='初来江湖的你'?'少侠':nickname}</span><ChevronRight size={14}/></button></div>
   </header>
   <main className={`world-layout ${rail?'':'rail-hidden'}`}>
    <div className="world-stage">
@@ -328,7 +328,7 @@ export default function App(){
   {panel==='people'&&<Dialog title="同行侠客" subtitle="每个相逢，都可能是共创的开始" onClose={closePanel} className="people-dialog"><div className="people-list">{AGENTS.map(a=><div key={a.id} className="people-row"><button onClick={()=>startChat(a.id)}><Avatar agent={a} size={52}/><span><strong>{a.name}<i>AI</i></strong><p>{a.role}</p><small>{agents.find(x=>x.id===a.id)?.state}</small></span><MessageCircle size={20}/></button><button className={`follow-button ${isFollowing('ai',a.id)?'on':''}`} onClick={()=>toggleFollow('ai',a.id)} aria-label={`${isFollowing('ai',a.id)?'取消关注':'关注'}${a.name}`}>{isFollowing('ai',a.id)?'已关注':'+ 关注'}</button></div>)}</div><p className="source-note">角色为虚构 AI 伙伴，不代表真实主理人或作者。当前世界运行在本地浏览器。</p></Dialog>}
   {panel==='journal'&&<Dialog title="游历手札" subtitle="你的相逢与发现，留在这里" onClose={closePanel} className="journal-dialog" hidden={!!work}><div className="journal-tabs">{['收藏作品','最近看过','私人记忆','我的关注'].map(t=><button className={journalTab===t?'active':''} key={t} onClick={()=>setJournalTab(t)}>{t}</button>)}</div>{journalTab==='我的关注'?<FollowsTab account={account} follows={follows} onlinePlayers={onlinePlayers} onToggle={toggleFollow} onLogin={()=>{setAuthMode('login');setAuthError('');setAuthOpen(true);}}/>:journalTab==='私人记忆'?<div className="memory-list">{!account?<div className="empty-state"><Sparkles/><h3>登录后查看私人记忆</h3><p>记忆按账号与角色隔离保存，只有本人可见。</p><button className="primary-button" onClick={()=>{setAuthMode('login');setAuthError('');setAuthOpen(true);}}>登录名帖</button></div>:<><p>只有对应侠客会在你开启记忆时使用这些记录；删除后立即不再被引用，并同步清除当前对话上下文。</p>{memories.length===0?<div className="empty-state"><Sparkles/><h3>还没有保存的记忆</h3><p>与侠客聊天时，你可以主动开启兴趣记忆。</p></div>:<>{memories.map(m=><article key={m.id}><Avatar agent={AGENTS.find(a=>a.id===m.agentId)}/><div><small>{AGENTS.find(a=>a.id===m.agentId)?.name} · {m.source}</small><p>{m.text}</p></div><button aria-label="删除这条记忆" className="icon-button" onClick={()=>deleteMemory(m.id)}><Trash2 size={16}/></button></article>)}<button className="danger-button" onClick={()=>deleteMemory()}>删除全部私人记忆</button></>}</>}</div>:<div className="work-grid">{(journalTab==='收藏作品'?bookmarks:visits.map(v=>v.id)).map(id=>allWorks.find(w=>w.id===id)).filter(Boolean).map(workCard)}{(journalTab==='收藏作品'?bookmarks:visits).length===0&&<div className="empty-state"><BookOpen/><h3>手札的第一页，等你来写</h3><p>去展馆发现一个喜欢的作品吧。</p><button className="primary-button" onClick={enterHall}>去看看作品<ArrowRight size={16}/></button></div>}</div>}<p className="source-note">收藏与浏览记录保存在此浏览器；私人记忆保存在你的账号里（仅本人可见）。</p></Dialog>}
   {panel==='settings'&&<Dialog title="定制这片江湖" subtitle="你的侠客，你的小世界" onClose={closePanel} className="settings-dialog"><div className="settings-content"><h3>{account?'侠客名帖 · 账号':'本地形象'}</h3>{account&&<p className="setting-description">名帖保存在账号里：联机世界中的名字与衣带色以此为准，修改后房间内立即生效。</p>}<div className="profile-editor"><Avatar size={64} agent={{color:profileDraft.color}}/><label>我的昵称<input value={profileDraft.name} onChange={e=>setProfileDraft(d=>({...d,name:e.target.value.slice(0,20)}))} maxLength={20} aria-label="我的昵称"/></label></div><label>衣带颜色</label><div className="color-options">{['#427ab5','#719783','#a17b9e','#b68b54','#be7770'].map(c=><button key={c} aria-label={`衣带颜色 ${c}`} className={c===profileDraft.color?'active':''} style={{background:c}} onClick={()=>setProfileDraft(d=>({...d,color:c}))}>{c===profileDraft.color&&<Check size={18}/>}</button>)}</div><button className="primary-button" onClick={saveProfile}>{account?'保存名帖':'保存本地形象'}</button><h3>世界主题</h3><p className="setting-description">切换建筑与环境配色，保留原子公社的场景布局和真实作品。</p><div className="theme-options">{Object.entries(THEMES).map(([id,t])=><button key={id} className={id===theme?'active':''} onClick={()=>setTheme(id)}><span style={{background:t.roof}}/>{t.name}{theme===id&&<Check size={15}/>}</button>)}</div><label className="setting-toggle"><span>地图建筑标签</span><input type="checkbox" checked={showLabels} onChange={e=>setShowLabels(e.target.checked)}/></label><label className="setting-toggle"><span>灯火夜景</span><input type="checkbox" checked={night} onChange={e=>setNight(e.target.checked)}/></label><button className="secondary-button" onClick={()=>{setTheme('jianghu');setPlayerColor('#427ab5');setNight(false);setShowLabels(true);setProfileDraft(d=>({...d,color:'#427ab5'}));apiRef.current?.reset();}}>恢复默认场景</button>{account&&<button className="danger-button" onClick={logout}>退出登录</button>}</div></Dialog>}
-  {memoryOffer&&account&&<Dialog title="发现本机旧记忆" subtitle="是否迁移到当前账号" onClose={()=>setMemoryOffer(null)} className="small-dialog"><div className="place-detail"><p>此浏览器里保存着 {memoryOffer.length} 条旧版私人记忆（按角色隔离）。你可以把它们迁入当前账号，之后任何设备登录都能使用；也可以保留在本机。</p><p className="source-note">不会自动归入账号——需要你明确选择。</p><div className="detail-actions"><button className="primary-button" onClick={async()=>{const items=memoryOffer.map(m=>({agentId:m.agentId,text:m.text,source:m.source||'从本机迁移'}));try{const r=await fetch('/api/memories/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,items})});const d=await r.json();if(r.ok){writeStore('memories',[]);notice(`已迁移 ${d.imported} 条记忆到账号`);const again=await fetch(`/api/memories?token=${encodeURIComponent(account.token)}&agentId=`);const list=await again.json();setMemories(list.items||[]);}else notice(d.error||'迁移失败');}catch{notice('迁移失败，请稍后再试');}setMemoryOffer(null);}}><Sparkles size={16}/>迁移到账号</button><button className="secondary-button" onClick={()=>{setMemoryOffer(null);notice('已保留在本机，可稍后在设置中迁移');}}>保留在本机</button></div></div></Dialog>}
+  {memoryOffer&&account&&<Dialog title="发现本机旧记忆" subtitle="是否迁移到当前账号" onClose={()=>setMemoryOffer(null)} className="small-dialog"><div className="place-detail"><p>此浏览器里保存着 {memoryOffer.length} 条旧版私人记忆（按角色隔离）。你可以把它们迁入当前账号，之后任何设备登录都能使用；也可以保留在本机。</p><p className="source-note">不会自动归入账号——需要你明确选择。</p><div className="detail-actions"><button className="primary-button" onClick={async()=>{const items=memoryOffer.map(m=>({agentId:m.agentId,text:m.text,source:m.source||'从本机迁移'}));try{const r=await fetch(apiUrl('/api/memories/import'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,items})});const d=await r.json();if(r.ok){writeStore('memories',[]);notice(`已迁移 ${d.imported} 条记忆到账号`);const again=await fetch(apiUrl(`/api/memories?token=${encodeURIComponent(account.token)}&agentId=`));const list=await again.json();setMemories(list.items||[]);}else notice(d.error||'迁移失败');}catch{notice('迁移失败，请稍后再试');}setMemoryOffer(null);}}><Sparkles size={16}/>迁移到账号</button><button className="secondary-button" onClick={()=>{setMemoryOffer(null);notice('已保留在本机，可稍后在设置中迁移');}}>保留在本机</button></div></div></Dialog>}
   {authOpen&&authProvider==='external'&&<Dialog title="使用社区账号登录" subtitle="原子公社账号体系" onClose={()=>setAuthOpen(false)} className="auth-dialog"><div className="auth-content"><p className="setting-description">联机世界已接入社区账号体系：粘贴你的访问令牌即可进入（令牌由社区账号系统签发，服务端验证后建立本地会话）。</p><label>访问令牌<textarea value={externalToken} onChange={e=>setExternalToken(e.target.value)} placeholder="粘贴社区账号访问令牌" rows={4} aria-label="访问令牌"/></label>{authError&&<p className="auth-error">{authError}</p>}<button className="primary-button" disabled={authBusy||!externalToken.trim()} onClick={submitExternal}>{authBusy?'验证中…':'进入联机世界'}</button></div></Dialog>}
   {authOpen&&authProvider!=='external'&&<Dialog title={authMode==='register'?'创建侠客名帖':'登录联机江湖'} subtitle="账号信息只保存在此本地服务" onClose={()=>setAuthOpen(false)} className="auth-dialog"><div className="auth-content"><div className="auth-tabs"><button className={authMode==='register'?'active':''} onClick={()=>{setAuthMode('register');setAuthError('');}}>注册名帖</button><button className={authMode==='login'?'active':''} onClick={()=>{setAuthMode('login');setAuthError('');}}>登录</button></div><p className="setting-description">联机世界需要账号：位置与私聊由服务端按会话身份校验。这是本地演示账号体系，不是生产鉴权。</p><label>名帖昵称<input value={authForm.name} onChange={e=>setAuthForm(f=>({...f,name:e.target.value.slice(0,20)}))} maxLength={20} placeholder="少侠" aria-label="名帖昵称"/></label><label>密码<input type="password" value={authForm.password} onChange={e=>setAuthForm(f=>({...f,password:e.target.value.slice(0,64)}))} placeholder={authMode==='register'?'至少 6 位':'请输入密码'} aria-label="密码"/></label><label>衣带颜色</label><div className="color-options">{['#427ab5','#719783','#a17b9e','#b68b54','#be7770'].map(c=><button key={c} aria-label={`衣带颜色 ${c}`} className={c===authForm.color?'active':''} style={{background:c}} onClick={()=>setAuthForm(f=>({...f,color:c}))}>{c===authForm.color&&<Check size={18}/>}</button>)}</div>{authError&&<p className="auth-error">{authError}</p>}<button className="primary-button" disabled={authBusy} onClick={submitAuth}>{authBusy?'处理中…':authMode==='register'?'创建并进入联机世界':'登录并进入'}</button></div></Dialog>}
   {panel==='about'&&<Dialog title="聚是一团火，散作满天星" subtitle="原子公社 ATOMHUB · 品牌与共建" onClose={closePanel} className="about-dialog"><div className="about-content"><img src={assetUrl('/brand/hero-ip.webp')} alt="原子公社侠客 IP"/><div><span className="eyebrow">人与 AGENT 共建的开源学习社区</span><img className="brand-lockup" src={assetUrl(night?'/brand/atomhub-lockup-white.png':'/brand/atomhub-lockup-black.png')} alt="原子公社 AtomHub 官方 Logo"/><img className="brand-lockup atomesh" src={assetUrl(night?'/brand/atomesh-lockup-white.png':'/brand/atomesh-lockup-black.png')} alt="原子之心 Atomesh 旗下社区品牌"/><h3>每个人都是一颗原子。</h3><p>人在这里提供经验与认知，Agent 带来效率与协助。一起分享真实案例、探索 AI 工具，把新的想法做成能解决问题的作品。</p><div className="values">{['个体至上','开放共享','务实求真','互助共赢','持续进化'].map((v,i)=><span key={v}><small>0{i+1}</small>{v}</span>)}</div><p>主理人是社区的“点灯人”。小镇将这份迎新与连接的职责交给阿原，将开放学习、共创实践和成果展示分别放进书院、工坊与比赛展示馆。</p><div className="sticker-wall-wrap"><img src={assetUrl('/brand/sticker-wall.webp')} alt="原子公社侠客表情包"/><small>社区表情包 · 原子公社原创 IP</small></div><p className="source-note">品牌依据：《原子公社对外介绍 v2.2》 第 1、5—10、21 页。IP 与表情包来自你提供的素材。此版本为本地 3D 原型；真人联机、云端记忆及运营发布后台尚未接入。</p><a href="https://github.com/a16z-infra/ai-town" target="_blank" rel="noreferrer" className="text-button">技术参考 · AI Town<ExternalLink size={14}/></a></div></div></Dialog>}

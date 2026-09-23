@@ -1,0 +1,27 @@
+# 世界服务端（权威世界 + API + WebSocket）一键部署。
+# 前端两种用法：
+#   1) 同源：直接访问 http://localhost:8080（本服务自带静态文件，无需其他部署）。
+#   2) 分离：前端部署到 Vercel 等静态托管，构建时设置
+#      VITE_API_BASE=https://world.example.com
+#      VITE_WS_URL=wss://world.example.com/ws/world
+#      并把下方 ATOM_ALLOWED_ORIGINS 改成前端域名（WS 跨源校验必须登记）。
+services:
+  world:
+    build: .
+    image: atom-jianghu-world
+    ports: ['8080:8080']
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - ATOM_DATA_DIR=/app/data
+      # 多个域名用逗号分隔；留空表示仅允许同源（分离部署必须填前端域名）
+      - ATOM_ALLOWED_ORIGINS=${ATOM_ALLOWED_ORIGINS:-}
+      # 可选：房间配置 / 账号模式 / 模型与预算等，见 docs/DEPLOY.md
+      # - ATOM_ROOMS=jianghu:原子江湖·主镇:20
+      # - ATOM_AUTH_MODE=local
+    volumes:
+      - atom-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  atom-data:

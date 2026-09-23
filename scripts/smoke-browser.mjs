@@ -2,6 +2,7 @@ import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5173';
+const apiBase=process.env.TEST_API_BASE||base;
 fs.mkdirSync('artifacts',{recursive:true});
 const browser=await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL||'chrome'});
 const errors=[];
@@ -88,7 +89,7 @@ try{
  // 平板竖屏：无横向溢出，侧栏正常显示。
  const tablet=await browser.newPage({viewport:{width:834,height:1112}});tablet.on('pageerror',e=>errors.push(e.message));await tablet.goto(base);await tablet.waitForSelector('.scene-pin.player');assert.equal(await tablet.evaluate(()=>document.documentElement.scrollWidth),834);assert.ok(await tablet.locator('.right-rail').isVisible(),'平板端侧栏可见');await tablet.screenshot({path:'artifacts/town-tablet.png'});
  const fallback=await browser.newPage();fallback.on('pageerror',e=>errors.push(e.message));await fallback.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){if(type.includes('webgl'))return null;return original.call(this,type,...args);};});await fallback.goto(base);await fallback.getByRole('button',{name:'打开比赛展示馆'}).click();await fallback.getByRole('button',{name:'进入展示馆',exact:true}).click();assert.equal(await fallback.locator('.work-card').count(),38);
- if(process.env.TEST_STATIC_DEMO!=='true'){const response=await page.request.post(base+'/api/chat',{data:null});assert.equal(response.status(),400);}
+ if(process.env.TEST_STATIC_DEMO!=='true'){const response=await page.request.post(apiBase+'/api/chat',{data:null});assert.equal(response.status(),400);}
  if(process.env.TEST_STATIC_DEMO!=='true'){
   const degraded=await browser.newPage();degraded.on('pageerror',e=>errors.push(e.message));
   await degraded.addInitScript(()=>{const original=window.fetch;window.fetch=(input,...args)=>String(input).includes('/api/content/catalog')?Promise.reject(new Error('offline')):original(input,...args);});
@@ -109,7 +110,7 @@ try{
   const row=admin.locator('table.grid tbody tr').first();
   await row.getByRole('button',{name:'撤回'}).click();
   await admin.waitForTimeout(400);
-  const withdrawn=await page.request.get(base+'/api/works/funskills--ecom-video');
+  const withdrawn=await page.request.get(apiBase+'/api/works/funskills--ecom-video');
   assert.equal(withdrawn.status(),410,'撤回后公开详情必须返回 410');
   await page.goto(base);await page.waitForSelector('.scene-pin.player');
   await page.getByRole('button',{name:'武林大会',exact:true}).click();
@@ -118,7 +119,7 @@ try{
   await admin.getByRole('textbox',{name:'搜索作品'}).fill('电商视频全能版');
   await admin.locator('table.grid tbody tr').first().getByRole('button',{name:'发布'}).click();
   await admin.waitForTimeout(400);
-  const restored=await page.request.get(base+'/api/works/funskills--ecom-video');
+  const restored=await page.request.get(apiBase+'/api/works/funskills--ecom-video');
   assert.equal(restored.status(),200,'重新发布后公开详情恢复');
   await admin.getByRole('button',{name:'审计日志'}).click();
   assert.ok(await admin.locator('table.grid tbody tr').count()>=2,'审计日志记录撤回与发布');

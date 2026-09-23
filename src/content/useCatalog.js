@@ -3,6 +3,7 @@
 // 联机模式轮询 /api/content/health 的 stateVersion：运营在后台发布或撤回后，
 // 目录、展位与检索自动更新，不要求手动刷新。
 import {useEffect,useRef,useState} from 'react';
+import {apiUrl} from '../net/endpoints.js';
 import {catalog as bundledCatalog,normalizeCatalog} from './catalog.js';
 import {SHARED_EXHIBITION} from './exhibition.js';
 
@@ -13,7 +14,7 @@ function exhibitionFrom(config){
 export async function loadCatalog({staticDemo=false,fetchImpl=fetch}={}){
  if(staticDemo)return {status:'ready',source:'static-snapshot',catalog:bundledCatalog,error:null,exhibition:exhibitionFrom(null)};
  try{
-  const response=await fetchImpl('/api/content/catalog',{headers:{Accept:'application/json'}});
+  const response=await fetchImpl(apiUrl('/api/content/catalog'),{headers:{Accept:'application/json'}});
   if(!response.ok)throw new Error(`内容接口返回 ${response.status}`);
   const data=await response.json();
   return {status:'ready',source:'api',catalog:normalizeCatalog(data.editions),error:null,exhibition:exhibitionFrom(data.exhibition),stateVersion:Number(data.stateVersion)||0};
@@ -35,7 +36,7 @@ export function useCatalog({staticDemo=false,refreshKey=0}={}){
   let alive=true;
   const timer=setInterval(async()=>{
    try{
-    const response=await fetch('/api/content/health',{headers:{Accept:'application/json'}});
+    const response=await fetch(apiUrl('/api/content/health'),{headers:{Accept:'application/json'}});
     if(!response.ok)return;
     const health=await response.json();
     if(!alive||Number(health.stateVersion)===version.current)return;

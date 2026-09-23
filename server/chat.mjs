@@ -7,6 +7,7 @@ import {retrieve,demoReply} from '../src/demo.mjs';
 import {generateAgentReply} from './agent-brain.mjs';
 import {verify} from './accounts.mjs';
 import {recallMemories,listMemories,recallMemoriesAsync} from './memories.mjs';
+import {originAllowed} from './world.mjs';
 export {allWorks,retrieve,demoReply} from '../src/demo.mjs';
 export function chatPlugin(env){
  const plugin={name:'atom-local-chat',configureServer(server){server.middlewares.use(async(req,res,next)=>{
@@ -14,7 +15,9 @@ export function chatPlugin(env){
   const send=(status,data)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(data));};
   if(url.pathname==='/api/status')return send(200,{mode:env.ATOM_LLM_API_KEY?'model':'demo',model:env.ATOM_LLM_API_KEY?env.ATOM_LLM_MODEL||'configured':null});
   if(url.pathname!=='/api/chat'||req.method!=='POST')return send(404,{error:'接口不存在'});
-  if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return send(403,{error:'请求来源不受支持'});
+  // 同源直接放行；跨域（前端分离部署）需在 ATOM_ALLOWED_ORIGINS 白名单内。
+  const allowedOrigins=String(env.ATOM_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(req.headers.origin&&!originAllowed(req,allowedOrigins))return send(403,{error:'请求来源不受支持'});
   let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>24000)return send(413,{error:'消息过长'});body+=chunk;}
   let data;try{data=JSON.parse(body);}catch{return send(400,{error:'消息格式不正确'});}
   if(!data||typeof data!=='object'||typeof data.message!=='string'||!data.message.trim()||data.message.length>1000||!AGENTS.some(a=>a.id===data.agentId))return send(400,{error:'请填写有效消息，最多 1000 字'});
