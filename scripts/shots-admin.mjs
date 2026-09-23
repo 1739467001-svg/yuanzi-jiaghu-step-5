@@ -1,0 +1,24 @@
+// 运营后台人工验收截图：令牌门、赛事管理、作品管理、审计日志。
+import {chromium} from '@playwright/test';
+import fs from 'node:fs';
+const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5176';
+fs.mkdirSync('artifacts',{recursive:true});
+const browser=await chromium.launch({headless:true,channel:'chrome'});
+const page=await browser.newPage({viewport:{width:1440,height:900}});
+const errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.goto(base+'/admin.html');
+await page.screenshot({path:'artifacts/admin-gate.png'});
+await page.getByRole('textbox',{name:'本地运营令牌'}).fill('atom-local-demo');
+await page.getByRole('button',{name:'进入后台'}).click();
+await page.waitForTimeout(1000);
+await page.screenshot({path:'artifacts/admin-editions.png'});
+await page.getByRole('button',{name:'作品管理'}).click();
+await page.getByRole('textbox',{name:'搜索作品'}).fill('电商');
+await page.waitForTimeout(500);
+await page.screenshot({path:'artifacts/admin-works.png'});
+await page.getByRole('button',{name:'审计日志'}).click();
+await page.waitForTimeout(500);
+await page.screenshot({path:'artifacts/admin-audit.png'});
+await browser.close();
+console.log(errors.length?'FAIL':'PASS admin screenshots');

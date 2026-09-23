@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+references/ai-town/
+.DS_Store
+artifacts/
+
+.env.*
+!.env.example
+data/

@@ -1,0 +1,21 @@
+// 多房间人工验收截图：房间列表与占用。
+import {chromium} from '@playwright/test';
+import fs from 'node:fs';
+const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5193';
+fs.mkdirSync('artifacts',{recursive:true});
+const browser=await chromium.launch({headless:true,channel:'chrome'});
+const errors=[];
+const page=await browser.newPage({viewport:{width:1280,height:800}});
+page.on('pageerror',e=>errors.push(e.message));
+await page.goto(base);
+await page.waitForSelector('.scene-pin.player');
+await page.getByRole('button',{name:'切换世界模式'}).click();
+await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
+await page.getByRole('textbox',{name:'名帖昵称'}).fill('房客截图');
+await page.getByRole('textbox',{name:'密码'}).fill('password123');
+await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+await page.waitForFunction(()=>window.__atomOnlinePlayers!==undefined,null,{timeout:20000});
+await page.waitForTimeout(1200);
+await page.screenshot({path:'artifacts/online-rooms.png'});
+await browser.close();
+console.log(errors.length?'FAIL '+errors.join(';'):'PASS rooms screenshot');

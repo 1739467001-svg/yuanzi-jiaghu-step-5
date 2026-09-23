@@ -1,0 +1,63 @@
+*{box-sizing:border-box}body{margin:0;background:#eef1e9;color:#33413a;font:14px/1.6 "DM Sans","PingFang SC","Noto Sans SC",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;color:inherit;border:0;background:none}button:disabled{cursor:wait;opacity:.45}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #b3894e;outline-offset:2px}
+h1,h2,h3,p{margin:0}svg{flex-shrink:0;vertical-align:-2px}
+.admin{min-height:100dvh;display:flex;flex-direction:column}
+.admin>header{display:flex;align-items:center;gap:16px;padding:14px 28px;background:#f9faf5f2;border-bottom:1px solid #dce2d5;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.admin>header h1{font-size:17px;font-weight:650;letter-spacing:1px}
+.admin>header small{color:#8b968c;font-size:11px}
+.admin>header nav{margin-left:auto;display:flex;gap:6px;align-items:center}
+.admin>header nav button{padding:7px 14px;border-radius:8px;font-size:13px;color:#6f7a71}
+.admin>header nav button.active{background:#e7ecdf;color:#365b48;font-weight:600}
+.brand-seal{display:grid;place-items:center;width:34px;height:37px;font-family:"Songti SC",serif;font-size:16px;font-weight:700;border:1.5px solid #54705d;border-radius:5px;color:#486750;transform:rotate(-3deg);letter-spacing:-3px}
+.brand-seal span{margin-top:12px;font-size:14px}
+.admin main{flex:1;padding:22px 28px 40px;max-width:1180px;width:100%;margin:0 auto}
+.admin>footer{padding:14px 28px;border-top:1px solid #dce2d5;background:#f9faf5e6}
+.muted{color:#8b968c}.muted small{font-size:11px}
+.banner{display:flex;align-items:center;gap:8px;margin:14px 28px 0;padding:10px 14px;border-radius:10px;font-size:13px}
+.banner.error{background:#fdf0ec;color:#a0523c;border:1px solid #f2d3c8}
+.banner.ok{background:#eef5e6;color:#4a6b3f;border:1px solid #d5e4c6}
+.banner .text-button{margin-left:auto}
+.panel{background:#fbfcf8;border:1px solid #dde3d6;border-radius:14px;padding:6px 18px 18px;box-shadow:0 1px 2px #33413a0a}
+.tools{display:flex;gap:12px;align-items:center;padding:14px 0}
+.search-field{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde3d6;border-radius:9px;padding:7px 12px;color:#8b968c;min-width:280px}
+.search-field input{border:0;outline:0;background:none;width:100%;color:#33413a}
+select{background:#fff;border:1px solid #dde3d6;border-radius:9px;padding:7px 10px;color:#33413a}
+table.grid{width:100%;border-collapse:collapse;font-size:13px}
+table.grid th{text-align:left;padding:10px 10px;color:#8b968c;font-weight:500;font-size:12px;border-bottom:1px solid #e4e9dc;white-space:nowrap}
+table.grid td{padding:11px 10px;border-bottom:1px solid #eef1e6;vertical-align:top}
+table.grid tr:last-child td{border-bottom:0}
+table.grid strong{display:block;font-weight:600}
+table.grid small{color:#93a089;font-size:11px}
+td.actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+td.actions button{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid #dde3d6;background:#fff;font-size:12px;color:#55625a}
+td.actions button.ok{border-color:#bcd6b2;color:#3f6b34;background:#f3f9ee}
+td.actions button.bad{border-color:#e8c4b8;color:#a0523c;background:#fdf3ef}
+td.actions select{font-size:12px;padding:5px 8px}
+.tag,.tag.ok,.tag.bad,.tag.wait{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;border:1px solid #dde3d6;color:#6f7a71;background:#fff}
+.tag.ok{border-color:#bcd6b2;color:#3f6b34;background:#f3f9ee}
+.tag.bad{border-color:#e8c4b8;color:#a0523c;background:#fdf3ef}
+.tag.wait{border-color:#e5d9b8;color:#96742f;background:#fbf7e9}
+.report{margin-top:16px;border:1px solid #dde3d6;border-radius:12px;background:#fff;padding:14px 18px}
+.report header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.report h3{font-size:14px}
+.report-edition{border-top:1px dashed #e4e9dc;padding-top:10px;margin-top:10px;font-size:12px}
+.diff.new{color:#3f6b34}.diff.updated{color:#96742f}.diff.missing{color:#a0523c}
+.gate{min-height:100dvh;display:grid;place-items:center;padding:20px}
+.gate-card{max-width:520px;background:#fbfcf8;border:1px solid #dde3d6;border-radius:16px;padding:34px 36px;box-shadow:0 6px 30px #33413a14}
+.gate-card h1{font-size:22px;margin:6px 0 12px}
+.gate-card p{font-size:13px;color:#6f7a71;margin-bottom:18px}
+.gate-card code{background:#eef1e6;border-radius:4px;padding:1px 6px;font-size:12px}
+.eyebrow{font-size:11px;letter-spacing:2px;color:#8b968c}
+.gate-row{display:flex;gap:10px}
+.gate-row input{flex:1;border:1px solid #dde3d6;border-radius:9px;padding:10px 12px;outline:0}
+.primary-button{background:#3f6b52;color:#f6faf3;border-radius:9px;padding:10px 18px;font-size:13px}
+.text-button{color:#6f7a71;font-size:12px;text-decoration:underline;text-underline-offset:3px}
+a{color:#4a6b52}
+.ops-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;padding:10px 0 4px}
+.ops-grid section{background:#fff;border:1px solid #dde3d6;border-radius:12px;padding:16px 18px}
+.ops-grid h3{font-size:14px;margin-bottom:10px;color:#3c4a40}
+.ops-grid p{font-size:12px;color:#6f7a71;margin-bottom:8px}
+.ops-grid strong{font-size:22px;color:#3f6b34;font-family:"Songti SC",serif}
+.ops-grid .grid{margin-top:8px}
+.auth-content textarea{width:100%;border:1px solid #dde3d6;border-radius:9px;padding:10px 12px;outline:0;background:#fff;color:#33413a;font-size:12px;resize:vertical;word-break:break-all}

@@ -1,0 +1,20 @@
+// 注册/登录面板人工验收截图。
+import {chromium} from '@playwright/test';
+import fs from 'node:fs';
+const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5182';
+fs.mkdirSync('artifacts',{recursive:true});
+const browser=await chromium.launch({headless:true,channel:'chrome'});
+const page=await browser.newPage({viewport:{width:1280,height:800}});
+await page.goto(base);
+await page.waitForSelector('.scene-pin.player');
+await page.getByRole('button',{name:'切换世界模式'}).click();
+await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
+await page.getByRole('textbox',{name:'名帖昵称'}).fill('截图少侠');
+await page.getByRole('textbox',{name:'密码'}).fill('password123');
+await page.waitForTimeout(300);
+await page.screenshot({path:'artifacts/auth-register.png'});
+await page.getByRole('button',{name:'登录',exact:true}).click();
+await page.waitForTimeout(200);
+await page.screenshot({path:'artifacts/auth-login.png'});
+await browser.close();
+console.log('PASS auth screenshots');
