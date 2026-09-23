@@ -19,7 +19,9 @@
     "start": "node server/index.mjs",
     "test:e2e-rooms": "node scripts/smoke-rooms.mjs",
     "soak": "node scripts/soak-world.mjs",
-    "soak:browser": "node scripts/soak-browser.mjs"
+    "soak:browser": "node scripts/soak-browser.mjs",
+    "soak:long": "ATOM_SOAK_MINUTES=120 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs",
+    "soak:72h": "ATOM_SOAK_MINUTES=4320 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs"
   },
   "dependencies": {
     "jose": "^6.2.12",

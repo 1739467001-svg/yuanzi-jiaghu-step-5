@@ -32,7 +32,7 @@ export function originAllowed(req,allowedOrigins){
   return allowedOrigins.some(o=>o===origin||o===host);
  }catch{return false;}
 }
-export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_MS,guard=null}={}){
+export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_MS,guard=null,helloTimeoutMs=15000}={}){
  const actors=new Map(),connections=new Map(),invites=new Map(),seen=new Set();
  // 满员时的 FIFO 等待队列（连接保持，令牌在准入时重新验证）。
  const waiters=[];
@@ -48,6 +48,8 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
  engine.setWorks(livePublishedWorks());
  let worksVersion=getStateVersion(),worksChecked=0;
  const isAi=id=>engine.agents.some(a=>a.id===id);
+ // 首条消息是否为 hello（用于未认证连接的超时判定，最多解析一次）。
+ const isHello=raw=>{try{return JSON.parse(raw)?.t==='hello';}catch{return false;}};
  const aiAgent=id=>engine.agents.find(a=>a.id===id)||null;
  const humansOnline=()=>[...actors.values()].filter(a=>a.online).length;
  const publicActor=a=>({id:a.id,name:a.name,color:a.color,x:round(a.x),z:round(a.z),angle:round(a.angle),state:a.state,chat:!!a.chatWith,seat:a.seat||null});
@@ -302,8 +304,12 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
  function connect(ws){
   const conn={connId:++nextConn,ws,userId:null};
   connections.set(conn.connId,conn);
-  ws.on('message',raw=>handleMessage(conn.connId,String(raw)));
+  // 未完成 hello 的连接不 linger：超时无身份的直接断开（压测中发现 buggy 客户端会
+  // 重连出大量只连不认证的 socket，长期占用连接与每 tick 广播开销）。
+  const helloTimer=setTimeout(()=>{if(!conn.userId){try{ws.close(4008,'hello_timeout');}catch{}}},helloTimeoutMs);
+  ws.on('message',raw=>{if(conn.userId===null&&isHello(String(raw)))clearTimeout(helloTimer);handleMessage(conn.connId,String(raw));});
   ws.on('close',()=>{
+   clearTimeout(helloTimer);
    connections.delete(conn.connId);
    // 排队中的连接断开：移出队列并重新广播位置。
    const at=waiters.findIndex(w=>w.connId===conn.connId);

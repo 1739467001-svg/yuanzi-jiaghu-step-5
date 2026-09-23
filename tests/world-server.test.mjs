@@ -409,3 +409,18 @@ test('tea house table talk: sitting and standing become public activity events',
  const aiEvent=world.activity.find(e=>e.kind==='rest'&&world.engine.agents.some(x=>x.name===e.text.split('在茶楼坐了')[0]));
  assert.ok(aiEvent,'AI 落座写入活动流：'+JSON.stringify(aiEvent||null));
 });
+
+test('unauthenticated connections are reaped after the hello timeout', async () => {
+ const world=createWorld({helloTimeoutMs:60});
+ const silent=new MockSocket();
+ world.connect(silent);
+ // 只连不发 hello：超时后被服务端主动关闭，不长期占用连接。
+ await new Promise(r=>setTimeout(r,120));
+ assert.equal(silent.closed?.code,4008,'未认证连接超时被断开');
+ assert.equal(world.connections.size,0,'连接已清理');
+ // 发了 hello 的连接不受影响。
+ const good=join(world,'认证甲');
+ assert.equal(good.find('welcome').length,1,'正常连接仍然欢迎');
+ await new Promise(r=>setTimeout(r,120));
+ assert.equal(good.closed,null,'已认证连接不会被超时断开');
+});
