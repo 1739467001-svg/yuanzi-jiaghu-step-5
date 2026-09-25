@@ -23,13 +23,13 @@ function writeJsonAtomic(file,value){
 }
 export function getOverrides(){
  const stored=readJson(overridesFile(),null);
- if(!stored||typeof stored!=='object')return {stateVersion:0,editions:{},works:{}};
- return {stateVersion:Number(stored.stateVersion)||0,editions:stored.editions||{},works:stored.works||{}};
+ if(!stored||typeof stored!=='object')return {stateVersion:0,editions:{},works:{},added:[]};
+ return {stateVersion:Number(stored.stateVersion)||0,editions:stored.editions||{},works:stored.works||{},added:Array.isArray(stored.added)?stored.added:[]};
 }
 export function getStateVersion(){return getOverrides().stateVersion;}
 
 function applyOverrides(editions,overrides){
- return editions.map(e=>{
+ const patched=editions.map(e=>{
   const patch=overrides.editions?.[e.id];
   const next=patch?{...e,...patch}:{...e};
   next.works=next.works.map(w=>{
@@ -38,6 +38,30 @@ function applyOverrides(editions,overrides){
   });
   return next;
  });
+ // 导入层（added）：整赛事快照。既有赛事按快照替换作品集合，但保留仍在集合内的作品的
+ // 撤回状态与赛事级撤回状态；快照里没有的字段（如展陈布局）沿用基线，重复导入即替换。
+ const added=Array.isArray(overrides.added)?overrides.added:[];
+ if(!added.length)return patched;
+ const merged=patched.map(e=>{
+  const snap=added.find(a=>a.id===e.id);
+  if(!snap)return e;
+  const ePatch=overrides.editions?.[e.id];
+  const works=snap.works.map(w=>{
+   const wPatch=overrides.works?.[w.id];
+   return wPatch?{...w,...wPatch}:{...w};
+  });
+  return {...e,...snap,works,publicationStatus:ePatch?.publicationStatus||snap.publicationStatus||'已发布'};
+ });
+ for(const snap of added)if(!merged.some(e=>e.id===snap.id)){
+  // 新赛事同样要应用状态覆盖：作品级（导入后撤回的作品，重新导入不复活）
+  // 与赛事级（导入后撤回整届赛事，公开入口一致消失）。
+  const ePatch=overrides.editions?.[snap.id];
+  merged.push({...snap,works:snap.works.map(w=>{
+   const wPatch=overrides.works?.[w.id];
+   return wPatch?{...w,...wPatch}:{...w};
+  }),publicationStatus:ePatch?.publicationStatus||snap.publicationStatus||'已发布'});
+ }
+ return merged;
 }
 let cached=null,cachedVersion=-1;
 export function getLiveCatalog(){
@@ -149,6 +173,83 @@ export function checkEditionPublishable(edition){
   }
  }
  return {ok:issues.length===0,issues};
+}
+// ---------- 赛事导入工作台（运营后台） ----------
+// 载荷形状：{ editions:[ edition, ... ] }，edition 为完整赛事快照（works 内作品须带
+// `<赛事id>--` 前缀的稳定 id）。语义：新赛事整体进入导入层；既有赛事按快照替换作品集合，
+// 保留仍在集合内的作品的撤回状态；媒体文件必须已在 public/ 下（导入不搬运二进制）。
+function validateImportEditions(payload){
+ const editions=payload&&payload.editions;
+ if(!Array.isArray(editions)||!editions.length)throw new Error('载荷必须是包含 editions 数组的对象');
+ const ids=editions.map(e=>e&&e.id);
+ if(ids.some(id=>typeof id!=='string'||!id))throw new Error('每个赛事必须有字符串 id');
+ if(new Set(ids).size!==ids.length)throw new Error('赛事 id 重复');
+ const issues=[];
+ for(const e of editions){
+  if(!e.title||!e.subtitle||!e.description)issues.push(`${e.id} 缺少标题/副标题/介绍`);
+  if(!Array.isArray(e.tracks)||!e.tracks.some(t=>typeof t==='string'&&t))issues.push(`${e.id} 缺少赛道`);
+  if(!Array.isArray(e.works)||!e.works.length)issues.push(`${e.id} 没有作品`);
+  const wids=(e.works||[]).map(w=>w&&w.id);
+  if(wids.some(id=>typeof id!=='string'||!id))issues.push(`${e.id} 存在没有 id 的作品`);
+  if(new Set(wids.filter(Boolean)).size!==wids.filter(Boolean).length)issues.push(`${e.id} 作品 id 重复`);
+  for(const w of e.works||[]){
+   if(!w.id||!String(w.id).startsWith(e.id+'--'))issues.push(`${w.id||'(无id)'} 的 id 必须以 ${e.id}-- 开头`);
+   for(const field of ['title','author','track','tagline','description'])if(!w[field])issues.push(`${w.id} 缺少${field}`);
+   for(const field of PRIVATE_FIELDS)if(w[field])issues.push(`${w.id} 含私人字段 ${field}，不会随导入公开`);
+   for(const media of ['poster','thumb']){
+    const rel=String(w[media]||'').replace(/^\//,'');
+    if(!rel)issues.push(`${w.id} 缺少${media}`);
+    else if(!fs.existsSync(path.join(root,'public',rel)))issues.push(`${w.id} 的 ${media} 文件不存在：${rel}`);
+   }
+  }
+ }
+ return issues;
+}
+// 预检（不写状态）：与当前实时目录比较，产出新增/更新/未变化/将消失与问题清单。
+export function importCheck(payload){
+ const issues=validateImportEditions(payload);
+ const live=getLiveCatalog();
+ const existing=new Map(live.editions.map(e=>[e.id,e]));
+ const report={checkedAt:new Date().toISOString(),editions:[],totals:{new:0,updated:0,unchanged:0,missing:0},issues,ok:issues.length===0};
+ for(const e of payload.editions){
+  const old=existing.get(e.id);
+  const oldWorks=new Map((old?.works||[]).map(w=>[w.id,w]));
+  const items=[],seen=new Set();
+  for(const w of e.works){
+   seen.add(w.id);
+   const prev=oldWorks.get(w.id);
+   const candidate={title:w.title,author:w.author,track:w.track,tagline:w.tagline,description:w.description};
+   if(!prev){items.push({id:w.id,status:'new',title:w.title});report.totals.new++;}
+   else if(['title','author','track','tagline','description'].some(k=>String(prev[k]||'')!==String(candidate[k]||''))){items.push({id:w.id,status:'updated',title:w.title});report.totals.updated++;}
+   else{items.push({id:w.id,status:'unchanged',title:w.title});report.totals.unchanged++;}
+  }
+  for(const [id,w] of oldWorks)if(!seen.has(id)){items.push({id,status:'missing',title:w.title});report.totals.missing++;}
+  report.editions.push({id:e.id,title:e.title,isNew:!old,items});
+ }
+ return report;
+}
+// 执行导入：校验→合并→试算→原子落盘→审计→stateVersion 递增。校验失败不写任何状态。
+export function applyImport(payload,actor='local-admin',note=''){
+ const issues=validateImportEditions(payload);
+ if(issues.length)throw new Error('导入校验未通过：'+issues.slice(0,5).join('；'));
+ const report=importCheck(payload);
+ const overrides=getOverrides();
+ const added=Array.isArray(overrides.added)?overrides.added:[];
+ // 同一赛事再次导入=替换快照，其余保留。
+ overrides.added=added.filter(e=>!payload.editions.some(p=>p.id===e.id))
+  .concat(payload.editions.map(e=>({...e,works:e.works.map(w=>({...w}))})));
+ // 试算：合并结果必须能通过规范化，否则不落盘。
+ const candidate=normalizeCatalog(applyOverrides(rawEditions,overrides));
+ if(!candidate.editions.some(e=>payload.editions.some(p=>p.id===e.id)))throw new Error('导入合并失败：赛事未出现在合并结果中');
+ overrides.stateVersion=(Number(overrides.stateVersion)||0)+1;
+ writeJsonAtomic(overridesFile(),overrides);
+ cached=null;
+ const ids=payload.editions.map(e=>e.id);
+ appendAudit({id:`audit-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,actor,action:'import_editions',targetId:ids.join(','),scope:'catalog',
+  before:{editions:0,works:0},
+  after:{editions:ids.length,works:report.totals.new+report.totals.updated+report.totals.unchanged,newWorks:report.totals.new,updatedWorks:report.totals.updated,unchangedWorks:report.totals.unchanged,removedWorks:report.totals.missing},
+  time:new Date().toISOString(),note:note||'运营后台导入'});
+ return {stateVersion:overrides.stateVersion,report,audit:getAudit(1)[0]};
 }
 // 导入检查：读取来源展示站数据，与当前基线比较，只产出候选差异，不写任何状态。
 export function importDryRun(){

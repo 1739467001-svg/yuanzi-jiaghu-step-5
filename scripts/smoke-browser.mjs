@@ -123,6 +123,34 @@ try{
   assert.equal(restored.status(),200,'重新发布后公开详情恢复');
   await admin.getByRole('button',{name:'审计日志'}).click();
   assert.ok(await admin.locator('table.grid tbody tr').count()>=2,'审计日志记录撤回与发布');
+ // 赛事导入工作台：填入示例 → 预检 → 确认导入（草稿）→ 发布 → 展厅与检索可见 → 审计留痕。
+ const importRun=Date.now().toString(36);
+ // 载荷显式带发布状态：导入即公开（不带则落地为草稿，需另行发布）。
+ const importEdition={id:'e2e-cup-'+importRun,title:'e2e导入赛事-'+importRun,subtitle:'验收导入闭环',description:'由 e2e 通过运营后台导入的赛事。',tracks:['验收赛道'],publicationStatus:'已发布',
+  works:[{id:'e2e-cup-'+importRun+'--demo',slug:'demo',title:'e2e导入作品',author:'验收机器人',track:'验收赛道',tagline:'导入闭环',description:'后台导入生成的验收作品。',tags:['e2e'],publicationStatus:'已发布',poster:'/works/funskills/ecom-video.jpg',thumb:'/works/funskills/thumbs/ecom-video.jpg'}]};
+ await admin.getByRole('button',{name:'赛事导入'}).click();
+ await admin.getByRole('textbox',{name:'赛事 JSON'}).fill(JSON.stringify({editions:[importEdition]}));
+ await admin.getByRole('button',{name:'预检导入'}).click();
+ await admin.waitForFunction(()=>document.querySelector('.import-report .muted')?.textContent.includes('新增'),null,{timeout:10000});
+ assert.match(await admin.locator('.import-report .muted').textContent(),/校验通过/,'预检通过');
+ await admin.getByRole('button',{name:'确认导入'}).click();
+ await admin.waitForFunction(()=>document.body.textContent.includes('导入完成'),null,{timeout:10000});
+ const imported=await page.request.get(apiBase+'/api/works/'+importEdition.works[0].id);
+ assert.equal(imported.status(),200,'导入即公开：详情可见');
+ assert.match(await imported.text(),/e2e导入作品/,'详情内容为导入数据');
+ // 赛事管理中出现该赛事（后台可见全部状态）。
+ await admin.getByRole('button',{name:'赛事管理'}).click();
+ const editionRow=admin.locator('table.grid tbody tr',{hasText:'e2e导入赛事-'+importRun});
+ await editionRow.first().waitFor({timeout:10000});
+ assert.ok(await editionRow.first().isVisible(),'后台赛事管理出现导入的赛事');
+ const liveCatalog=await (await page.request.get(apiBase+'/api/content/catalog')).json();
+ assert.ok(liveCatalog.editions.some(e=>e.id===importEdition.id),'公开目录包含导入的赛事');
+ assert.ok(liveCatalog.editions.flatMap(e=>e.works).some(w=>w.id===importEdition.works[0].id),'公开目录包含导入的作品');
+ // 撤回导入的赛事：各公开入口一致消失（与既有撤回语义一致）。
+ await admin.getByRole('button',{name:'赛事管理'}).click();
+ await admin.locator('table.grid tbody tr',{hasText:'e2e导入赛事-'+importRun}).first().getByRole('button',{name:'撤回'}).click();
+ await admin.waitForTimeout(600);
+ assert.equal((await page.request.get(apiBase+'/api/works/'+importEdition.works[0].id)).status(),410,'撤回后导入作品从公开入口消失');
   // 运行状态：房间占用、模型预算、进程状态（运维可见性）。
   await admin.getByRole('button',{name:'运行状态'}).click();
   await admin.waitForSelector('.ops-panel',{timeout:10000});

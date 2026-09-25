@@ -1,7 +1,7 @@
 import {useState,useEffect,useCallback} from 'react';
 import {apiUrl} from './net/endpoints.js';
 import {createRoot} from 'react-dom/client';
-import {Check,Undo2,FileText,RefreshCw,ShieldAlert,BadgeCheck,Ban,Search,ExternalLink} from 'lucide-react';
+import {Check,Undo2,FileText,FileJson,RefreshCw,ShieldAlert,BadgeCheck,Ban,Search,ExternalLink,Upload} from 'lucide-react';
 
 const TOKEN_KEY='atom-admin-token';
 const STATUS_LABEL={草稿:'草稿',待审核:'待审核',已发布:'已发布',已撤回:'已撤回'};
@@ -133,6 +133,48 @@ function AuditTab({audit}){
   </table>
  </div>;
 }
+// 赛事导入工作台：粘贴/上传赛事 JSON → 预检（差异与问题）→ 确认导入。
+// 载荷：{editions:[{id,title,subtitle,description,tracks,works:[{id:"<赛事id>--<slug>",title,author,track,tagline,description,poster,thumb,tags}]}]}
+// 媒体文件必须已在 public/ 下（导入只写目录数据，不搬运二进制）。
+const IMPORT_SAMPLE=()=>({editions:[{
+ id:'demo-cup',title:'示范赛事',subtitle:'用于验证导入闭环的示例赛事',description:'这是一条通过运营后台导入的示例赛事。删除它不会影响其他赛事。',
+ tracks:['示范赛道'],works:[{id:'demo-cup--sample',slug:'sample',title:'示例作品',author:'运营示范',track:'示范赛道',tagline:'验证导入闭环',description:'这条作品由后台导入生成，海报复用既有作品图片。',tags:['示例'],poster:'/works/funskills/ecom-video.jpg',thumb:'/works/funskills/thumbs/ecom-video.jpg'}],
+}]});
+const IMPORT_STATUS_LABEL={new:'新增',updated:'更新',unchanged:'未变化',missing:'快照中已不在'};
+function ImportTab({onDone}){
+ const [text,setText]=useState('');
+ const [report,setReport]=useState(null);
+ const [busy,setBusy]=useState('');
+ const [message,setMessage]=useState(null); // {ok,text} 页面内提示（不用原生 alert，便于自动化验收）
+ const parse=()=>{const data=JSON.parse(text);if(!data||typeof data!=='object'||!Array.isArray(data.editions))throw new Error('载荷必须是包含 editions 数组的对象');return data;};
+ const check=async(label,fn)=>{setBusy(label);setMessage(null);try{await fn();}catch(e){setMessage({ok:false,text:e.message});}finally{setBusy('');}};
+ const totals=report?.totals;
+ return <div className="panel">
+  <div className="tools">
+   <label className="secondary-button" style={{cursor:'pointer'}}><Upload size={14}/>选择 JSON 文件<input type="file" accept=".json,application/json" style={{display:'none'}} onChange={e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{setText(String(reader.result||''));setReport(null);};reader.readAsText(file);e.target.value='';}}/></label>
+   <button className="secondary-button" onClick={()=>{setText(JSON.stringify(IMPORT_SAMPLE(),null,2));setReport(null);}}><FileJson size={14}/>填入示例</button>
+   <button className="primary-button" disabled={!!busy||!text.trim()} onClick={()=>check('check',async()=>{setReport(await api('/api/admin/import-check',{method:'POST',body:parse()}));})}><FileText size={14}/>{busy==='check'?'预检中…':'预检导入'}</button>
+   <button className="primary-button" disabled={!!busy||!report?.ok||!text.trim()} onClick={()=>check('apply',async()=>{const r=await api('/api/admin/import',{method:'POST',body:parse()});setReport(r.report);setMessage({ok:true,text:`导入完成：新增 ${r.report.totals.new}、更新 ${r.report.totals.updated}、未变化 ${r.report.totals.unchanged}、移除 ${r.report.totals.missing}。世界将在 15 秒内更新。`});onDone();})}><Check size={14}/>{busy==='apply'?'导入中…':'确认导入'}</button>
+   <span className="muted">导入只写目录数据；海报/缩略图需先放到 public/（如 /works/&lt;赛事&gt;/xxx.jpg）。导入后默认为草稿，需在"赛事管理"发布后才对世界可见</span>
+  </div>
+  {message&&<div className={`banner ${message.ok?'ok':'error'}`}>{message.ok?<Check size={16}/>:<ShieldAlert size={16}/>}{message.text}</div>}
+  <textarea className="import-json" value={text} onChange={e=>{setText(e.target.value);setReport(null);}} spellCheck={false} aria-label="赛事 JSON" placeholder="粘贴赛事 JSON，或选择文件 / 填入示例"/>
+  {report&&<div className="import-report">
+   {report.issues?.length>0&&<div className="banner error"><ShieldAlert size={16}/>校验未通过（{report.issues.length} 项，修复后才能导入）：<ul>{report.issues.slice(0,20).map((x,i)=><li key={i}>{x}</li>)}</ul></div>}
+   {totals&&<p className="muted">预检结果：新增 <b>{totals.new}</b> · 更新 <b>{totals.updated}</b> · 未变化 <b>{totals.unchanged}</b> · 快照中已不在的 <b>{totals.missing}</b>{report.ok?'（校验通过，可确认导入）':'（存在阻断问题）'}</p>}
+   {(report.editions||[]).map(e=><div key={e.id} className="import-edition">
+    <h4>{e.title} <small>{e.id}{e.isNew?' · 新赛事':' · 既有赛事'}</small></h4>
+    <table className="grid">
+     <thead><tr><th>作品</th><th>标识</th><th>预检结论</th></tr></thead>
+     <tbody>
+      {e.items.map(it=><tr key={it.id}><td>{it.title}</td><td><small>{it.id}</small></td><td>{IMPORT_STATUS_LABEL[it.status]||it.status}</td></tr>)}
+      {e.items.length===0&&<tr><td colSpan={3} className="muted">该赛事没有作品。</td></tr>}
+     </tbody>
+    </table>
+   </div>)}
+  </div>}
+ </div>;
+}
 
 function OpsTab(){
  const [ops,setOps]=useState(null);
@@ -176,7 +218,7 @@ function AdminApp({onExit}){
    <span className="brand-seal">原<span>子</span></span>
    <div><h1>原子江湖 · 运营后台</h1><small>本地演示：发布、撤回、回滚与审计。生产权限系统尚未接入。</small></div>
    <nav>
-    {[['editions','赛事管理'],['works','作品管理'],['ops','运行状态'],['audit','审计日志']].map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}
+    {[['editions','赛事管理'],['works','作品管理'],['import','赛事导入'],['ops','运行状态'],['audit','审计日志']].map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}
     <button className="text-button" onClick={()=>{sessionStorage.removeItem(TOKEN_KEY);onExit();}}>退出</button>
    </nav>
   </header>
@@ -186,6 +228,7 @@ function AdminApp({onExit}){
    {loading&&<p className="muted">读取中…</p>}
    {!loading&&tab==='editions'&&<EditionsTab editions={editions} audit={audit} onAction={onAction}/>}
    {!loading&&tab==='works'&&<WorksTab editions={editions} onAction={onAction}/>}
+   {tab==='import'&&<ImportTab onDone={reload}/>}
    {tab==='ops'&&<OpsTab/>}
    {!loading&&tab==='audit'&&<AuditTab audit={audit}/>}
   </main>

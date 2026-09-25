@@ -12,7 +12,9 @@
 // POST /api/admin/edition/rollback    {id,auditEventId}  回滚到审计事件之前的状态
 // GET  /api/admin/audit               审计日志
 // GET  /api/admin/import-check        来源数据导入检查（dry-run，不写状态）
-import {getLiveCatalog,getStateVersion,getAudit,setEditionStatus,setWorkStatus,rollbackEdition,importDryRun,liveQueryWorks,liveFindWork,stablePage,isAdminRequest} from './publication-store.mjs';
+// POST /api/admin/import-check        {editions:[...]} 载荷预检（dry-run，不写状态）
+// POST /api/admin/import              {editions:[...]} 执行导入（校验→合并→审计→版本递增）
+import {getLiveCatalog,getStateVersion,getAudit,setEditionStatus,setWorkStatus,rollbackEdition,importDryRun,importCheck,applyImport,liveQueryWorks,liveFindWork,stablePage,isAdminRequest} from './publication-store.mjs';
 import {SHARED_EXHIBITION} from '../src/content/exhibition.js';
 
 const anyEdition=id=>getLiveCatalog().editions.find(e=>e.id===id);
@@ -33,13 +35,22 @@ export function contentPlugin(env={}){
     if(url.pathname==='/api/admin/catalog'&&req.method==='GET'){const catalog=getLiveCatalog();return send(res,200,{snapshotId:catalog.snapshotId,stateVersion:getStateVersion(),editions:catalog.editions});}
     if(url.pathname==='/api/admin/audit'&&req.method==='GET')return send(res,200,{items:getAudit(200)});
     if(url.pathname==='/api/admin/import-check'&&req.method==='GET')return send(res,200,importDryRun());
+    if(url.pathname==='/api/admin/import-check'&&req.method==='POST'){
+     let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>2000000)return send(res,413,{error:'载荷过大（上限 2MB）'});body+=chunk;}
+     let data;try{data=JSON.parse(body);}catch{return send(res,400,{error:'请求格式不正确'});}
+     try{return send(res,200,importCheck(data));}catch(error){return send(res,400,{error:error.message||'预检失败'});}
+    }
     if(req.method!=='POST')return send(res,405,{error:'管理接口仅支持 POST',code:'method_not_allowed'});
-    let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>8000)return send(res,413,{error:'请求过大'});body+=chunk;}
+    // 导入载荷可能上百 KB（整届赛事），单独放宽上限。
+    const isImport=url.pathname==='/api/admin/import';
+    const maxBytes=isImport?2000000:8000;
+    let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>maxBytes)return send(res,413,{error:'请求过大'});body+=chunk;}
     let data;try{data=JSON.parse(body);}catch{return send(res,400,{error:'请求格式不正确'});}
     try{
      if(url.pathname==='/api/admin/edition/status')return send(res,200,setEditionStatus(String(data.id),String(data.status),String(data.actor||'local-admin'),String(data.note||'')));
      if(url.pathname==='/api/admin/work/status')return send(res,200,setWorkStatus(String(data.id),String(data.status),String(data.actor||'local-admin'),String(data.note||'')));
      if(url.pathname==='/api/admin/edition/rollback')return send(res,200,rollbackEdition(String(data.id),String(data.auditEventId),String(data.actor||'local-admin')));
+     if(isImport)return send(res,200,applyImport(data,String(data.actor||'local-admin'),String(data.note||'')));
     }catch(error){return send(res,400,{error:error.message||'操作失败'});}
     return send(res,404,{error:'管理路径不存在'});
    }
@@ -72,7 +83,9 @@ export function contentPlugin(env={}){
     const work=liveFindWork(id);
     if(work)return send(res,200,work);
     const existing=anyWork(id);
-    if(existing&&existing.publicationStatus==='已撤回')return send(res,410,{error:'该作品已撤回',code:'withdrawn'});
+    // 作品自身被撤回，或所属赛事被撤回：都是"曾存在但已不在公开目录"（410），不是不存在（404）。
+    const editionGone=existing&&(anyEdition(existing.editionId)?.publicationStatus==='已撤回');
+    if(existing&&(existing.publicationStatus==='已撤回'||editionGone))return send(res,410,{error:'该作品已撤回',code:'withdrawn'});
     return send(res,404,{error:'作品不存在',code:'not_found'});
    }
    return send(res,404,{error:'内容路径不存在',code:'not_found'});

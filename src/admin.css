@@ -61,3 +61,11 @@ a{color:#4a6b52}
 .ops-grid strong{font-size:22px;color:#3f6b34;font-family:"Songti SC",serif}
 .ops-grid .grid{margin-top:8px}
 .auth-content textarea{width:100%;border:1px solid #dde3d6;border-radius:9px;padding:10px 12px;outline:0;background:#fff;color:#33413a;font-size:12px;resize:vertical;word-break:break-all}
+.import-json{width:100%;min-height:280px;border:1px solid #dde3d6;border-radius:10px;padding:12px 14px;outline:0;background:#fff;color:#33413a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.7;resize:vertical;word-break:break-all}
+.import-report{margin:6px 0 10px}
+.import-report .banner{margin:10px 0 0}
+.import-report .banner ul{margin:6px 0 0;padding-left:18px}
+.import-edition{margin-top:14px}
+.import-edition h4{font-size:13px;color:#3c4a40;margin-bottom:6px}
+.import-edition h4 small{color:#8b968c;font-weight:400;margin-left:6px}
+.import-edition .grid{margin-bottom:4px}
