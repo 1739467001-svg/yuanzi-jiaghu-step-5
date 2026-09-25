@@ -72,7 +72,9 @@ const workers=Array.from({length:Math.min(3,pending.length)},async()=>{while(pen
 await Promise.all(workers);
 
 // 5. 全量建树 → 建提交（父提交为远端当前提交）→ 创建或更新引用。
-const treeChanged=files.some(f=>remoteFiles.get(f.path)!==f.sha);
+// 变化检测要双向：本地有而远端不同（新增/修改）+ 远端有而本地已删除（删除也要同步）。
+const localPaths=new Set(files.map(f=>f.path));
+const treeChanged=files.some(f=>remoteFiles.get(f.path)!==f.sha)||[...remoteFiles.keys()].some(p=>!localPaths.has(p));
 if(!treeChanged&&remoteSha){console.log('远端已是最新，无需新提交');process.exit(0);}
 const tree=await api('/git/trees',{method:'POST',body:{tree:files.map(f=>({path:f.path,mode:f.mode,type:'blob',sha:f.sha}))}});
 const commit=await api('/git/commits',{method:'POST',body:{message,tree:tree.sha,parents:remoteSha?[remoteSha]:[]}});
