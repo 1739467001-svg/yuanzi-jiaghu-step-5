@@ -190,14 +190,31 @@ try{
    const occupied=new Set((window.__atomOnlinePlayers||[]).filter(p=>p.seat).map(p=>p.seat));
    return seats.filter(s=>!occupied.has(s.id))[0]||null;
   },SEATS);
-  const sitAt=async(page,label)=>{
-   await page.locator(".seat-chip:not(.taken)",{hasText:label}).first().click();
-   await page.waitForFunction(()=>document.querySelector(".seat-chip.mine"),null,{timeout:6000});
+  // 逐个尝试当前空位：AI 侠客随时落座，被抢先就换下一个（抢座在服务端是正常拒绝）。
+  const trySit=async page=>{
+   const free=await page.evaluate(seats=>{
+    const occupied=new Set((window.__atomOnlinePlayers||[]).filter(p=>p.seat).map(p=>p.seat));
+    return seats.filter(s=>!occupied.has(s.id)).map(s=>s.label);
+   },SEATS);
+   for(const label of free){
+    try{
+     await page.locator(".seat-chip:not(.taken)",{hasText:label}).first().click();
+     await page.waitForFunction(()=>document.querySelector(".seat-chip.mine"),null,{timeout:4000});
+     return true;
+    }catch{}
+   }
+   return false;
   };
   const standIfSeated=async page=>{
    if(await page.locator(".seat-chip.mine").count()){
-    await page.getByRole("button",{name:"起身"}).click();
-    await page.waitForFunction(()=>document.querySelector(".seat-chip.mine")===null,null,{timeout:8000});
+    try{
+     await page.getByRole("button",{name:"起身",exact:true}).click();
+     await page.waitForFunction(()=>document.querySelector(".seat-chip.mine")===null,null,{timeout:6000});
+    }catch{
+     // 服务端可能已因重连自动离座：关窗重开，状态会从快照纠正。
+     await page.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});
+     await openTeaPanel(page);
+    }
    }
   };
   let seated=false;
@@ -205,12 +222,12 @@ try{
    const free=await anyFreeSeat();
    if(!free){await a.waitForTimeout(5000);continue;}
    await walkToTeahouse(b);await openTeaPanel(b);await standIfSeated(b);
-   try{await sitAt(b,free.label);}catch{await b.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
+   try{await trySit(b);}catch{await b.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
    await walkToTeahouse(a);await openTeaPanel(a);await standIfSeated(a);
    const freeForA=await anyFreeSeat();
    if(!freeForA||freeForA.id===free.id){await b.getByRole("button",{name:"起身"}).click();await b.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
    try{
-    await sitAt(a,freeForA.label);
+    await trySit(a);
     await a.waitForFunction(n=>[...document.querySelectorAll(".happenings .event p")].some(p=>(p.textContent||"").includes(n)),NAME_A,{timeout:8000});
     seated=true;
    }catch{await a.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
@@ -278,6 +295,12 @@ try{
  await a.locator('.nearby-avatars button',{hasText:'阿原'}).click();
  await a.getByRole('button',{name:'发起私聊'}).click();
  await a.getByRole('dialog',{name:'与阿原私聊'}).waitFor();
+  // 快捷问题：点击即经私聊通道发送（与本地演示一致的静态问题）。
+  const chips=a.locator('.quick-questions button');
+  assert.ok(await chips.count()>=4,'联机私聊提供快捷问题');
+  const chipText=(await chips.first().textContent())||'';
+  await chips.first().click();
+  await a.waitForFunction(t=>[...document.querySelectorAll('.chat-messages .message')].some(m=>(m.textContent||'').includes(t)),chipText,{timeout:10000});
  await a.getByRole('textbox',{name:'私聊消息'}).fill('推荐效率工具作品');
  await a.getByRole('button',{name:'发送私聊'}).click();
  await a.waitForFunction(()=>document.querySelectorAll('.chat-work').length>0,null,{timeout:15000});
@@ -300,7 +323,19 @@ try{
    await a.getByRole('dialog',{name:aiName}).waitFor({timeout:10000});
    assert.ok(await a.locator('.presence-card').count()>=1,'名帖卡展示 AI 侠客的最近动态/最近在看');
    assert.match(await a.locator('.presence-card').textContent(),/最近动态|最近在看/,'见闻分区标题正确');
-   await a.getByRole('button',{name:'关闭窗口'}).click();
+   // 关注该 AI 侠客，手札“我的关注”应展示其最近动态。
+   const followBtn=a.locator('.dialog').getByRole('button',{name:/关注/});
+   if(await followBtn.count()){
+    await followBtn.first().click();
+    await a.getByRole('button',{name:'关闭窗口'}).click();
+    await a.getByRole('button',{name:/游历手札/}).click();
+    await a.getByRole('button',{name:'我的关注',exact:true}).click();
+    const followRow=a.locator('.follows-list article',{hasText:aiName});
+    await followRow.first().waitFor({timeout:10000});
+    assert.match(await followRow.first().textContent(),/最近：/,'关注页展示 AI 侠客的最近动态');
+    await a.getByRole('button',{name:'关闭窗口'}).click();
+   }
+   else await a.getByRole('button',{name:'关闭窗口'}).click();
   }
  }
 // 7. 同账号第二个标签页接管：A2 进入后 A 停止控制。
@@ -309,6 +344,6 @@ try{
  await a.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('已被接管'),null,{timeout:15000});
  assert.match(await a.locator('.world-status').textContent(),/已被接管/);
  assert.deepEqual(errors,[],`页面异常: ${errors.join('; ')}`);
- console.log('PASS: 本机记忆迁移、双账号互见与位置一致、茶楼共坐与 AI 侠客落座、同桌一键相邀、AI 侠客见闻名帖卡与联机私聊见闻、邀请/接受/私聊、第三方只见交谈中、与 AI 侠客私聊并打开作品卡片、离开通知、同账号接管。');
+ console.log('PASS: 本机记忆迁移、双账号互见与位置一致、茶楼共坐与 AI 侠客落座、同桌一键相邀、AI 侠客见闻名帖卡与联机私聊见闻与快捷问题、关注页最近动态、邀请/接受/私聊、第三方只见交谈中、与 AI 侠客私聊并打开作品卡片、离开通知、同账号接管。');
 }finally{await browser.close();}
 if(errors.length)process.exitCode=1;

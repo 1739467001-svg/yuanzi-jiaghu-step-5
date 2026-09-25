@@ -13,11 +13,24 @@ const token=(process.env.GH_TOKEN||execFileSync('gh',['auth','token'],{encoding:
 if(!token)throw new Error('未获取到 GitHub 令牌（gh auth token 或 GH_TOKEN）');
 
 async function api(path,{method='GET',body}={},attempt=0){
- const r=await fetch(`https://api.github.com/repos/${REPO}${path}`,{
-  method,
-  headers:{'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
-  body:body===undefined?undefined:JSON.stringify(body),
- });
+ let r;
+ try{
+  r=await fetch(`https://api.github.com/repos/${REPO}${path}`,{
+   method,
+   headers:{'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+   body:body===undefined?undefined:JSON.stringify(body),
+   // 本机到 api.github.com 的连接时快时慢（曾卡在默认 10s 连接超时边缘）：放宽并重试。
+   signal:AbortSignal.timeout(60000),
+  });
+ }catch(error){
+  if(attempt<4){
+   const wait=3*2**attempt*1000;
+   console.warn(`网络错误（${error.cause?.code||error.message}），${wait/1000}s 后重试（第 ${attempt+1} 次）`);
+   await new Promise(s=>setTimeout(s,wait));
+   return api(path,{method,body},attempt+1);
+  }
+  throw error;
+ }
  const text=await r.text();
  // 次级限流/服务端抖动：退避重试（GitHub 要求"等几分钟"，这里指数退避最多约 7 分钟）。
  if(!r.ok&&(r.status===403||r.status===429||r.status>=500)&&attempt<6){

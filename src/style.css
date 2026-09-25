@@ -284,3 +284,4 @@
 .presence-card h4:not(:first-child){margin-top:10px}
 .presence-card ul{margin:0;padding-left:16px;display:grid;gap:4px}
 .presence-card li{font-size:11px;color:#6b7a6b;line-height:1.7}
+.follow-latest{display:block;font-size:10px;color:#8fa08a;margin-top:3px;line-height:1.6}
