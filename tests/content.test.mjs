@@ -111,3 +111,22 @@ test('edition and work detail are linked by stable IDs', () => {
     assert.equal(findWork(work.id).id, work.id);
   }
 });
+
+test('catalog load times out and falls back to the bundled snapshot', async () => {
+ // 挂起的请求（服务端不可达）必须在超时后降级，而不是永远卡在启动页。
+ // 模拟挂起的请求：随 abort 拒绝（与真实 fetch 一致），事件循环才能排空。
+ const hanging=(url,init)=>new Promise((_,reject)=>{init?.signal?.addEventListener('abort',()=>reject(init.signal.reason||new Error('aborted')));});
+ // 小超时 + 保活计时器：AbortSignal.timeout 的计时器是 unref 的，测试进程需要保活才能等到它触发。
+ const keeper=setInterval(()=>{},20);
+ const started=Date.now();
+ const result=await loadCatalog({fetchImpl:hanging,timeoutMs:150});
+ clearInterval(keeper);
+ assert.ok(Date.now()-started<5000,'在超时窗口内返回（不无限等待）');
+ assert.equal(result.source,'snapshot-fallback','超时降级到内置快照');
+ assert.ok(result.error,'记录失败原因');
+ assert.equal(result.catalog.editions.length,3,'快照内容可用');
+ // 显式传入 signal 时尊重调用方（不被内部超时覆盖）。
+ let seen=null;
+ await loadCatalog({fetchImpl:(url,init)=>{seen=init?.signal;return Promise.reject(new Error('boom'));}});
+ assert.ok(seen,'调用方 signal 透传');
+});

@@ -1,0 +1,1371 @@
+[
+ {
+  "id": "funskills",
+  "title": "繁星之夜",
+  "subtitle": "FunSkills 决赛作品展",
+  "description": "从真实需求出发，让创意成为可以分享的技能。探索电商出海、金融投资、效率工具、内容创作与生活成长方向的参赛作品。",
+  "note": "现有展示资料收录 38 条记录，正式决赛名单与人数仍待运营核对。",
+  "tracks": [
+   "电商出海",
+   "金融投资",
+   "效率工具",
+   "内容创作",
+   "生活成长"
+  ],
+  "trackColors": {
+   "电商出海": "#5fd0ff",
+   "金融投资": "#f5c44e",
+   "效率工具": "#a98bff",
+   "内容创作": "#ff8fb0",
+   "生活成长": "#6fe0b0"
+  },
+  "works": [
+   {
+    "id": "funskills--ecom-video",
+    "slug": "ecom-video",
+    "title": "电商视频全能版",
+    "author": "Cartman",
+    "track": "电商出海",
+    "tagline": "把视频流水线装进桌面",
+    "description": "45 分钟完成传统 7 小时的视频生产，降本 70%+，工业级品质输出。从脚本到成片，把整条短视频流水线装进你的桌面。",
+    "tags": [
+     "电商",
+     "短视频",
+     "AIGC"
+    ],
+    "subtitle": "AIGC 重塑视频生产",
+    "poster": "/works/funskills/ecom-video.jpg",
+    "thumb": "/works/funskills/thumbs/ecom-video.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--cross-border",
+    "slug": "cross-border",
+    "title": "跨境选品智能分析",
+    "author": "GEB",
+    "track": "电商出海",
+    "tagline": "让选品从经验判断升级为模型化决策",
+    "description": "十维度评估、目标利润反推、反内卷策略、合规与侵权风险提示——不是简单找爆品，而是找到更适合你的可持续产品机会。",
+    "tags": [
+     "跨境",
+     "选品",
+     "数据"
+    ],
+    "subtitle": "亚马逊 / FBA 智能选品决策助手",
+    "poster": "/works/funskills/cross-border.jpg",
+    "thumb": "/works/funskills/thumbs/cross-border.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--meme-director",
+    "slug": "meme-director",
+    "title": "电商梗片导演",
+    "author": "静 sir",
+    "track": "电商出海",
+    "tagline": "从商品信息到爆款梗片，只需三分钟",
+    "description": "输入商品与目标人群，一键产出脚本、分镜、关键帧、视频 Prompt 与风险检查的五大模块完整方案。",
+    "tags": [
+     "短视频",
+     "创作",
+     "电商"
+    ],
+    "subtitle": "商品信息 → 一键生成短视频梗片方案",
+    "poster": "/works/funskills/meme-director.jpg",
+    "thumb": "/works/funskills/thumbs/meme-director.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--geo-checker",
+    "slug": "geo-checker",
+    "title": "GEO Checker",
+    "author": "张舒",
+    "track": "电商出海",
+    "tagline": "测一测你的店铺，AI 搜索引擎看得见吗",
+    "description": "扫描电商站点给出 GEO 分数，告诉你 ChatGPT、Perplexity 等 AI 搜索引擎看不见的结构化数据与可见性问题。",
+    "tags": [
+     "出海",
+     "GEO",
+     "可见性"
+    ],
+    "subtitle": "Is your store AI-ready?",
+    "poster": "/works/funskills/geo-checker.jpg",
+    "thumb": "/works/funskills/thumbs/geo-checker.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--ecom-ops",
+    "slug": "ecom-ops",
+    "title": "中国电商全链路运营系统",
+    "author": "VON",
+    "track": "电商出海",
+    "tagline": "一套系统打通电商运营全链路",
+    "description": "从标题优化、商品文案、评价管理到广告策略、供应链、合规法务，十二大核心模块覆盖电商运营全场景。",
+    "tags": [
+     "电商",
+     "运营",
+     "系统"
+    ],
+    "subtitle": "12 大模块 · 覆盖全场景 · 数据驱动增长",
+    "poster": "/works/funskills/ecom-ops.jpg",
+    "thumb": "/works/funskills/thumbs/ecom-ops.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--ecom-arcade",
+    "slug": "ecom-arcade",
+    "title": "电商超级智能体",
+    "author": "小智",
+    "track": "电商出海",
+    "tagline": "输入一个商品名，自动生成完整经营包",
+    "description": "只需输入商品名或链接，自动生成主图、详情、短视频、上架字段与行动清单，一次完成整局开盘。",
+    "tags": [
+     "电商",
+     "智能体",
+     "自动化"
+    ],
+    "subtitle": "一键开局 · 选品/视觉/上架/复盘",
+    "poster": "/works/funskills/ecom-arcade.jpg",
+    "thumb": "/works/funskills/thumbs/ecom-arcade.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--product-radar",
+    "slug": "product-radar",
+    "title": "新奇特选品雷达",
+    "author": "Owen",
+    "track": "电商出海",
+    "tagline": "TikTok Shop 跨境卖家的首发雷达",
+    "description": "公开趋势聚合、机会评分、时效性判断、证据链核查与风险提示，帮你抢在风口前锁定值得首测的商品。",
+    "tags": [
+     "跨境",
+     "选品",
+     "TikTok"
+    ],
+    "subtitle": "用公开信号，筛出值得首测的跨境商品",
+    "poster": "/works/funskills/product-radar.jpg",
+    "thumb": "/works/funskills/thumbs/product-radar.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--mengli-stock",
+    "slug": "mengli-stock",
+    "title": "萌立 AI",
+    "author": "明立",
+    "track": "金融投资",
+    "tagline": "一句话，写出一份个股分析",
+    "description": "一句话即可生成覆盖基本面、消息面、技术面的完整个股分析报告，把研究门槛降到一句话。",
+    "tags": [
+     "股票",
+     "分析",
+     "金融"
+    ],
+    "subtitle": "一句话生成个股分析",
+    "poster": "/works/funskills/mengli-stock.jpg",
+    "thumb": "/works/funskills/thumbs/mengli-stock.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--madclaw",
+    "slug": "madclaw",
+    "title": "MadClaw 智能选股",
+    "author": "桑先进",
+    "track": "金融投资",
+    "tagline": "数据驱动决策，让投资更简单",
+    "description": "基于 Python 的开源量化投研框架：100+ 因子库、30+ 策略模型、策略回测与风险规避，从 0 到 1 开启量化投资。",
+    "tags": [
+     "量化",
+     "选股",
+     "开源"
+    ],
+    "subtitle": "助力新手小白稳健投资",
+    "poster": "/works/funskills/madclaw.jpg",
+    "thumb": "/works/funskills/thumbs/madclaw.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--stock-master",
+    "slug": "stock-master",
+    "title": "股票策场大师",
+    "author": "许恒",
+    "track": "金融投资",
+    "tagline": "不是回测，是真实排名",
+    "description": "策场排名 #1、1.8 万+ 真实用户、500 万+ 管理资产：情绪分析、股票筛选、持仓诊断，给你一份持仓健康体检。",
+    "tags": [
+     "股票",
+     "交易"
+    ],
+    "subtitle": "一个会自己交易的 AI",
+    "poster": "/works/funskills/stock-master.jpg",
+    "thumb": "/works/funskills/thumbs/stock-master.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--huanzhi-fa",
+    "slug": "huanzhi-fa",
+    "title": "焕智 AI · FA Skill Pro",
+    "author": "焕智 AI",
+    "track": "金融投资",
+    "tagline": "融资不是碰运气，而是系统化能力",
+    "description": "下载用户突破 1000+：融资诊断、提升 Capital EQ、融资策略、投资人匹配，加速每一位创始人的融资进程。",
+    "tags": [
+     "创业",
+     "融资"
+    ],
+    "subtitle": "创业者的融资副驾驶",
+    "poster": "/works/funskills/huanzhi-fa.jpg",
+    "thumb": "/works/funskills/thumbs/huanzhi-fa.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--cbed",
+    "slug": "cbed",
+    "title": "CBED 可转债量化优选",
+    "author": "王印国",
+    "track": "金融投资",
+    "tagline": "把量化能力交给每一位投资者",
+    "description": "多维度筛选与实时监测可转债，可转债智能优选技能，让稳健的量化策略走进普通投资者的工具箱。",
+    "tags": [
+     "可转债",
+     "量化"
+    ],
+    "subtitle": "Convertible Bond Evaluation & Discovery",
+    "poster": "/works/funskills/cbed.jpg",
+    "thumb": "/works/funskills/thumbs/cbed.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--caibao",
+    "slug": "caibao",
+    "title": "财报智读",
+    "author": "张庙",
+    "track": "金融投资",
+    "tagline": "看懂公司、看懂风险、看懂自己",
+    "description": "AI 投研 + 风险画像 + 同业 PK：识别风险、控制仓位、建立学习路径，是 AI 投资教育与研究的闭环平台。",
+    "tags": [
+     "投研",
+     "教育",
+     "风险"
+    ],
+    "subtitle": "让普通投资者也能读懂财报",
+    "poster": "/works/funskills/caibao.jpg",
+    "thumb": "/works/funskills/thumbs/caibao.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--web3quant",
+    "slug": "web3quant",
+    "title": "Web3QuantMaster",
+    "author": "Freya",
+    "track": "金融投资",
+    "tagline": "This is not a project. This is an asset.",
+    "description": "单人 OPC：40+ 生产级模块、5-10x 引擎提速、0ms DataStore、五级实时风控，面向高波动市场的量化 AI 助手。",
+    "tags": [
+     "量化",
+     "Web3"
+    ],
+    "subtitle": "一人即宇宙 · AI 原生量化基础设施",
+    "poster": "/works/funskills/web3quant.jpg",
+    "thumb": "/works/funskills/thumbs/web3quant.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--finance-arena",
+    "slug": "finance-arena",
+    "title": "金融 AI 擂台",
+    "author": "于鸿伟",
+    "track": "金融投资",
+    "tagline": "让算法在擂台上一较高下",
+    "description": "智能算法对决的金融科技舞台，把策略与模型放上擂台，见证 AI 重塑金融决策的未来。",
+    "tags": [
+     "金融",
+     "赛事"
+    ],
+    "subtitle": "智能算法对决 · 金融未来挑战",
+    "poster": "/works/funskills/finance-arena.jpg",
+    "thumb": "/works/funskills/thumbs/finance-arena.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--skillhub",
+    "slug": "skillhub",
+    "title": "SkillHub",
+    "author": "林下凡",
+    "track": "效率工具",
+    "tagline": "团队技能，一键同步",
+    "description": "对话式生成 Skill、一键上线共享、版本管理与评价反馈——让 AI 技能不再散落各处，在团队里自由流动。",
+    "tags": [
+     "团队",
+     "平台",
+     "效率"
+    ],
+    "subtitle": "AI 技能全生命周期管理平台",
+    "poster": "/works/funskills/skillhub.jpg",
+    "thumb": "/works/funskills/thumbs/skillhub.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--icebreaker",
+    "slug": "icebreaker",
+    "title": "破冰协议",
+    "author": "乔瑞雪",
+    "track": "效率工具",
+    "tagline": "给想法一个强制启动键",
+    "description": "专治“想太多、怕做不好、迟迟开不了头”：粗粒度锁定目标、拆成可交付步骤、限时做出雏形。",
+    "tags": [
+     "行动",
+     "效率",
+     "成长"
+    ],
+    "subtitle": "Icebreaker Protocol",
+    "poster": "/works/funskills/icebreaker.jpg",
+    "thumb": "/works/funskills/thumbs/icebreaker.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--nomoreskill",
+    "slug": "nomoreskill",
+    "title": "No More Skill",
+    "author": "曾毅",
+    "track": "效率工具",
+    "tagline": "少一点技能堆砌，多一点真正成长",
+    "description": "记忆沉淀、安全守护、持续执行、Workflow 与 Agent 编排，把对话沉淀为越用越有价值的数字资产。",
+    "tags": [
+     "Agent",
+     "记忆",
+     "成长"
+    ],
+    "subtitle": "一个越来越懂你的智能伙伴",
+    "poster": "/works/funskills/nomoreskill.jpg",
+    "thumb": "/works/funskills/thumbs/nomoreskill.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--hackathon",
+    "slug": "hackathon",
+    "title": "黑客松比赛夺冠助手",
+    "author": "胡永宝",
+    "track": "效率工具",
+    "tagline": "一起用 AI 赢得比赛",
+    "description": "智能节点提醒、AI 导师选题团、大咖模拟质询——从报名截止到决赛答辩，全程为你的参赛之路护航。",
+    "tags": [
+     "比赛",
+     "效率"
+    ],
+    "subtitle": "让 AI 成为你赢得比赛的最强队友",
+    "poster": "/works/funskills/hackathon.jpg",
+    "thumb": "/works/funskills/thumbs/hackathon.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--meetgrow",
+    "slug": "meetgrow",
+    "title": "MeetGrowAI",
+    "author": "冯亦根",
+    "track": "效率工具",
+    "tagline": "重新定义会展生产力",
+    "description": "AI 大会招商增长 Skill：以成交为导向，一键生成全案、快速复用，把传统 5 人 7 天的工作压缩到 30 分钟。",
+    "tags": [
+     "会展",
+     "增长",
+     "效率"
+    ],
+    "subtitle": "从 7 天到 30 分钟，效率跃升 560 倍",
+    "poster": "/works/funskills/meetgrow.jpg",
+    "thumb": "/works/funskills/thumbs/meetgrow.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--hackflow-ppt",
+    "slug": "hackflow-ppt",
+    "title": "HackFlow PPT",
+    "author": "弘文",
+    "track": "效率工具",
+    "tagline": "让你专注作品，PPT 交给它",
+    "description": "开源 Claude Code Skill 插件：从项目代码到 4K 输出，一条命令生成路演级演示，从代码到提案一气呵成。",
+    "tags": [
+     "PPT",
+     "创作",
+     "开源"
+    ],
+    "subtitle": "一条 /ppt 命令，生成路演级 PPT",
+    "poster": "/works/funskills/hackflow-ppt.jpg",
+    "thumb": "/works/funskills/thumbs/hackflow-ppt.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--lumi-lab",
+    "slug": "lumi-lab",
+    "title": "Idea 创业实验室",
+    "author": "A梦",
+    "track": "效率工具",
+    "tagline": "先验证，再决定要不要真去做",
+    "description": "看清楚、测一下、下一步——多通道验证想法、给方向与行动建议，26 个 AI Skills 陪你跑通创业第一步。",
+    "tags": [
+     "创业",
+     "验证",
+     "效率"
+    ],
+    "subtitle": "Lumi Lab · 把一句话想法送进实验室",
+    "poster": "/works/funskills/lumi-lab.jpg",
+    "thumb": "/works/funskills/thumbs/lumi-lab.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--info-alchemist",
+    "slug": "info-alchemist",
+    "title": "信息炼金术士",
+    "author": "花生仁",
+    "track": "效率工具",
+    "tagline": "让搜索从“找资料”变成“判断下一步”",
+    "description": "明确搜索目的，把官网、新闻、小红书、X、Reddit 等信息炼成你的下一步行动：继续做、观察、小范围验证或放弃。",
+    "tags": [
+     "搜索",
+     "决策",
+     "效率"
+    ],
+    "subtitle": "Info-Alchemist",
+    "poster": "/works/funskills/info-alchemist.jpg",
+    "thumb": "/works/funskills/thumbs/info-alchemist.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--ledger",
+    "slug": "ledger",
+    "title": "银砚 · 一句话记账",
+    "author": "冥羽",
+    "track": "效率工具",
+    "tagline": "一句话识别，账本就是一份 ledger.json",
+    "description": "一句话即可识别并完成记账，本地优先、可靠开源、隐私安全：不自动读取支付流水、不做投资建议、不上传账本。",
+    "tags": [
+     "记账",
+     "本地",
+     "开源"
+    ],
+    "subtitle": "账本留在本地",
+    "poster": "/works/funskills/ledger.jpg",
+    "thumb": "/works/funskills/thumbs/ledger.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "highlight": "全程唯一的初中生选手组合 —— 15 & 16 岁搭档，平均年龄仅 15.5 岁，用一个 Skill 证明：创造力，从不设年龄门槛。",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--hammer-notes",
+    "slug": "hammer-notes",
+    "title": "锤子便签 && GARSS 阅读器",
+    "author": "zhaoolee",
+    "track": "效率工具",
+    "tagline": "致敬经典的便签与阅读体验",
+    "description": "把经典的锤子便签书写与 GARSS 阅读体验，用 AI Skill 的方式重新带回到你的日常工作流。",
+    "tags": [
+     "工具",
+     "内容",
+     "阅读"
+    ],
+    "subtitle": "不要因为走得太远，就忘了为什么出发",
+    "poster": "/works/funskills/hammer-notes.jpg",
+    "thumb": "/works/funskills/thumbs/hammer-notes.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--xhs-auto",
+    "slug": "xhs-auto",
+    "title": "Obsidian x 小红书",
+    "author": "春头勇",
+    "track": "内容创作",
+    "tagline": "让 AI 成为你的小红书运营超级助手",
+    "description": "从搜索灵感、浏览评论到 AI 内容生成、一键发布——小红书站内运营全流程自动化。",
+    "tags": [
+     "小红书",
+     "自动化",
+     "内容"
+    ],
+    "subtitle": "一键搜索 · 自动创作 · 全自动发布",
+    "poster": "/works/funskills/xhs-auto.jpg",
+    "thumb": "/works/funskills/thumbs/xhs-auto.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--storymap",
+    "slug": "storymap",
+    "title": "StoryMap",
+    "author": "崔成",
+    "track": "内容创作",
+    "tagline": "从空间视角读懂历史人物",
+    "description": "提取关键地点与对应事件、精准地理编码、交互式时间轴与足迹路线——“李白的一生足迹”也能一图读懂。",
+    "tags": [
+     "可视化",
+     "学习",
+     "内容"
+    ],
+    "subtitle": "人物 · 时空 · 事件，历史足迹可视化",
+    "poster": "/works/funskills/storymap.jpg",
+    "thumb": "/works/funskills/thumbs/storymap.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--brand-growth",
+    "slug": "brand-growth",
+    "title": "AI 时代品牌增长",
+    "author": "王林",
+    "track": "内容创作",
+    "tagline": "拆解品牌从 0 到 1 的增长能力",
+    "description": "系统拆解 AI 时代品牌增长的关键能力与方法论，从早期阶段到规模化增长的完整路径。",
+    "tags": [
+     "品牌",
+     "增长",
+     "方法论"
+    ],
+    "subtitle": "Brand Growth in the AI Era",
+    "poster": "/works/funskills/brand-growth.jpg",
+    "thumb": "/works/funskills/thumbs/brand-growth.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--dialog-sim",
+    "slug": "dialog-sim",
+    "title": "对话模拟器",
+    "author": "云深不知梦",
+    "track": "生活成长",
+    "tagline": "让每一次对话，都成为成长的机会",
+    "description": "沉浸式对话体验，覆盖晋升承诺、股票激诱、情绪缓冲等全职场场景，在模拟中练沟通、在挑战中突破。",
+    "tags": [
+     "职场",
+     "沟通",
+     "成长"
+    ],
+    "subtitle": "你的专属职场模拟训练场",
+    "poster": "/works/funskills/dialog-sim.jpg",
+    "thumb": "/works/funskills/thumbs/dialog-sim.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--life-method",
+    "slug": "life-method",
+    "title": "AI 时代人生方法论技能库",
+    "author": "王林",
+    "track": "生活成长",
+    "tagline": "提炼可复用的人生方法论",
+    "description": "基于 AI 时代的洞察，把零散经验提炼成可复用、可执行的人生方法论技能库。",
+    "tags": [
+     "方法论",
+     "成长"
+    ],
+    "subtitle": "AI Era Methodology",
+    "poster": "/works/funskills/life-method.jpg",
+    "thumb": "/works/funskills/thumbs/life-method.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--takeback",
+    "slug": "takeback",
+    "title": "Takeback · 知返",
+    "author": "麦叶",
+    "track": "生活成长",
+    "tagline": "AI 时代下的新学习范式",
+    "description": "AI 学习人类、人类蒸馏 AI——用全新的学习范式，重塑 AI 时代下的教育与学习方式。",
+    "tags": [
+     "学习",
+     "教育"
+    ],
+    "subtitle": "AI 学习人类，人类蒸馏 AI",
+    "poster": "/works/funskills/takeback.jpg",
+    "thumb": "/works/funskills/thumbs/takeback.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--paradox-court",
+    "slug": "paradox-court",
+    "title": "人生悖论审判庭",
+    "author": "六耳",
+    "track": "生活成长",
+    "tagline": "把你的困惑，送上法庭",
+    "description": "CODEX SKILL · 6 步决策分析引擎：面临重大选择时层层审讯困惑，给出可立刻执行的 72 小时实验方案。",
+    "tags": [
+     "决策",
+     "成长"
+    ],
+    "subtitle": "PARADOX COURT · 决策分析系统",
+    "poster": "/works/funskills/paradox-court.jpg",
+    "thumb": "/works/funskills/thumbs/paradox-court.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--travel-planner",
+    "slug": "travel-planner",
+    "title": "境旅 Travel Planner",
+    "author": "达轮",
+    "track": "生活成长",
+    "tagline": "让每一次出行，都从灵感到出发",
+    "description": "输入目的地、天数、预算与人数，自动生成景点、餐饮、路线、每日行程与预算拆分的完整 Place Guide。",
+    "tags": [
+     "旅行",
+     "规划",
+     "生活"
+    ],
+    "subtitle": "用自然语言，一键生成完整旅行方案",
+    "poster": "/works/funskills/travel-planner.jpg",
+    "thumb": "/works/funskills/thumbs/travel-planner.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--nut-finance",
+    "slug": "nut-finance",
+    "title": "坚果 · 财务规划",
+    "author": "高磊",
+    "track": "生活成长",
+    "tagline": "不追热点，不制造焦虑",
+    "description": "面向理财新手：看清现金流、整理资产负债、制定极简方案、定期复盘，像松鼠存坚果一样安放自己的财产。",
+    "tags": [
+     "理财",
+     "规划",
+     "生活"
+    ],
+    "subtitle": "让钱待在合适的位置",
+    "poster": "/works/funskills/nut-finance.jpg",
+    "thumb": "/works/funskills/thumbs/nut-finance.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--jung",
+    "slug": "jung",
+    "title": "问荣格",
+    "author": "口袋君",
+    "track": "生活成长",
+    "tagline": "给你一个可以继续想的象征",
+    "description": "符号识别型体验：抽卡、对话、读片，一次通过图像、象征与追问开启的向内自我探索，结果不是标签而是象征。",
+    "tags": [
+     "心理",
+     "探索",
+     "生活"
+    ],
+    "subtitle": "10 问内，照见你此刻靠近的潜意识原型",
+    "poster": "/works/funskills/jung.jpg",
+    "thumb": "/works/funskills/thumbs/jung.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--profiling",
+    "slug": "profiling",
+    "title": "侧写技 · 慧眼社区",
+    "author": "土狗",
+    "track": "生活成长",
+    "tagline": "数据非真相，行为即密码",
+    "description": "洞察人心、看透本质、掌控时机、改写结局——把每一次选择，照见背后的命运与逻辑。",
+    "tags": [
+     "洞察",
+     "社区",
+     "生活"
+    ],
+    "subtitle": "洞察人心，看透本质",
+    "poster": "/works/funskills/profiling.jpg",
+    "thumb": "/works/funskills/thumbs/profiling.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--child-face",
+    "slug": "child-face",
+    "title": "孩子长相预测",
+    "author": "庄工",
+    "track": "生活成长",
+    "tagline": "我连咱俩孩子长啥样都想好了",
+    "description": "两张照片、七个阶段、一份报告，从婴儿到老年解读未来七段人生——仅供娱乐参考，不代表真实预测。",
+    "tags": [
+     "娱乐",
+     "AI",
+     "生活"
+    ],
+    "subtitle": "上传两张照片，解读未来七段人生",
+    "poster": "/works/funskills/child-face.jpg",
+    "thumb": "/works/funskills/thumbs/child-face.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "funskills--time-travel",
+    "slug": "time-travel",
+    "title": "古今穿越旅行对照薄",
+    "author": "法小蕾",
+    "track": "生活成长",
+    "tagline": "让旅行不再是打卡流水线",
+    "description": "在 Z 世代的特种兵旅行时，基于情景自动触发历史彩蛋，让旅行不再是打卡流水线的工具。",
+    "tags": [
+     "旅行",
+     "历史",
+     "生活"
+    ],
+    "subtitle": "Z 世代特种兵旅行 · 历史彩蛋触发器",
+    "poster": "/works/funskills/time-travel.jpg",
+    "thumb": "/works/funskills/thumbs/time-travel.jpg",
+    "source": "选手作品信息/繁星之夜-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "funskills",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   }
+  ],
+  "eventStage": "已结束",
+  "publicationStatus": "已发布",
+  "contentVersion": 1
+ },
+ {
+  "id": "hackathon",
+  "title": "数智星光展",
+  "subtitle": "浙江工商大学 AI 黑客松",
+  "description": "从校园里的真实问题出发，18 支团队用 AI 探索学务、评奖、空间预约、科研与院务文化的新解法。",
+  "note": "作品介绍来自原展示站；技术效果与成果数字为作者资料陈述。",
+  "tracks": [
+   "智慧学务",
+   "评奖测评",
+   "空间预约",
+   "科研实验",
+   "院务文化"
+  ],
+  "trackColors": {
+   "智慧学务": "#6fd3ff",
+   "评奖测评": "#f5c44e",
+   "空间预约": "#a98bff",
+   "科研实验": "#6fe0b0",
+   "院务文化": "#ff8fb0"
+  },
+  "works": [
+   {
+    "id": "hackathon--archive-hall",
+    "slug": "archive-hall",
+    "title": "院史长卷 · 线上院史馆",
+    "author": "胡雅晴",
+    "track": "院务文化",
+    "tagline": "一卷阅尽六十余载薪火，数字长卷共谱信电华章",
+    "description": "以中国传统书画美学为设计语言，将学院六十余年办学历史、242 个班级毕业合影、近七千名师生名册与三十四个关键历史节点整合于单一网页。五大核心功能：时间轴滚动浏览、朝花夕拾照片墙、史料提交共建、学院动态同步、后台增删改审。面向校友、师生、管理者与访客，是一张永不闭馆的数字名片。团队：胡雅晴（公共管理学院）、钱孝盛、孙豪。",
+    "tags": [
+     "数字院史",
+     "校友互动",
+     "文化资产"
+    ],
+    "subtitle": "Digital Heritage Hall",
+    "poster": "/works/hackathon/archive-hall.webp",
+    "thumb": "/works/hackathon/thumbs/archive-hall.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "highlight": "60+ 年办学历度 · 242 个班级合影 · 7000+ 名师生名册 · 34 个历史节点",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--party-build",
+    "slug": "party-build",
+    "title": "学院智慧党建系统",
+    "author": "童建辉",
+    "track": "院务文化",
+    "tagline": "党建数据一屏汇聚，支部工作闭环推进",
+    "description": "面向学院党委、总支与支部管理人员的可视化党建管理平台，聚焦党员台账分散、发展流程难追踪、组织关系流转不直观、待办风险易遗漏等痛点，将党员管理、流程跟踪、组织转接、风险提醒与扩展应用集中到统一工作台，实现一屏统览、闭环流转、全程留痕。团队：童建辉、朱美瑄、张静芳、李洋溢。",
+    "tags": [
+     "党员台账",
+     "流程追踪",
+     "一屏统览"
+    ],
+    "subtitle": "Smart Party Building",
+    "poster": "/works/hackathon/party-build.webp",
+    "thumb": "/works/hackathon/thumbs/party-build.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--resume-screen",
+    "slug": "resume-screen",
+    "title": "人才简历智能筛选系统",
+    "author": "李清扬",
+    "track": "智慧学务",
+    "tagline": "减少人工逐项核对，提升人才材料审核效率与规范性",
+    "description": "面向学院人才引进、项目申报与专家材料初审场景，自动识别并结构化提取论文、期刊/会议、专利、软著、科研项目、获奖、工作经历等关键信息，形成人才画像与成果清单。六大核心功能涵盖智能解析、成果分类、关键信息校验、多维筛选统计、全流程审核与缺失材料提醒。",
+    "tags": [
+     "简历解析",
+     "成果汇总",
+     "全流程审核"
+    ],
+    "subtitle": "Talent Resume Screening",
+    "poster": "/works/hackathon/resume-screen.webp",
+    "thumb": "/works/hackathon/thumbs/resume-screen.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--affairs-task",
+    "slug": "affairs-task",
+    "title": "学生事务通知发布与材料申报系统",
+    "author": "钱孝盛",
+    "track": "智慧学务",
+    "tagline": "让通知变任务，让材料可追溯，让评审更高效",
+    "description": "面向辅导员与学生日常事务办理，把通知发布、定向接收、在线填报、附件上传、进度追踪、材料审核与结果导出整合到统一流程。亮点在于任务化通知管理、动态表单填报、提交状态实时统计、材料分类归档与一键导出，并引入 AI 一键生成通报名单、专家与 AI 协同评审。团队：钱孝盛、骆林、潘佳璐。",
+    "tags": [
+     "任务化通知",
+     "动态填报",
+     "AI 协同"
+    ],
+    "subtitle": "Student Affairs Hub",
+    "poster": "/works/hackathon/affairs-task.webp",
+    "thumb": "/works/hackathon/thumbs/affairs-task.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--affairs-node",
+    "slug": "affairs-node",
+    "title": "学生事务协同管理系统",
+    "author": "金天宇",
+    "track": "智慧学务",
+    "tagline": "通知触达 · 材料提交 · 回执确认 · 审核归档",
+    "description": "结合浙商大「诚、毅、勤、朴」校园文化，面向学院与班级日常学生事务，设计学生端与管理员端协同系统，适用于评奖评优、活动报名、材料收集、信息确认等场景。学生端提供待办提醒、材料上传、回执确认；管理员端支持分类发布、定向推送、审核退回、未提交统计、一键催交与归档查询。Node.js 原生服务 + JSON 数据库，轻量部署。",
+    "tags": [
+     "双端协同",
+     "诚毅勤朴",
+     "轻量部署"
+    ],
+    "subtitle": "Affairs Collaboration",
+    "poster": "/works/hackathon/affairs-node.webp",
+    "thumb": "/works/hackathon/thumbs/affairs-node.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--mentor-match",
+    "slug": "mentor-match",
+    "title": "师生双选管理系统",
+    "author": "刘国栋",
+    "track": "智慧学务",
+    "tagline": "让双选更高效，让教务更减负",
+    "description": "面向研究生导师双向选择与学院招生管理，覆盖账号初始化、学生志愿填报、导师分轮审核、系统匹配确认、管理员调剂处理、结果统计导出全流程。学生查看导师简介与剩余名额、填写多志愿；导师在线审核、录取；管理员按轮次推进填报—审核—调剂—公示，减少线下表格流转与人工统计压力。",
+    "tags": [
+     "志愿填报",
+     "分轮审核",
+     "智能匹配"
+    ],
+    "subtitle": "Mentor–Student Matching",
+    "poster": "/works/hackathon/mentor-match.webp",
+    "thumb": "/works/hackathon/thumbs/mentor-match.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--dorm-match",
+    "slug": "dorm-match",
+    "title": "新生选寝系统 · Smart Dorm",
+    "author": "何楚璇",
+    "track": "智慧学务",
+    "tagline": "以技术温度赋能思政工作，打造人性化高效分配控制台",
+    "description": "针对传统「盲盒式」分配忽略作息、抽烟、游戏等习惯差异、易引发寝室矛盾的痛点，基于问卷星采集意向，采用四层级联匹配引擎：优先满足指定室友、强制分流高冲突群体、按习惯距离同好聚类、最大化生源省份跨度。配可视化干预沙盒看板，支持拖拽置换与违规标红预警，预计减少 60% 以上寝室矛盾调解。团队：何楚璇、张筱丹。",
+    "tags": [
+     "四层匹配",
+     "习惯聚类",
+     "可视化沙盒"
+    ],
+    "subtitle": "Smart Dorm Matching",
+    "poster": "/works/hackathon/dorm-match.webp",
+    "thumb": "/works/hackathon/thumbs/dorm-match.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "highlight": "秒级智能匹配 · 预计减少 60%+ 寝室矛盾 · 零成本覆盖",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--scholarship-eval",
+    "slug": "scholarship-eval",
+    "title": "本科生奖学金评选系统",
+    "author": "周文",
+    "track": "评奖测评",
+    "tagline": "双轨制综合测评，一站式闭环管理",
+    "description": "依据《2025 版学生素质评价办法》与《奖学金实施办法》开发，前后端分离（后端 Spring Boot 3 + MyBatis-Plus，前端 React + Vite），涵盖学生、辅导员、管理员三种角色。核心围绕「双轨制综合测评」：基本项由品德与专业素质按 3:7 加权，综合能力项以 75 分为基础叠加科研创新、专业技能、组织工作、体育美育、劳动实践五项，最终汇总排名并匹配奖学金等级。团队：周文、卢成凯。",
+    "tags": [
+     "双轨制测评",
+     "Spring Boot 3",
+     "React + Vite"
+    ],
+    "subtitle": "Scholarship Evaluation",
+    "poster": "/works/hackathon/scholarship-eval.webp",
+    "thumb": "/works/hackathon/thumbs/scholarship-eval.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--scholarship-review",
+    "slug": "scholarship-review",
+    "title": "本科生奖学金评定平台",
+    "author": "李继",
+    "track": "评奖测评",
+    "tagline": "双维度综合评价，全过程信息化闭环",
+    "description": "服务于高校奖学金管理全过程，以「双维度综合评价机制」为核心：思想品德（民主评议 + 过程纪实）与专业学习（学业加权平均分）按 3:7 形成基础测评，综合能力以 75 分为基准叠加科研创新、专业竞赛、学生工作、体育艺术、劳动实践等维度。学生可在线查看测评、申请奖学金、查询推免、发起申诉，并提供公开查询模块保障公开规范。团队：李继、陆云琪（萨塞克斯学院）。",
+    "tags": [
+     "双维度评价",
+     "在线申诉",
+     "公示查询"
+    ],
+    "subtitle": "Scholarship Review Platform",
+    "poster": "/works/hackathon/scholarship-review.webp",
+    "thumb": "/works/hackathon/thumbs/scholarship-review.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--scholarship-mcp",
+    "slug": "scholarship-mcp",
+    "title": "奖学金评定管理系统",
+    "author": "徐杰",
+    "track": "评奖测评",
+    "tagline": "让评定更高效、更公平、更透明",
+    "description": "针对手工繁琐、审核低效、标准不一、过程不透明等痛点，采用 Flask + SQLite + MCP Server 技术架构，结合钉钉机器人实现移动端无缝对接。以「学生信息→加分材料→奖学金规则→评定结果」四层模型还原评定流程，支持在线提交加分、智能审核、规则配置、自动计算排名与结果公示，通过批量导入与 AI 辅助审核提升高峰并发处理能力。团队：徐杰、孙豪。",
+    "tags": [
+     "Flask + MCP",
+     "钉钉机器人",
+     "AI 辅助审核"
+    ],
+    "subtitle": "Scholarship + MCP",
+    "poster": "/works/hackathon/scholarship-mcp.webp",
+    "thumb": "/works/hackathon/thumbs/scholarship-mcp.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--seatflow",
+    "slug": "seatflow",
+    "title": "SeatFlow 智慧座位预约平台",
+    "author": "郭俊豪",
+    "track": "空间预约",
+    "tagline": "基于 Next.js 14 全栈，让每一张自习桌都物尽其用",
+    "description": "针对自习室「一座难求、占座闲置、管理粗放」痛点，基于 Next.js 14 全栈架构，创新采用 SVG 自定义坐标实现 1:1 真实场景座位可视化，A/B/C 三区分色与不规则座位旋转布局；结合二维码签到与 WebSocket 实时推送，构建「浏览—预约—签到—管理」闭环，含智能排队候补、信用分体系与管理大屏。已在信电学院五楼自习室落地管理 56 个座位。团队：郭俊豪、倪伊楠（萨塞克斯学院）。",
+    "tags": [
+     "Next.js 14",
+     "SVG 座位图",
+     "WebSocket"
+    ],
+    "subtitle": "SeatFlow",
+    "poster": "/works/hackathon/seatflow.webp",
+    "thumb": "/works/hackathon/thumbs/seatflow.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "highlight": "56 自定义坐标座位 · 3 时段/天 · ∞ 候补排队 · 100% 二维码覆盖",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--smartseat",
+    "slug": "smartseat",
+    "title": "Smart Seat 智慧座位预约系统",
+    "author": "尚煜杰",
+    "track": "空间预约",
+    "tagline": "五层空间模型还原真实学习空间，预约更公平",
+    "description": "前端 React + TypeScript + Vite + Ant Design，后端 Java 21 + Spring Boot 4 + MyBatis-Plus，结合 MySQL、Redis、Flyway。以「区域、桌子、座位、开放时段、预约记录」五层模型还原学习空间，支持室内导航、地图选座、预约、签到、签退、锁位；管理员可维护规则并通过看板与审计日志掌握使用情况，借 MySQL 条件更新保障高峰并发不重复预约。团队：尚煜杰、罗涛、张文彬。",
+    "tags": [
+     "React + TS",
+     "Spring Boot 4",
+     "Redis"
+    ],
+    "subtitle": "Smart Seat",
+    "poster": "/works/hackathon/smartseat.webp",
+    "thumb": "/works/hackathon/thumbs/smartseat.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--seat-reserve",
+    "slug": "seat-reserve",
+    "title": "学院公共区域学习座位预约系统",
+    "author": "阳婧",
+    "track": "空间预约",
+    "tagline": "可视化座位布局，让自习室信息透明、资源均衡",
+    "description": "基于前后端分离架构，实现座位管理、预约管理、扫码签到、实时状态更新与后台统计分析。通过可视化座位布局展示自习室使用情况，支持学生在线预约与管理员统一管理，有效提升座位利用率，解决传统自习室信息不透明、占座严重、资源分配不均等问题。",
+    "tags": [
+     "扫码签到",
+     "实时状态",
+     "统计分析"
+    ],
+    "subtitle": "Seat Reservation",
+    "poster": "/works/hackathon/seat-reserve.webp",
+    "thumb": "/works/hackathon/thumbs/seat-reserve.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--room-booking",
+    "slug": "room-booking",
+    "title": "智能房间预约系统",
+    "author": "胡庆凯",
+    "track": "空间预约",
+    "tagline": "一站式空间管理平台，时段重叠冲突自动检测",
+    "description": "面向会议室、研讨室、实验室等学院空间资源的一站式预约平台，核心功能含房间信息维护、预约创建与选择、智能冲突检测、管理员审核、状态可视化与数据统计。学生端浏览房间、选择时段预约；管理端审核待办、查看统计与热门排行，时段重叠冲突算法保障预约不撞车。",
+    "tags": [
+     "冲突检测",
+     "双端管理",
+     "热门排行"
+    ],
+    "subtitle": "Room Booking System",
+    "poster": "/works/hackathon/room-booking.webp",
+    "thumb": "/works/hackathon/thumbs/room-booking.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--paper-agent",
+    "slug": "paper-agent",
+    "title": "科研论文辅助管理系统 · AI Agent",
+    "author": "车延圣",
+    "track": "科研实验",
+    "tagline": "让 AI Agent 接管论文管理，对话即操作",
+    "description": "面向学生科研论文写作、导师过程指导与学院科研训练管理，以 AI Agent 为核心、对话即操作。支持录入题目、方向、摘要、关键词、文献、实验数据，上传开题报告、初稿、查重与答辩材料。六步贯通全流程管理：创建项目、计划制定、上传材料、进度记录、导师反馈、成果归档，并提供五阶段管理、任务追踪提醒与数据可视化。",
+    "tags": [
+     "AI Agent",
+     "六步流程",
+     "数据可视化"
+    ],
+    "subtitle": "Paper Agent",
+    "poster": "/works/hackathon/paper-agent.webp",
+    "thumb": "/works/hackathon/thumbs/paper-agent.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--paper-manage",
+    "slug": "paper-manage",
+    "title": "科研论文辅助管理系统 · 三端",
+    "author": "史宇恒",
+    "track": "科研实验",
+    "tagline": "让科研写作更清晰、导师指导更高效、学院管理更可视化",
+    "description": "覆盖学生端、导师端、管理员端的论文全生命周期管理：选题、开题、中期、初稿、修改、定稿、答辩、归档八阶段进度可视，支持写作进度记录、版本管理、导师意见反馈、修改任务跟踪、阶段节点提醒与成果导出，减少材料散落、版本混乱、反馈遗漏与节点拖延。",
+    "tags": [
+     "学生/导师/管理三端",
+     "版本管理",
+     "归档导出"
+    ],
+    "subtitle": "Paper Lifecycle",
+    "poster": "/works/hackathon/paper-manage.webp",
+    "thumb": "/works/hackathon/thumbs/paper-manage.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--lab-zhinet",
+    "slug": "lab-zhinet",
+    "title": "实验室管理系统 · 数智协同",
+    "author": "朱亚蕾",
+    "track": "科研实验",
+    "tagline": "数智协同 · 闭环管控，彻底解决材料散落与流转拖延",
+    "description": "面向二级学院实验室日常运行与教学耗材全生命周期管理，针对审批繁琐、预算不透明、台账易混乱等痛点，构建含课表编排、预算申报、多级流转审批（不参与修改+独立意见框）、电子签名出入库及库存风险预警的全闭环数字看板。亮点在全链路闭环流转与精细化权限隔离，支持值班表整体导入与多维度数据批量导出。团队：朱亚蕾、傅少同。",
+    "tags": [
+     "多级审批",
+     "电子签名",
+     "风险预警"
+    ],
+    "subtitle": "Lab Management",
+    "poster": "/works/hackathon/lab-zhinet.webp",
+    "thumb": "/works/hackathon/thumbs/lab-zhinet.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   },
+   {
+    "id": "hackathon--lab-supply",
+    "slug": "lab-supply",
+    "title": "高校实验室信息化与耗材管理系统",
+    "author": "周晓锋",
+    "track": "科研实验",
+    "tagline": "数字化管理 · 流程化管控 · 智能化决策",
+    "description": "面向实验室日常管理、耗材采购审批与学院过程监管，支持基础信息维护、耗材分类、库存查询、预算申报、采购申请、出入库登记、报销审批与审计日志，并通过数据看板展示设备利用率、人员分布、预算执行与耗材消耗趋势。按草稿、待审批、已批准、采购中、已收货、待报销、已报销、已审计等状态展示业务进度。团队：周晓锋、王旭。",
+    "tags": [
+     "耗材管理",
+     "预算审批",
+     "数据看板"
+    ],
+    "subtitle": "Lab & Supply",
+    "poster": "/works/hackathon/lab-supply.webp",
+    "thumb": "/works/hackathon/thumbs/lab-supply.webp",
+    "source": "选手作品信息/hackathon-showcase/assets/data.js",
+    "sourceStatus": "原展示资料",
+    "editionId": "hackathon",
+    "publicationStatus": "已发布",
+    "contentVersion": 1
+   }
+  ],
+  "eventStage": "已结束",
+  "publicationStatus": "已发布",
+  "contentVersion": 1
+ },
+ {
+  "id": "spark",
+  "title": "星火计划",
+  "subtitle": "2026 超级个体（OPC）创业挑战赛",
+  "description": "星火燎原，单人成军——AI 时代的超级个体创业之路。面向全国招募 1—4 人团队或个人创业者，围绕 OPC 特色产业设置四大赛道；线上组队海选遴选的约 20 个优质项目将进入上海松江七天线下集训营，在产品打磨、商业赋能、产业对接、路演备战与投资对接中快速迭代，争夺全场大奖与赛道奖项。赛事全程免费。",
+  "note": "赛事信息来自《2026\"星火计划\"超级个体（OPC）创业挑战赛 · 参赛选手手册》与业务伙伴对齐稿；参赛作品与最终获奖名单资料核对后上线。",
+  "tracks": [
+   "AI+智能硬件",
+   "AI 软件与应用",
+   "AIGC 视频",
+   "AI+出海"
+  ],
+  "trackColors": {
+   "AI+智能硬件": "#f0a63c",
+   "AI 软件与应用": "#5fb8f5",
+   "AIGC 视频": "#ef7f9f",
+   "AI+出海": "#59c9a5"
+  },
+  "works": [],
+  "eventStage": "已结束",
+  "publicationStatus": "已发布",
+  "contentVersion": 1,
+  "organizers": {
+   "主办单位": [
+    "上海市大数据社会应用研究会",
+    "原子之心（上海）科技有限公司"
+   ],
+   "承办单位": [
+    "松江区洞泾镇招商投资促进中心",
+    "活水协同创新园（上海活水实业有限公司）"
+   ],
+   "支持单位": [
+    "上海市松江区经济委员会",
+    "上海市松江区洞泾镇人民政府"
+   ],
+   "赛事周期": "2026 年 7 月 15 日 — 8 月 25 日（约 6 周）",
+   "参赛形式": "线上组队海选 · 线下七天集训营 · 1—4 人团队或个人 · 全程免费"
+  },
+  "schedule": [
+   {
+    "阶段": "阶段一 · 报名组队与海选",
+    "时间": "7 月 15 日 — 8 月 15 日",
+    "内容": "全国宣发招募、官网报名与组队、线上交流共建 Demo、线上初审，遴选约 20 个优质项目入营"
+   },
+   {
+    "阶段": "阶段二 · 线下七天集训营",
+    "时间": "8 月 19 日 — 8 月 25 日",
+    "内容": "开营仪式、集中特训、产业沙龙、投资人闭门对接、总决赛路演、颁奖与结营（上海松江活水协同创新园）"
+   }
+  ],
+  "awards": {
+   "总奖金": "50,000 元",
+   "明细": [
+    {
+     "奖项": "全场总冠军",
+     "奖金": "10,000 元",
+     "数量": "1 名",
+     "说明": "四赛道综合评分第一名，从各赛道一等奖中产生"
+    },
+    {
+     "奖项": "赛道一等奖",
+     "奖金": "4,000 元",
+     "数量": "4 名",
+     "说明": "四大赛道各 1 名"
+    },
+    {
+     "奖项": "赛道二等奖",
+     "奖金": "2,500 元",
+     "数量": "4 名",
+     "说明": "四大赛道各 1 名"
+    },
+    {
+     "奖项": "赛道三等奖",
+     "奖金": "1,500 元",
+     "数量": "4 名",
+     "说明": "四大赛道各 1 名"
+    }
+   ],
+   "备注": "另设单项奖；四赛道独立评审、独立设奖"
+  },
+  "benefits": [
+   "全部线下课程与导师 1v1 辅导免费",
+   "七天集中特训与资源对接免费",
+   "集训营期间住宿餐饮保障",
+   "免费参加产业沙龙并对接投资人与产业资源",
+   "提供 AI 工具包与园区临时办公空间",
+   "提供一定额度 AI 算力支持",
+   "入驻活水协同创新园可享全年免租金、5,000 元免费算力（后续最高 20 万元算力补贴）、人才公寓租金最高 50% 补贴"
+  ]
+ }
+]

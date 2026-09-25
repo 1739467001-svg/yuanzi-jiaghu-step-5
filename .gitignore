@@ -1,11 +1,12 @@
 node_modules/
-dist/
+# 以下按仓库根目录锚定：`src/data/`（内容基线）必须进仓库，只有根下的运行数据才忽略。
+/dist/
+/data/
+/artifacts/
+/references/ai-town/
 .env
 .env.local
-references/ai-town/
 .DS_Store
-artifacts/
 
 .env.*
 !.env.example
-data/

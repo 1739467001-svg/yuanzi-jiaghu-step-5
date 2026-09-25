@@ -11,10 +11,14 @@ function exhibitionFrom(config){
  if(!config)return {config:SHARED_EXHIBITION,mismatch:false};
  return {config:{...SHARED_EXHIBITION,...config},mismatch:Number(config.layoutVersion)!==Number(SHARED_EXHIBITION.layoutVersion)};
 }
-export async function loadCatalog({staticDemo=false,fetchImpl=fetch}={}){
+// 请求超时：服务端不可达（分离部署下服务端挂起/被墙）时不能无限等待，
+// 超时按既有路径降级到内置快照，界面会提示"内容接口暂不可用"。
+const TIMEOUT_MS=8000;
+const withTimeout=(init,timeoutMs)=>({...init,signal:init?.signal||AbortSignal.timeout(timeoutMs)});
+export async function loadCatalog({staticDemo=false,fetchImpl=fetch,timeoutMs=TIMEOUT_MS}={}){
  if(staticDemo)return {status:'ready',source:'static-snapshot',catalog:bundledCatalog,error:null,exhibition:exhibitionFrom(null)};
  try{
-  const response=await fetchImpl(apiUrl('/api/content/catalog'),{headers:{Accept:'application/json'}});
+  const response=await fetchImpl(apiUrl('/api/content/catalog'),withTimeout({headers:{Accept:'application/json'}},timeoutMs));
   if(!response.ok)throw new Error(`内容接口返回 ${response.status}`);
   const data=await response.json();
   return {status:'ready',source:'api',catalog:normalizeCatalog(data.editions),error:null,exhibition:exhibitionFrom(data.exhibition),stateVersion:Number(data.stateVersion)||0};
@@ -36,7 +40,7 @@ export function useCatalog({staticDemo=false,refreshKey=0}={}){
   let alive=true;
   const timer=setInterval(async()=>{
    try{
-    const response=await fetch(apiUrl('/api/content/health'),{headers:{Accept:'application/json'}});
+    const response=await fetch(apiUrl('/api/content/health'),withTimeout({headers:{Accept:'application/json'}}));
     if(!response.ok)return;
     const health=await response.json();
     if(!alive||Number(health.stateVersion)===version.current)return;
