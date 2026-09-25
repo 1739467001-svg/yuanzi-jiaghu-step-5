@@ -424,3 +424,27 @@ test('unauthenticated connections are reaped after the hello timeout', async () 
  await new Promise(r=>setTimeout(r,120));
  assert.equal(good.closed,null,'已认证连接不会被超时断开');
 });
+
+test('AI presence: recent activity and impressions are broadcast separately from the 10Hz snapshot', async () => {
+ const world=createWorld();
+ const a=join(world,'见闻甲');
+ // welcome 即带当前 presence（不必等低频广播）。
+ const welcome=a.find('welcome')[0];
+ assert.ok(Array.isArray(welcome.presence)&&welcome.presence.length===8,'welcome 携带 8 位 AI 的见闻');
+ const entry=welcome.presence.find(p=>p.id==='qinghe');
+ assert.ok(entry,'包含青禾');
+ assert.ok(Array.isArray(entry.recent),'recent 是数组');
+ assert.ok(Array.isArray(entry.views),'views 是数组');
+ // 10Hz 位置快照保持精简：AI 演员不带 memory/views。
+ const snap=a.find('snapshot').at(-1);
+ const aiActor=snap.actors.find(x=>x.id==='qinghe');
+ assert.ok(aiActor&&!('memory' in aiActor)&&!('views' in aiActor),'位置快照不含见闻重负载');
+ // presence 广播：AI 有动态后到达，且只在变化时发送。
+ const before=a.sent.filter(m=>m.t==='presence').length;
+ for(let i=0;i<400&&a.sent.filter(m=>m.t==='presence').length===before;i++)world.tick(.1);
+ const presenceMsgs=a.find('presence');
+ assert.ok(presenceMsgs.length>before,'AI 见闻通过 presence 广播送达');
+ const last=presenceMsgs.at(-1);
+ assert.ok(last.agents.length===8,'presence 覆盖 8 位 AI');
+ assert.ok(last.agents.every(p=>Array.isArray(p.recent)&&Array.isArray(p.views)),'每位 AI 带 recent 与 views');
+});

@@ -38,7 +38,7 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
  const waiters=[];
  // 与 AI 的私聊会话历史（内存中最近 8 条，仅用于模型上下文；断开即弃）。
  const aiHistory=new Map();
- let nextConn=0,activityClock=0;
+ let nextConn=0,activityClock=0,presenceClock=0,lastPresence=null;
  const onlineCount=()=>[...actors.values()].filter(a=>a.online).length;
  // 占用名额 = 在线角色 + 断线但仍在 reclaim 窗口内的角色（窗口内重连优先 reclaim）。
  const slotsUsed=()=>[...actors.values()].filter(a=>a.online||now()<(a.reclaimUntil||0)).length;
@@ -53,6 +53,9 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
  const aiAgent=id=>engine.agents.find(a=>a.id===id)||null;
  const humansOnline=()=>[...actors.values()].filter(a=>a.online).length;
  const publicActor=a=>({id:a.id,name:a.name,color:a.color,x:round(a.x),z:round(a.z),angle:round(a.angle),state:a.state,chat:!!a.chatWith,seat:a.seat||null});
+ // AI 见闻：每位侠客的最近动态（memory 末 3 条）与最近观展印象（views 前 2 条）。
+ // 走低频广播，不进 10Hz 位置快照。
+ const aiPresence=()=>engine.agents.map(a=>({id:a.id,recent:a.memory.slice(-3),views:a.views.slice(0,2).map(v=>({workId:v.workId,title:v.title,impression:v.impression}))}));
  const seatOccupancy=()=>[
   ...[...actors.values()].filter(a=>a.online&&a.seat).map(a=>({seat:a.seat,userId:a.id,name:a.name,ai:!!a.ai,chat:!!a.chatWith})),
   // AI 侠客也会坐进茶楼：占用同样对全房间公开（含昵称）。
@@ -280,7 +283,7 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
   actor.name=session.user.name;actor.color=session.user.color;actor.online=true;actor.conn=conn.connId;actor.lastSeen=now();
   actors.set(userId,actor);
   conn.userId=userId;
-  send(conn,{t:'welcome',you:publicActor(actor),actors:snapshot(),seats:seatOccupancy(),activity:activity.slice(-6),capacity});
+  send(conn,{t:'welcome',you:publicActor(actor),actors:snapshot(),seats:seatOccupancy(),activity:activity.slice(-6),presence:aiPresence(),capacity});
   broadcast({t:'snapshot',actors:snapshot()});
  }
  // 有空位时按队列顺序自动准入；断开或令牌失效的等待者被跳过。
@@ -345,6 +348,17 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
   // 约每秒推送一次最近公开活动（行走/社交/观展），侧栏"江湖此刻"使用。
   activityClock+=dt;
   if(activityClock>1){activityClock=0;if(activity.length)broadcast({t:'activity',events:activity.slice(-6)});}
+  // AI 见闻（最近动态与观展印象）走低频广播：约每 2 秒一次，且只在内容变化时发送，
+   // 避免把 10Hz 位置快照撑大（名帖卡与联机私聊的"江湖见闻"使用）。
+  presenceClock+=dt;
+  if(presenceClock>2){
+   presenceClock=0;
+   if(humansOnline()>0){
+    const presence=aiPresence();
+    const signature=JSON.stringify(presence);
+    if(signature!==lastPresence){lastPresence=signature;broadcast({t:'presence',agents:presence});}
+   }else lastPresence=null;
+  }
  }
  function attach(httpServer,path='/ws/world',{allowedOrigins=[]}={}){
   // noServer 模式：只处理本世界的升级请求，其余（如 Vite HMR）交给既有监听者。

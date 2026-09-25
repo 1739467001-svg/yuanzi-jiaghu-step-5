@@ -279,3 +279,8 @@
 .night .seat-chip.mine{border-color:#3f6b52;background:#1a3040}
 
 @media(max-height:560px){.app{min-height:0}.topbar{height:58px;padding:0 18px}.world-layout{height:calc(100% - 58px)}.scene-intro{top:10px;left:20px}.scene-intro h1{font-size:16px;margin-top:5px}.scene-intro p{display:none}.right-rail{max-height:76dvh;transform:translateY(calc(100% - 138px));padding:14px}.welcome-card{padding:12px}.welcome-card h2{font-size:18px;line-height:1.4}.hero-art{height:88px}.hero-art img{width:120px;height:120px;top:-14px}.welcome-card>p{font-size:9px;line-height:1.6;margin-bottom:8px}.welcome-card .primary-button{min-height:34px;padding:8px}.welcome-card .text-button{padding:8px 0}.rail-section{margin-top:14px}.rail-section>header{margin-bottom:9px}.nearby{padding-top:10px}.event-list{gap:8px}.map-caption{bottom:150px}.world-tools{bottom:152px}}
+.presence-card{margin:12px 0 4px;padding:12px 14px;border:1px solid #e3e8db;border-radius:10px;background:#fbfcf7}
+.presence-card h4{font-size:11px;color:#5c6b60;letter-spacing:.5px;margin:0 0 6px}
+.presence-card h4:not(:first-child){margin-top:10px}
+.presence-card ul{margin:0;padding-left:16px;display:grid;gap:4px}
+.presence-card li{font-size:11px;color:#6b7a6b;line-height:1.7}

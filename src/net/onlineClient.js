@@ -34,6 +34,7 @@ export class OnlineClient{
    case 'welcome':this.userId=data.you?.id||null;this.handlers.onWelcome?.(data);break;
    case 'snapshot':this.handlers.onSnapshot?.(data);break;
    case 'activity':this.handlers.onActivity?.(data);break;
+   case 'presence':this.handlers.onPresence?.(data);break;
    case 'profile':this.handlers.onProfile?.(data);break;
    case 'auth-required':this.handlers.onAuthRequired?.(data);break;
    case 'room-queued':this.handlers.onRoomQueued?.(data);break;

@@ -185,64 +185,59 @@ try{
   await b.waitForFunction(()=>document.querySelector('.seat-chip.mine')===null,null,{timeout:8000});
  }
  await b.getByRole('button',{name:'关闭窗口'}).click();
- // 找一张至少有两个空位的桌子（AI 侠客随时会落座，抢占前先让真人坐下）。
- const pickTableForTwo=()=>a.evaluate(seats=>{
-  const occupied=new Set((window.__atomOnlinePlayers||[]).filter(p=>p.seat).map(p=>p.seat));
-  for(const table of ['tea-a','tea-b']){
-   const free=seats.filter(s=>s.id.slice(0,5)===table&&!occupied.has(s.id));
-   if(free.length>=2)return free;
-  }
-  return null;
- },SEATS);
- const sitAt=async(page,label)=>{
-  await page.locator('.seat-chip:not(.taken)',{hasText:label}).first().click();
-  await page.waitForFunction(()=>document.querySelector('.seat-chip.mine'),null,{timeout:6000});
- };
- let table=null;
- for(let attempt=0;attempt<24&&!table;attempt++){
-  const free=await pickTableForTwo();
-  // 茶楼可能被 AI 侠客坐满（产品正常行为）：AI 落座 25—33 秒即离开，耐心等空位。
-  if(!free){await a.waitForTimeout(5000);continue;}
-  await walkToTeahouse(b);
-  await openTeaPanel(b);
-  if(await b.locator('.seat-chip.mine').count()){
-   await b.getByRole('button',{name:'起身'}).click();
-   await b.waitForFunction(()=>document.querySelector('.seat-chip.mine')===null,null,{timeout:8000});
-  }
-  try{await sitAt(b,free[0].label);}catch{await b.getByRole('button',{name:'关闭窗口'}).click().catch(()=>{});continue;}
-  // B 坐下后同一桌可能还剩空位；没有就换桌。
-  const freeForA=await a.evaluate(({seats,bSeat})=>{
+  // 各坐一个空位（AI 侠客随时会落座，空位随机出现；坐满就等 AI 换座）。
+  const anyFreeSeat=()=>a.evaluate(seats=>{
    const occupied=new Set((window.__atomOnlinePlayers||[]).filter(p=>p.seat).map(p=>p.seat));
-   return seats.filter(s=>s.id.slice(0,5)===bSeat.slice(0,5)&&!occupied.has(s.id))[0]||null;
-  },{seats:SEATS,bSeat:free[0].id});
-  if(!freeForA){await b.getByRole('button',{name:'起身'}).click();await b.getByRole('button',{name:'关闭窗口'}).click().catch(()=>{});continue;}
-  await walkToTeahouse(a);
-  await openTeaPanel(a);
-  if(await a.locator('.seat-chip.mine').count()){
-   await a.getByRole('button',{name:'起身'}).click();
-   await a.waitForFunction(()=>document.querySelector('.seat-chip.mine')===null,null,{timeout:8000});
+   return seats.filter(s=>!occupied.has(s.id))[0]||null;
+  },SEATS);
+  const sitAt=async(page,label)=>{
+   await page.locator(".seat-chip:not(.taken)",{hasText:label}).first().click();
+   await page.waitForFunction(()=>document.querySelector(".seat-chip.mine"),null,{timeout:6000});
+  };
+  const standIfSeated=async page=>{
+   if(await page.locator(".seat-chip.mine").count()){
+    await page.getByRole("button",{name:"起身"}).click();
+    await page.waitForFunction(()=>document.querySelector(".seat-chip.mine")===null,null,{timeout:8000});
+   }
+  };
+  let seated=false;
+  for(let attempt=0;attempt<24&&!seated;attempt++){
+   const free=await anyFreeSeat();
+   if(!free){await a.waitForTimeout(5000);continue;}
+   await walkToTeahouse(b);await openTeaPanel(b);await standIfSeated(b);
+   try{await sitAt(b,free.label);}catch{await b.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
+   await walkToTeahouse(a);await openTeaPanel(a);await standIfSeated(a);
+   const freeForA=await anyFreeSeat();
+   if(!freeForA||freeForA.id===free.id){await b.getByRole("button",{name:"起身"}).click();await b.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
+   try{
+    await sitAt(a,freeForA.label);
+    await a.waitForFunction(n=>[...document.querySelectorAll(".happenings .event p")].some(p=>(p.textContent||"").includes(n)),NAME_A,{timeout:8000});
+    seated=true;
+   }catch{await a.getByRole("button",{name:"关闭窗口"}).click().catch(()=>{});continue;}
   }
-  try{
-   await sitAt(a,freeForA.label);
-   // 入座立即进入活动流（此刻它一定是最新的一条；快照只显示最近几条，晚了会被新事件挤掉）。
-   await a.waitForFunction(n=>[...document.querySelectorAll('.happenings .event p')].some(p=>(p.textContent||'').includes(n)),NAME_A,{timeout:8000});
-   table={aSeat:freeForA};
-  }catch{await a.getByRole('button',{name:'关闭窗口'}).click().catch(()=>{});continue;}
- }
- assert.ok(table,'A、B 坐同一张茶桌');
- // 同桌区列出对方（真人也可能是 AI 侠客，一并列出）。
- const mateRow=a.locator('.table-mate',{hasText:NAME_B});
- await mateRow.first().waitFor({timeout:10000});
- assert.match(await mateRow.first().textContent(),new RegExp(NAME_B),'同桌区显示同桌的人');
- await a.locator('.seat-table').scrollIntoViewIfNeeded();
- await a.screenshot({path:'artifacts/tea-table-mate.png'});
- // 一键邀请同桌：B 收到邀请 → 接受 → 两人坐着聊。
- await mateRow.first().getByRole('button').click();
- await b.getByRole('dialog',{name:'聊天邀请'}).waitFor({timeout:10000});
- await b.getByRole('button',{name:'接受邀请'}).click();
- await a.getByRole('dialog',{name:`与${NAME_B}私聊`}).waitFor({timeout:10000});
- await a.getByRole('button',{name:'离开会话'}).click();
- await b.waitForFunction(()=>document.querySelector('.toast')?.textContent.includes('会话已结束'),null,{timeout:10000});
+  assert.ok(seated,"A、B 都在茶楼入座");
+  // 同桌区列出同桌的人（真人与 AI 侠客都可能），一键相邀。
+  const mateRows=a.locator(".table-mate");
+  await mateRows.first().waitFor({timeout:15000});
+  let picked=null;
+  for(let i=0;i<await mateRows.count();i++){
+   const row=mateRows.nth(i);
+   if(await row.getByRole("button").isEnabled()){picked=row;break;}
+  }
+  assert.ok(picked,"同桌区有可邀请的同桌");
+  const mateName=((await picked.locator(".table-mate-name").textContent())||"").split(" · ")[0].trim();
+  assert.ok(mateName.length>0,"解析出同桌昵称");
+  await a.locator(".seat-table").scrollIntoViewIfNeeded();
+  await a.screenshot({path:"artifacts/tea-table-mate.png"});
+  // 一键邀请同桌：真人收到邀请→接受；AI 侠客立即开始。两种都落到私聊对话框。
+  await picked.getByRole("button").click();
+  if(mateName===NAME_B){
+   await b.getByRole("dialog",{name:"聊天邀请"}).waitFor({timeout:10000});
+   await b.getByRole("button",{name:"接受邀请"}).click();
+  }
+  await a.getByRole("dialog",{name:`与${mateName}私聊`}).waitFor({timeout:10000});
+  await a.getByRole("button",{name:"离开会话"}).click();
+  if(mateName===NAME_B)await b.waitForFunction(()=>document.querySelector(".toast")?.textContent.includes("会话已结束"),null,{timeout:10000});
  // 两人起身，把座位还给茶楼。
  await openTeaPanel(a);await a.getByRole('button',{name:'起身'}).click();
  await a.waitForFunction(()=>document.querySelector('.seat-chip.mine')===null,null,{timeout:8000});
@@ -287,15 +282,33 @@ try{
  await a.getByRole('button',{name:'发送私聊'}).click();
  await a.waitForFunction(()=>document.querySelectorAll('.chat-work').length>0,null,{timeout:15000});
  assert.match(await a.locator('.chat-mode').textContent(),/AI 侠客/);
+  assert.ok(await a.locator('.public-memories').count()===1,'联机私聊展示江湖见闻');
+  assert.match(await a.locator('.public-memories').textContent(),/江湖见闻/,'见闻区标题正确');
  // 第三方看不到与 AI 的私聊内容。
  assert.ok(!(await c.locator('body').textContent()).includes('为你找到了'),'第三方读不到与 AI 的私聊回复');
  await a.getByRole('button',{name:'离开会话'}).click();
- // 7. 同账号第二个标签页接管：A2 进入后 A 停止控制。
+// 6.5 AI 见闻名帖卡：点开有公开动态的 AI 侠客，名帖卡展示"最近动态/最近在看"（联机私聊见闻区在上面已断言）。
+ const withPresence=await a.evaluate(()=>{
+  const presence=window.__atomOnlinePresence||{};
+  const hit=Object.values(presence).find(p=>(p.recent||[]).length>0||(p.views||[]).length>0);
+  return hit?hit.id:null;
+ });
+ if(withPresence){
+  const aiName=await a.evaluate(id=>(window.__atomOnlinePlayers||[]).find(p=>p.id===id)?.name||null,withPresence);
+  if(aiName){
+   await a.locator('.nearby-avatars button',{hasText:aiName}).click();
+   await a.getByRole('dialog',{name:aiName}).waitFor({timeout:10000});
+   assert.ok(await a.locator('.presence-card').count()>=1,'名帖卡展示 AI 侠客的最近动态/最近在看');
+   assert.match(await a.locator('.presence-card').textContent(),/最近动态|最近在看/,'见闻分区标题正确');
+   await a.getByRole('button',{name:'关闭窗口'}).click();
+  }
+ }
+// 7. 同账号第二个标签页接管：A2 进入后 A 停止控制。
  const a2=await newPage(contextA,'A2');
  await enterOnline(a2);
  await a.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('已被接管'),null,{timeout:15000});
  assert.match(await a.locator('.world-status').textContent(),/已被接管/);
  assert.deepEqual(errors,[],`页面异常: ${errors.join('; ')}`);
- console.log('PASS: 本机记忆迁移、双账号互见与位置一致、茶楼共坐与 AI 侠客落座、同桌一键相邀、邀请/接受/私聊、第三方只见交谈中、与 AI 侠客私聊并打开作品卡片、离开通知、同账号接管。');
+ console.log('PASS: 本机记忆迁移、双账号互见与位置一致、茶楼共坐与 AI 侠客落座、同桌一键相邀、AI 侠客见闻名帖卡与联机私聊见闻、邀请/接受/私聊、第三方只见交谈中、与 AI 侠客私聊并打开作品卡片、离开通知、同账号接管。');
 }finally{await browser.close();}
 if(errors.length)process.exitCode=1;
