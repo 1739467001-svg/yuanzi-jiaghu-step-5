@@ -130,3 +130,19 @@ test('catalog load times out and falls back to the bundled snapshot', async () =
  await loadCatalog({fetchImpl:(url,init)=>{seen=init?.signal;return Promise.reject(new Error('boom'));}});
  assert.ok(seen,'调用方 signal 透传');
 });
+
+test('repo integrity: build-scope files must be tracked or intentionally ignored', async () => {
+ const {findMissing,SCOPE_DIRS,IGNORE_ALLOWLIST}=await import('../scripts/verify-repo.mjs');
+ // 正常：已跟踪的不报。
+ assert.deepEqual(findMissing(['src/App.jsx','server/index.mjs'],['src/App.jsx','server/index.mjs'],[]),[]);
+ // 漏提交：工作区有、没跟踪、没被忽略 → 必须报出来（Vercel 故障的教训）。
+ assert.deepEqual(findMissing(['src/data/editions.json'],['src/App.jsx'],[]),['src/data/editions.json']);
+ // 被 .gitignore 误伤同样算缺失（当年正是 data/ 未锚定根）。
+ assert.deepEqual(findMissing(['src/data/editions.json'],['src/App.jsx'],['src/data/']),['src/data/editions.json']);
+ // 有意忽略的运行期产物不报：根级 data/dist/artifacts/node_modules。
+ assert.deepEqual(findMissing(['data/accounts.json','dist/index.html','node_modules/x/y.js'],[],[ 'data/','dist/','node_modules/' ]),[]);
+ // 白名单不保护 SCOPE_DIRS 内的同名目录：src/data 必须入库。
+ assert.ok(!IGNORE_ALLOWLIST.includes('src/data')&&SCOPE_DIRS.includes('src'));
+ // 非 ASCII 路径：NFD/NFC 与引号转义都不应误报。
+ assert.deepEqual(findMissing(['public/brand/source/原子之心logo-白字.png'],['public/brand/source/原子之心logo-白字.png'],[]),[]);
+});

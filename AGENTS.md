@@ -20,6 +20,7 @@ node scripts/git-sync.mjs "本次更新的提交信息"
 
 ## 2. 完成定义（改动算"完成"的门槛）
 
+0. `npm run verify:repo` 通过（仓库完整性：构建所需文件都已入库——Vercel/Docker 是干净检出，漏文件只在部署时爆炸）。
 1. `npm test` 全绿（单测）。
 2. 六套 e2e 全绿：`test:e2e`、`test:e2e-mp`、`test:e2e-model`、`test:e2e-queue`、`test:e2e-rooms`、`test:e2e-glb`（需先 `npm run build` 并起 preview 服务；`test:e2e-glb` 要带 `TEST_BASE_URL`）。
 3. `npm run validate:world` 与 `npm run validate:content` 通过。

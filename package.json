@@ -21,7 +21,8 @@
     "soak": "node scripts/soak-world.mjs",
     "soak:browser": "node scripts/soak-browser.mjs",
     "soak:long": "ATOM_SOAK_MINUTES=120 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs",
-    "soak:72h": "ATOM_SOAK_MINUTES=4320 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs"
+    "soak:72h": "ATOM_SOAK_MINUTES=4320 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs",
+    "verify:repo": "node scripts/verify-repo.mjs"
   },
   "dependencies": {
     "jose": "^6.2.12",

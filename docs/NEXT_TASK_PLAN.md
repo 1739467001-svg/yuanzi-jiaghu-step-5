@@ -717,3 +717,11 @@
 **验证**：净检出等价验证实测通过——`git clone` 远端仓库 → `npm ci` → `npm run build` → `dist/` 产物齐全（index.html/admin.html/assets/brand/models），静态产物可独立运行（SPA 加载 + 内置快照降级正常）。排障记录写入 `docs/DEPLOY.md` 第 12 节。
 
 教训：本地能跑不代表仓库完整；面向干净检出的平台（Vercel/Netlify/Docker）部署前，一律先做净检出构建验证。
+
+## 阶段 36：仓库完整性防护（2026-09-23 执行）
+
+Vercel 故障的直接教训：本地能跑不代表仓库完整——`.gitignore` 误伤导致构建所需文件从未入库，而本地毫无感知。加一道自动检查，把"干净检出的平台（Vercel/Netlify/Docker）能构建"变成可验证的。
+
+- `scripts/verify-repo.mjs`：遍历构建所需目录（src/server/public/scripts/tests/docs 与根级关键文件），任何"工作区存在但既未被 git 跟踪、也未被有意忽略"的文件都报错退出；纯比较函数可单测。
+- `package.json` 新增 `verify:repo`；写入 AGENTS.md 完成定义与 README 开发命令。
+- 验收：单测覆盖比较函数（漏文件/被忽略/正常）；手工验证——临时把一个源文件加进 .gitignore，脚本报错；移除后通过。
