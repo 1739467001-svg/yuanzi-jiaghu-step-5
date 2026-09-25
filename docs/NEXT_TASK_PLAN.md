@@ -699,3 +699,21 @@
 - `src/content/useCatalog.js`：catalog 加载与健康轮询都加 8 秒超时（`AbortSignal.timeout`）；超时/中止走既有的快照降级路径（界面已有"内容接口暂不可用，已切换本地内容快照"提示），健康轮询的挂起请求不再每 15 秒泄漏一个。
 - `src/App.jsx` 启动页：区分当前步骤——读取赛事与作品 / 载入角色模型，慢加载不被误判为卡死。
 - 验收：单测覆盖超时降级（mock fetch 挂起 → 落到内置快照）；e2e 无需变更（现有主流程覆盖启动路径）。
+
+## 阶段 35 进展（2026-09-23）
+
+已完成：
+
+- `src/content/useCatalog.js`：catalog 加载与健康轮询均加 8 秒超时（`AbortSignal.timeout`，可配置）；超时/中止走既有快照降级路径（界面提示"内容接口暂不可用，已切换本地内容快照"），挂起请求不再让用户卡死在启动页，健康轮询也不再每 15 秒泄漏一个挂起 promise。
+- `src/App.jsx` 启动页：区分"正在读取已发布的赛事与作品…"与"正在载入角色模型…"两步。
+- 验收：`tests/content.test.mjs` 新增超时降级测试（挂起的 fetch → 内置快照，且不无限等待）。
+
+## Vercel 部署失败排查与修复（2026-09-23）
+
+**根因**：`.gitignore` 的 `data/` 未锚定仓库根，误伤 `src/data/editions.json`（内容基线，客户端与服务端都 import）——文件从未进仓库，Vercel 干净检出后 `vite build` 直接失败；本地目录文件一直在所以毫无感知。
+
+**修复**：忽略规则锚定到根（`/data/`、`/dist/`、`/artifacts/`）；固定 Node 版本（`engines.node>=22.12` + `.nvmrc`，服务端 import attributes 需要 22.12+）。
+
+**验证**：净检出等价验证实测通过——`git clone` 远端仓库 → `npm ci` → `npm run build` → `dist/` 产物齐全（index.html/admin.html/assets/brand/models），静态产物可独立运行（SPA 加载 + 内置快照降级正常）。排障记录写入 `docs/DEPLOY.md` 第 12 节。
+
+教训：本地能跑不代表仓库完整；面向干净检出的平台（Vercel/Netlify/Docker）部署前，一律先做净检出构建验证。

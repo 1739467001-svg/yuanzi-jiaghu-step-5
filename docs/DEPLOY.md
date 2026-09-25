@@ -267,3 +267,21 @@ docker compose up -d --build   # 重建并替换容器（数据卷不动）
 | 证书签发失败 | 域名未解析到本机 / 80 被占 | 确认 DNS A 记录指向服务器，`docker compose --profile tls` 需要 80/443 |
 | 改了 .env 不生效 | 环境变量在构建/启动时注入 | 修改后 `docker compose up -d --force-recreate` |
 | 安装时提示 `install scripts not yet covered by allowScripts`（esbuild/fsevents） | npm 11.3+ 默认阻止安装脚本 | 仓库已在 `package.json` 的 `allowScripts` 字段批准这两个包，`npm ci` 不再告警；若自行新增依赖需要安装脚本，用 `npm install-scripts approve <pkg>` 审批（勿随意批准不明来源的包） |
+
+## 12. Vercel 部署排障记录（2026-09-23）
+
+**故障现象**：仓库导入 Vercel 后构建失败（重试多次仍失败）。
+
+**根因**：`.gitignore` 中的 `data/` 未锚定到仓库根，匹配了任意深度的 `data` 目录——内容基线 `src/data/editions.json`（`src/content/catalog.js` 与 `server/publication-store.mjs` 都 import 它）从未进入仓库。Vercel 是干净检出，`vite build` 直接因找不到该文件失败；而本地开发目录里文件一直在，所以本地毫无感知。
+
+**修复**：忽略规则锚定到根（`/data/`、`/dist/`、`/artifacts/`），`src/data/` 正常入库；同时固定 Node 版本（`engines.node >= 22.12` + `.nvmrc`）——服务端使用 import attributes（`with {type:'json'}`）需要 Node 22.12+。
+
+**修复后的等价验证**（在任何平台部署前都建议先做）：
+
+```bash
+git clone <仓库地址> /tmp/check && cd /tmp/check
+npm ci && npm run build        # 与 Vercel 构建命令一致
+ls dist/                       # 应有 index.html、admin.html、assets、brand、models
+```
+
+本次已实测通过。教训：**本地能跑不代表仓库完整**——涉及"干净检出"的平台（Vercel/Netlify/Docker）部署前，一律用净检出构建验证。
