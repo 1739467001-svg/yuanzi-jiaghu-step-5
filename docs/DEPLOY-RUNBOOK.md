@@ -134,5 +134,7 @@ node scripts/git-sync.mjs "本次更新说明"
 | CORS 策略（未授权来源无响应头 / 授权来源放行 / 预检 204） | 通过 |
 | 分离部署拓扑（前端带 `VITE_API_BASE`/`VITE_WS_URL` + 世界服务端）跑联机验收 | 通过 |
 | `npm run verify:repo` | 通过（构建范围 226 个文件全部入库） |
+| **净检出 + 真实浏览器访问静态站点**（经 API 拉取远端 233 个文件 → `npm ci` → `npm run build` → 静态服务起 `dist/` → Chrome 打开） | **通过**：小镇 3D 渲染、38 份作品可见、搜索/筛选/届次切换正常、无页面错误（截图 `artifacts/vercel-static-site.png`） |
+| 纯静态部署的 API 404（`/api/content/catalog` 等） | 预期行为：无世界服务端时客户端自动降级到内置快照，界面提示"内容接口暂不可用"，作品阅读不受影响 |
 
 > 本机无 Docker 运行时，镜像未实际构建；Dockerfile 的文件集已用"容器外等价验证"（按运行阶段文件集 + 仅生产依赖实跑）覆盖，首次在服务器上构建时请关注 `docker compose logs world`。
