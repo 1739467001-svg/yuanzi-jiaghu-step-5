@@ -3,7 +3,8 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,AGENTS,THEMES} from './config.js';
 import {findPath,hallWalkable,terrainHeight,stepActor} from './engine.js';
-import {box,ball,cylinder,mesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern} from './models.js';
+import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern} from './models.js';
+import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
 import {trackColorOf} from '../content/catalog.js';
@@ -23,8 +24,8 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   const camera=new T.PerspectiveCamera(37,1,.1,260);camera.position.set(32,30,39);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=160;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
   scene.add(new T.HemisphereLight(night?'#9fbfce':'#fff8e3',night?'#263b3d':'#9ba994',night?1.5:2.2));const sun=new T.DirectionalLight(night?'#b7d4f0':'#fff1ce',night?1:3.4);sun.position.set(-16,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-29,right:29,top:29,bottom:-29,near:1,far:80});sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;scene.add(sun);
   const base=new T.Group();scene.add(base);const interactive=[],pinSources=[],agentModels=new Map();
-  const ground=box(base,0,-.45,0,39,.8,31,night?'#6d8177':palette.grass);ground.userData.kind='ground';interactive.push(ground);
-  box(base,0,-.95,0,39.1,.22,31.1,'#c3bfa7');box(base,0,-1.3,0,38.4,.6,30.4,'#d6cfb8');
+  const ground=dmesh(new T.BoxGeometry(39,.8,31),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,10,.95);ground.userData.kind='ground';interactive.push(ground);
+  dmesh(new T.BoxGeometry(39.1,.22,31.1),'#c3bfa7','stone',base,0,-.95,0,10,.95);dmesh(new T.BoxGeometry(38.4,.6,30.4),'#d6cfb8','stone',base,0,-1.3,0,10,.95);
   const backdrop=box(scene,0,-1.72,0,1000,.1,1000,night?'#263e43':palette.sky);backdrop.receiveShadow=true;
   const hallPlayer={id:'you',x:0,z:8,angle:0,path:[],state:'看展中'};
  let hallAgents=[],hallStands=[];
@@ -57,8 +58,8 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    for(let x=-6;x<6;x++)for(let z=-4;z<5;z++){dummy.position.set(x*.98-.4,.125,z*.76-.5);dummy.rotation.y=((x+z)%3)*.03;dummy.updateMatrix();stones.setMatrixAt(count++,dummy.matrix);}stones.count=count;stones.receiveShadow=true;base.add(stones);
    for(const p of PLACES){const g=building(p,palette.roof);base.add(g);interactive.push(g);pinSources.push({id:p.id,kind:'place',name:p.short,point:new T.Vector3(p.x,p.kind==='hall'?6.9:p.kind==='tea'?6.2:4.9,p.z)});}
    sculpture=atomSculpture(base);
-   // Village entrance and hanging sign.
-   for(const x of [1,5]){box(base,x,1.7,12,.3,3.4,.3,'#8f7755');box(base,x,.2,12,.7,.4,.7,'#b7b9a2');}box(base,3,3.35,12,5.3,.35,.55,palette.roof);box(base,3,3.65,12,4.7,.22,.75,palette.roof);textSign(base,'原子江湖',3,2.8,12.22,2.4,.7);lantern(base,.7,2.8,12);lantern(base,5.3,2.8,12);
+   // Village entrance and hanging sign. 牌坊中心 x=-4：与 future-lodge 基座左缘相距 4.75，门脸完全放开。
+   for(const x of [-6,-2]){dmesh(new T.CylinderGeometry(.15,.15,3.4,10),'#8f7755','wood',base,x,1.7,12,1,.8);dmesh(new T.BoxGeometry(.7,.4,.7),'#b7b9a2','stone',base,x,.2,12,1,.9);}dmesh(new T.BoxGeometry(5.3,.35,.55),palette.roof,'wood',base,-4,3.35,12,2,.7);dmesh(new T.BoxGeometry(4.7,.22,.75),palette.roof,'wood',base,-4,3.65,12,2,.7);textSign(base,'原子江湖',-4,2.8,12.22,2.4,.7);lantern(base,-6.3,2.8,12);lantern(base,-1.7,2.8,12);
    [[-17,-11,1.1],[-15,-2,.9],[-17,3,1],[-15,13,1.1],[-8,13,.75],[15,-11,1.3],[17,-7,.9],[17,1,.8],[17,12,1.2],[-7,-12,.8],[7,-12,1.1],[6,9,.7]].forEach((a,i)=>tree(base,...a,i===1||i===7||i===9));
    for(let i=0;i<25;i++){const x=-18+(i*13)%36,z=i%2?-13.5:13.7;if(Math.abs(x-3)<3&&z>0)continue;ball(base,x,.16,z,.45,'#9cae8b',[1,.5,.7]);}
    for(const [x,z] of [[-6,2],[5,1],[-7,9],[7,-3],[15,7]]){cylinder(base,x,.2,z,.3,.4,.4,'#bba889');cylinder(base,x,.8,z,.05,.06,1.2,'#786b50');lantern(base,x,1.5,z);if(night){const l=new T.PointLight('#ffb15f',4,5);l.position.set(x,1.4,z);scene.add(l);}}
@@ -118,9 +119,9 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
      const label=viewing?'观展：《'+(viewing.length>6?viewing.slice(0,6)+'…':viewing)+'》':(a.partner&&topic?'聊起'+(topic.length>7?topic.slice(0,7)+'…':topic):'');
      const show=!!label;
      if(show&&b.last!==label){const short=label.length>9?label.slice(0,9)+'…':label;b.sprite.material.map?.dispose();b.sprite.material.map=bubbleTexture(short);b.sprite.material.needsUpdate=true;b.last=label;}
-     b.sprite.visible=show;if(show)b.sprite.position.set(a.x,(terrainHeight(a.x,a.z)||0)+2.85,a.z);}for(const a of [...engine.agents,engine.player]){const m=a.id==='you'?player:agentModels.get(a.id);m.position.set(a.x,terrainHeight(a.x,a.z),a.z);m.rotation.y=a.angle;const moving=a.path.length>0;
-    if(m.userData.body){m.userData.body.position.y=moving?Math.abs(Math.sin(now*.009))* .055:Math.sin(now*.002+a.x)*.016;m.userData.feet.forEach((f,i)=>f.position.z=.04+(moving?Math.sin(now*.01+i*Math.PI)*.13:0));if(a.held)m.userData.arms[0].rotation.z=Math.sin(now*.004)*.4;}
-    else if(m.userData.glb){const animator=m.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(m,now,moving);}}
+     b.sprite.visible=show;if(show)b.sprite.position.set(a.x,(terrainHeight(a.x,a.z)||0)+2.85,a.z);}for(const a of [...engine.agents,engine.player]){const m=a.id==='you'?player:agentModels.get(a.id);m.position.set(a.x,terrainHeight(a.x,a.z),a.z);const moving=a.path.length>0;animateCharacter(m,a.angle,moving,now,a.held);
+    
+    if(m.userData.glb){const animator=m.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(m,now,moving);}}
     const dest=engine.player.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],terrainHeight(dest[0],dest[1])+.18,dest[1]);
    }else {
     engine.advance(hallPlayer,dt,3.2);player.position.set(hallPlayer.x,0,hallPlayer.z);player.rotation.y=hallPlayer.angle;const dest=hallPlayer.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],.18,dest[1]);if(player.userData.body)player.userData.body.position.y=hallPlayer.path.length?Math.abs(Math.sin(now*.009))*.055:0;else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(hallPlayer.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,hallPlayer.path.length>0);}
@@ -128,8 +129,8 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
     for(const ha of hallAgents){
      advanceHallAgent(ha,hallStands,dt);
      ha.model.position.set(ha.x,0,ha.z);ha.model.rotation.y=ha.angle;
-     if(ha.model.userData.body){ha.model.userData.body.position.y=ha.path.length?Math.abs(Math.sin(now*.009))* .055:Math.sin(now*.002+ha.x)*.016;ha.model.userData.feet.forEach((f,i)=>f.position.z=.04+(ha.path.length?Math.sin(now*.01+i*Math.PI)*.13:0));}
-     else if(ha.model.userData.glb){const animator=ha.model.userData.glb.animator;if(animator){animator.play(ha.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(ha.model,now,ha.path.length>0);}
+     animateCharacter(ha.model,ha.angle,ha.path.length>0,now,false);
+     if(ha.model.userData.glb){const animator=ha.model.userData.glb.animator;if(animator){animator.play(ha.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(ha.model,now,ha.path.length>0);}
      ha.point.set(ha.x,2.05,ha.z);
      // 驻足时浮现所看书名气泡。
      const label=hallAgentLabel(ha);

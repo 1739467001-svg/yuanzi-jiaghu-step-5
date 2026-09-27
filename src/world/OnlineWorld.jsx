@@ -3,7 +3,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,THEMES} from './config.js';
 import {findPath,walkable,stepActor,terrainHeight} from './engine.js';
-import {box,ball,cylinder,material,building,tree,character,bridge,atomSculpture,textSign,lantern} from './models.js';
+import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern} from './models.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 
 // 远程玩家气泡：私聊中的“交谈中”与公开表情（内容不可见，PRD 9.1 旁观规则）。
@@ -35,8 +35,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   const camera=new T.PerspectiveCamera(37,1,.1,260);camera.position.set(32,30,39);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=160;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
   scene.add(new T.HemisphereLight(night?'#9fbfce':'#fff8e3',night?'#263b3d':'#9ba994',night?1.5:2.2));const sun=new T.DirectionalLight(night?'#b7d4f0':'#fff1ce',night?1:3.4);sun.position.set(-16,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-29,right:29,top:29,bottom:-29,near:1,far:80});sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;scene.add(sun);
   const base=new T.Group();scene.add(base);const interactive=[],pinSources=[],models=new Map();
-  const ground=box(base,0,-.45,0,39,.8,31,night?'#6d8177':palette.grass);ground.userData.kind='ground';interactive.push(ground);
-  box(base,0,-.95,0,39.1,.22,31.1,'#c3bfa7');box(base,0,-1.3,0,38.4,.6,30.4,'#d6cfb8');
+  const ground=dmesh(new T.BoxGeometry(39,.8,31),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,10,.95);ground.userData.kind='ground';interactive.push(ground);
+  dmesh(new T.BoxGeometry(39.1,.22,31.1),'#c3bfa7','stone',base,0,-.95,0,10,.95);dmesh(new T.BoxGeometry(38.4,.6,30.4),'#d6cfb8','stone',base,0,-1.3,0,10,.95);
   const backdrop=box(scene,0,-1.72,0,1000,.1,1000,night?'#263e43':palette.sky);backdrop.receiveShadow=true;
   let stars,flies,moon;
   if(night){
@@ -56,7 +56,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   box(base,-1,.04,-.5,13,.12,8,'#d4d0b7');box(base,-8,.03,-1,13,.1,2.5,'#d1cdb6');box(base,8,.03,-1,12,.1,2.5,'#d1cdb6');box(base,0,.03,-4,3,.1,5,'#d1cdb6');box(base,-4,.03,10,2.8,.1,9,'#d1cdb6');box(base,10,.03,10,2.8,.1,9,'#d1cdb6');box(base,2,.03,11,18,.1,2.3,'#d1cdb6');
   for(const p of PLACES){const g=building(p,palette.roof);base.add(g);interactive.push(g);pinSources.push({id:p.id,kind:'place',name:p.short,point:new T.Vector3(p.x,p.kind==='hall'?6.9:p.kind==='tea'?6.2:4.9,p.z)});}
   atomSculpture(base);
-  for(const x of [1,5]){box(base,x,1.7,12,.3,3.4,.3,'#8f7755');box(base,x,.2,12,.7,.4,.7,'#b7b9a2');}box(base,3,3.35,12,5.3,.35,.55,palette.roof);box(base,3,3.65,12,4.7,.22,.75,palette.roof);textSign(base,'原子江湖',3,2.8,12.22,2.4,.7);lantern(base,.7,2.8,12);lantern(base,5.3,2.8,12);
+  // 村口牌坊中心 x=-4：与 future-lodge 基座左缘相距 4.75，门脸完全放开。
+  for(const x of [-6,-2]){dmesh(new T.CylinderGeometry(.15,.15,3.4,10),'#8f7755','wood',base,x,1.7,12,1,.8);dmesh(new T.BoxGeometry(.7,.4,.7),'#b7b9a2','stone',base,x,.2,12,1,.9);}dmesh(new T.BoxGeometry(5.3,.35,.55),palette.roof,'wood',base,-4,3.35,12,2,.7);dmesh(new T.BoxGeometry(4.7,.22,.75),palette.roof,'wood',base,-4,3.65,12,2,.7);textSign(base,'原子江湖',-4,2.8,12.22,2.4,.7);lantern(base,-6.3,2.8,12);lantern(base,-1.7,2.8,12);
   [[-17,-11,1.1],[-15,-2,.9],[-17,3,1],[-15,13,1.1],[-8,13,.75],[15,-11,1.3],[17,-7,.9],[17,1,.8],[17,12,1.2],[-7,-12,.8],[7,-12,1.1],[6,9,.7]].forEach((a,i)=>tree(base,...a,i===1||i===7||i===9));
   for(let i=0;i<25;i++){const x=-18+(i*13)%36,z=i%2?-13.5:13.7;if(Math.abs(x-3)<3&&z>0)continue;ball(base,x,.16,z,.45,'#9cae8b',[1,.5,.7]);}
   for(const [x,z] of [[-6,2],[5,1],[-7,9],[7,-3],[15,7]]){cylinder(base,x,.2,z,.3,.4,.4,'#bba889');cylinder(base,x,.8,z,.05,.06,1.2,'#786b50');lantern(base,x,1.5,z);if(night){const l=new T.PointLight('#ffb15f',4,5);l.position.set(x,1.4,z);scene.add(l);}}
