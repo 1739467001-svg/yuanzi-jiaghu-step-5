@@ -29,7 +29,7 @@ try{
   await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
   await page.getByRole('textbox',{name:'名帖昵称'}).fill(`排队${name}-${run}`);
   await page.getByRole('textbox',{name:'密码'}).fill('password123');
-  await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+  await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
  };
  await register(pages[0],'甲');await register(pages[1],'乙');
  await pages[0].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:20000});

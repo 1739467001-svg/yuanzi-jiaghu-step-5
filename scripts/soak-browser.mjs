@@ -43,7 +43,7 @@ async function main(){
   if(await dialog.isVisible().catch(()=>false)){
    await page.getByRole('textbox',{name:'名帖昵称'}).fill(`soakfe-${name}-${Date.now().toString(36)}`);
    await page.getByRole('textbox',{name:'密码'}).fill('password123');
-   await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+   await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
   }
   await page.waitForFunction(()=>window.__atomOnlineSelf!==undefined,null,{timeout:20000});
  };

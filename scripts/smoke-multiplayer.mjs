@@ -78,7 +78,7 @@ async function registerAccount(page,name){
  await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
  await page.getByRole('textbox',{name:'名帖昵称'}).fill(name);
  await page.getByRole('textbox',{name:'密码'}).fill('demo-pass-123');
- await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+ await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
  await page.waitForFunction(()=>window.__atomOnlinePlayers!==undefined,null,{timeout:20000});
 }
 async function clickGround(page,x,y){

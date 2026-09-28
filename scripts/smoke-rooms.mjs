@@ -28,7 +28,7 @@ try{
   await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
   await page.getByRole('textbox',{name:'名帖昵称'}).fill(`房客${name}-${run}`);
   await page.getByRole('textbox',{name:'密码'}).fill('password123');
-  await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+  await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
   await page.waitForFunction(()=>window.__atomOnlinePlayers!==undefined,null,{timeout:20000});
   if(room&&room!=='jianghu'){
    await page.locator('.room-list button',{hasText:'江湖茶楼'}).click();

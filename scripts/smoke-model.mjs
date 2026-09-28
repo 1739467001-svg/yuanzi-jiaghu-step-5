@@ -41,7 +41,7 @@ try{
  await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
  await page.getByRole('textbox',{name:'名帖昵称'}).fill(`模型少侠-${Date.now().toString(36)}`);
  await page.getByRole('textbox',{name:'密码'}).fill('password123');
- await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+ await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
  await page.waitForFunction(()=>window.__atomOnlinePlayers!==undefined,null,{timeout:20000});
  await page.locator('.nearby-avatars button',{hasText:'阿原'}).click();
  await page.getByRole('button',{name:'发起私聊'}).click();

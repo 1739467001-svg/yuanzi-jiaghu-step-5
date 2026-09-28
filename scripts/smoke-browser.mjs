@@ -52,7 +52,7 @@ try{
  await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
  await page.getByRole('textbox',{name:'名帖昵称'}).fill(`主测少侠-${Date.now().toString(36)}`);
  await page.getByRole('textbox',{name:'密码'}).fill('password123');
- await page.getByRole('button',{name:'创建并进入联机世界'}).click();
+ await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
  await page.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:20000});
  await page.getByRole('button',{name:'切换世界模式'}).click();
  await page.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('进入联机'),null,{timeout:15000});
