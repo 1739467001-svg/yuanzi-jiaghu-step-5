@@ -75,6 +75,37 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     break;}
   };
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
+  // 键盘行走：WASD/方向键按住即向该方向行走（与服务端点击行走同一 move 通道）。
+  const keys=new Set();
+  const keyDir=()=>{
+   let dx=0,dz=0;
+   if(keys.has('KeyW')||keys.has('ArrowUp'))dz-=1;
+   if(keys.has('KeyS')||keys.has('ArrowDown'))dz+=1;
+   if(keys.has('KeyA')||keys.has('ArrowLeft'))dx-=1;
+   if(keys.has('KeyD')||keys.has('ArrowRight'))dx+=1;
+   if(dx&&dz){const inv=1/Math.hypot(dx,dz);dx*=inv;dz*=inv;}
+   return [dx,dz];
+  };
+  const keyMove=()=>{
+   const [dx,dz]=keyDir();
+   if(!dx&&!dz)return;
+   const self=selfRef.current;
+   const tx=Math.round(self.x+dx*2.6),tz=Math.round(self.z+dz*2.6);
+   if(!walkable(tx,tz))return;
+   self.path=findPath([self.x,self.z],[tx,tz]);self.state='正在前往';
+   client?.move(tx,tz);
+  };
+  const onKeyDown=e=>{
+   if(e.target&&/input|textarea|select/i.test(e.target.tagName))return;
+   if(document.querySelector('.dialog-shade'))return;
+   if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){
+    if(!keys.has(e.code))keyMove();
+    keys.add(e.code);e.preventDefault();
+   }
+  };
+  const onKeyUp=e=>keys.delete(e.code);
+  window.addEventListener('keydown',onKeyDown);window.addEventListener('keyup',onKeyUp);
+  const keyTimer=setInterval(()=>{if(keys.size)keyMove();},320);
   function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(el);resize();
   const home=()=>{camera.position.set(32,30,39);controls.target.set(0,0,0);};
@@ -185,7 +216,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
    frame=requestAnimationFrame(render);
   }
   frame=requestAnimationFrame(render);
-  return()=>{alive=false;cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose();m.dispose();});}});renderer.dispose();el.removeChild(renderer.domElement);};
+  return()=>{alive=false;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',onKeyDown);window.removeEventListener('keyup',onKeyUp);clearInterval(keyTimer);controls.dispose();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose();m.dispose();});}});renderer.dispose();el.removeChild(renderer.domElement);};
  },[client,theme,night,playerColor]);
  return <><div className="webgl-host" ref={host} data-testid="world-canvas"/>{error?<div className="webgl-error"><h2>当前设备暂不支持 3D</h2><p>联机世界需要 WebGL。</p></div>:labels&&<div className="scene-labels">{pins.filter(p=>p.visible).map(p=><button key={p.id} className={`scene-pin ${p.kind}`} style={{left:p.x,top:p.y}} onClick={()=>p.kind==='place'?callbacks.current.onPlace(p.id):p.kind==='remote'?callbacks.current.onActor(p.id):apiRef.current?.locate()}>{p.kind==='place'&&<span className="pin-dot"/>}{p.name}{p.kind==='place'&&<span className="pin-arrow">↗</span>}</button>)}</div>}</>;
 }
