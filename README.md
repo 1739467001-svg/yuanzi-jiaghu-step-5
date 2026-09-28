@@ -95,7 +95,7 @@ npm run preview
 
 上游已克隆在 `references/ai-town`，不安装或运行其 Convex 服务。本版本是独立的 3D 表现层和本地体验原型，尚未接入 AI Town 的世界循环、联机和向量记忆。不能将本地八位角色表述为八个已经联网运行的语言模型 Agent。
 
-`src/world/aiTownAdapter.js` 定义了上游平面坐标到三维坐标的转换和公开角色字段边界。接入规划、已发现的身份问题见 `docs/AI_TOWN_INTEGRATION.md`。
+AI Town 接入评估结论为「不迁移，继续使用自建服务端」，评估与对照记录见 `docs/AI_TOWN_EVALUATION.md` 与 `docs/AI_TOWN_INTEGRATION.md`（保留作决策依据，运行代码不含其适配层）。
 
 ## 内容与品牌
 
