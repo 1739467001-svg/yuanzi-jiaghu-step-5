@@ -15,6 +15,7 @@ import {originAllowed} from './world.mjs';
 import {configureEmbeddings,embeddingsEnabled} from './embeddings.mjs';
 import {followsApiPlugin} from './follows.mjs';
 import {sectsApiPlugin} from './sects-api.mjs';
+import {configureSectSource} from './sects.mjs';
 import {isAdminRequest} from './publication-store.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -62,6 +63,9 @@ memoryApiPlugin().configureServer(shim);
 followsApiPlugin().configureServer(shim);sectsApiPlugin().configureServer(shim);
 roomsApiPlugin(hub,{env:process.env,isAdminRequest}).configureServer(shim);
 chatPlugin(process.env).configureServer(shim);
+// 门派数据：配置 ATOM_SECTS_SOURCE 时从原子公社门派网站拉数据（TTL 同步 + 本地覆盖层）。
+const sectSync=configureSectSource(process.env);
+if(sectSync){sectSync.start();console.log(`门派同步: ${sectSync.base}（每 ${Math.round(sectSync.ttlMs/1000)} 秒）`);}
 
 // 跨域（前端分离部署到 Vercel 等静态托管时）：Origin 在白名单内才发放 CORS 头，
 // 预检请求直接通过；同源部署不受影响（浏览器不发 Origin 或同源直接放行）。

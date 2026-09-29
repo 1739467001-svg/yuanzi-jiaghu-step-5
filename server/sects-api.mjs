@@ -6,7 +6,7 @@
 // POST /api/sects/:id/elders       {name,title} 加入长老阁（仅创始人）
 // POST /api/sects/:id/disciples    {name,title} 收入弟子（仅创始人）
 // POST /api/sects/:id/members/remove {userId} 移出成员（仅创始人）
-import {createSect,updateSect,addElder,addDisciple,removeMember,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES} from './sects.mjs';
+import {createSect,updateSect,addElder,addDisciple,removeMember,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
 import {verify} from './accounts.mjs';
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
 const readBody=async(req,limit=8000)=>{let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)throw new Error('请求过大');body+=chunk;}return JSON.parse(body||'{}');};
@@ -22,13 +22,17 @@ export function sectsApiPlugin(){
    if(!url.pathname.startsWith('/api/sects'))return next();
    try{
     if(url.pathname==='/api/sects'&&req.method==='GET'){
-     return send(res,200,pageSects(url.searchParams.get('page')||1,url.searchParams.get('size')||SECT_PAGE_SIZE));
+     // 分页响应带上数据来源：接原子公社门派网站时，前端/运维能看出是不是远程数据。
+     return send(res,200,{...pageSects(url.searchParams.get('page')||1,url.searchParams.get('size')||SECT_PAGE_SIZE),source:sectSourceStatus()});
     }
+    if(url.pathname==='/api/sects/status'&&req.method==='GET')return send(res,200,sectSourceStatus());
     const idMatch=/^\/api\/sects\/([^/]+)$/.exec(url.pathname);
     if(idMatch&&req.method==='GET'){const sect=findSect(decodeURIComponent(idMatch[1]));return sect?send(res,200,sect):send(res,404,{error:'门派不存在'});}
     if(req.method!=='POST'&&req.method!=='PATCH')return send(res,405,{error:'方法不支持'});
     const user=sessionOf(req);
     if(!user)return send(res,401,{error:'请先登录（或创建本地演示身份）'});
+    // 手动触发一次远程同步（仅登录用户；同步本身是只读的远程拉取）。
+    if(url.pathname==='/api/sects/refresh'&&req.method==='POST')return send(res,200,{source:await refreshSectSource()});
     // 成员管理子路由必须单独匹配：/api/sects/:id/elders 这类路径不等于 :id 本身。
     const sub=/^\/api\/sects\/([^/]+)\/(elders|disciples|members\/remove)$/.exec(url.pathname);
     if(sub){

@@ -37,11 +37,19 @@
 - 弟子称号预设：大师兄、二师兄、大师姐、二师姐、师弟、师妹、弟子；长老称号预设：长老、执法长老、传功长老、护法长老。
 - 三角色层级（聚义阁式展示）：门派创始人（唯一，主位）→ 长老阁（两侧）→ 门派弟子（按称号分层列席）。
 
-## 接入原子公社门派网站时的替换点
+## 接入原子公社门派网站（已实现，环境变量开启）
 
-`server/sects.mjs` 的读取函数保持纯函数形态：
+配置 `ATOM_SECTS_SOURCE`（网站 API 根地址，如 `https://atomhub.example.com/api`）即接入，**未配置时照旧走本地 `data/sects.json` 与内置演示数据**：
 
-- `loadSects()` / `findSect(id)` / `pageSects(page,size)` → 改为拉取远程数据并按上面的字段映射；
-- 写入函数（create/update/addElder/addDisciple/removeMember）→ 若以网站为唯一数据源，可改为转发到网站的管理接口；否则保持本地写入并按周期同步。
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `ATOM_SECTS_SOURCE` | 空 | 门派网站 API 根地址；请求 `${ATOM_SECTS_SOURCE}/sects` 拉取列表 |
+| `ATOM_SECTS_SOURCE_TOKEN` | 空 | 需要鉴权时作为 `Authorization: Bearer <token>` 发送 |
+| `ATOM_SECTS_TTL_MS` | 300000 | 同步周期（毫秒）；最小 5 秒 |
 
-映射注意：远程站点若用不同字段名（如 `leader` / `members`），只在这几个函数内转换；`server/sects-api.mjs`、`src/world/sectScene.js` 与前端流程无需改动。
+- 读取：远程站点为权威，按 TTL 周期刷新（`server/sects-source.mjs`）。拉取失败**保留上一次快照**（网站抖动时大殿照常开门），并把错误写进 `GET /api/sects/status` 与启动日志；冷启动先用 `data/sects-cache.json` 兜底。每条数据单独映射，坏行只跳过不计整批失败（跳过数量在 status 里可见）。
+- 映射：远程字段名可以是 `sectId/sectName/tagline/description/theme/leader/council/members`，也可以是本文上面那套字段（`id/name/slogan/intro/style/founder/elders/disciples`）。响应形态认 `{sects:[…]}`、`{items/data/list:[…]}` 与裸数组。`members` 按称号分堆进弟子/长老，并与显式的 `elders`/`disciples` 去重；称号不在预设内按身份兜底；`style` 非法退回 `jianghu`。
+- 写入：网站暂未开放管理接口，因此本地建派/改资料/加减成员**记录进覆盖层** `data/sects-overlay.json`（本机新建的门派 + 按 id 的字段补丁），每次远程刷新后重新贴回远程数据上——远程站点改了别的字段不会被本地旧值顶掉；远程删除的门派随之消失（远程权威）。等网站开放管理接口后，把 `persist()` 改成转发即可，3D 与前端不动。
+- 运维：`GET /api/sects/status` 返回同步状态（来源/条数/上次同步时间/错误/跳过数/本地改动数）；`POST /api/sects/refresh`（需登录）手动触发一次同步。分页响应里也带 `source` 字段，前端能看出当前是不是远程数据。
+
+`server/sects.mjs` 的替换点（`loadSects()`/`findSect()`/`pageSects()` 与写入函数 `persist()`）已按此接好；`server/sects-api.mjs`、`src/world/sectScene.js` 与前端流程无需改动。纯静态部署（没有服务端）走前端本机演示层 `src/world/sectStore.js`，与本文字段一致。

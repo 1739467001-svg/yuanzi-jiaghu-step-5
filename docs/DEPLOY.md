@@ -39,6 +39,9 @@ curl http://127.0.0.1:8080/api/content/health   # {"ok":true,...}
 | `ATOM_ROOMS` | 空 | 增加房间：`id:名称:容量,...`（如 `teahouse:江湖茶楼:5`）；每房独立世界 |
 | `ATOM_RECLAIM_WINDOW_MS` | `15000` | 断线名额保留窗口 |
 | `ATOM_ALLOWED_ORIGINS` | 空 | 额外允许的 WS 来源（逗号分隔）；同源始终放行 |
+| `ATOM_SECTS_SOURCE` | 空 | 原子公社门派网站 API 根地址；配置后门派数据从该站按周期同步，见 `docs/SECTS.md` |
+| `ATOM_SECTS_SOURCE_TOKEN` | 空 | 门派网站需要鉴权时的 Bearer 令牌 |
+| `ATOM_SECTS_TTL_MS` | `300000` | 门派同步周期（毫秒） |
 | `ATOM_LLM_BASE_URL` / `ATOM_LLM_API_KEY` / `ATOM_LLM_MODEL` | 空 | OpenAI 兼容模型；不配置则 AI 私聊使用本地资料演示（界面明确标注） |
 | `ATOM_DAILY_BUDGET` / `ATOM_DAILY_CALL_LIMIT` / `ATOM_MAX_CONCURRENT` | `0` / `0` / `3` | 模型预算：金额达 80% 降级、100% 停止新调用；次数与并发上限 |
 | `ATOM_PRICE_IN_PER_MTOK` / `ATOM_PRICE_OUT_PER_MTOK` | `0` | 每百万 token 单价（用于费用核算） |

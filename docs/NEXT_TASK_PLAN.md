@@ -771,3 +771,13 @@ Vercel 故障的直接教训：本地能跑不代表仓库完整——`.gitignor
 - 修复 `sectsApiPlugin` 未设置 `configurePreviewServer`，导致 `vite preview`（及同模式挂载）下 `/api/sects` 落到 index.html——现在 dev 与 preview 都挂载（与 content/auth/chat 插件同模式）。
 - 登录/注册的服务端可用性判定改为"响应是 JSON 且带 user/token"（静态托管对未知路径回退 index.html 或 404，不再被误判成登录成功），服务端拒绝（重名/密码错）仍如实提示；本地演示身份补上稳定 id（门派创始人判定、记忆归属按 id 走）。
 - e2e 增补第 8 段：自带一个只发 `dist/` 的静态服务（`/api/*` 404、未知路径回退 index.html，模拟 Vercel 形态），验证"注册降级本地身份 → 建派 → 加长老收弟子 → 刷新后仍在"。
+
+## 阶段 40：门派数据接入原子公社门派网站（2026-09-29 执行）
+
+目标：按 `docs/SECTS.md` 记录的替换点，把「后续对接原子公社门派网站」从纸面契约变成可开关的实现。
+
+- 新增 `server/sects-source.mjs`：远程字段映射（`sectId/sectName/tagline/description/theme/leader/council/members` 等别名都认，`{sects}`/`{items}`/`{data}`/裸数组三种响应形态；`members` 按称号分堆并去重；坏行单独跳过）、TTL 快照（`ATOM_SECTS_TTL_MS`，默认 5 分钟）、失败保留上次快照、磁盘缓存兜底冷启动、覆盖层（`data/sects-overlay.json`：本机新建 + 按 id 的字段补丁，刷新后重新贴回远程数据）。
+- `server/sects.mjs` 接入：`configureSectSource(env)` 启动时装配；`loadSects()` 优先返回「远程快照 + 覆盖层」，写入走 `persist()`（远程模式记覆盖层，未配置时照旧写 `data/sects.json`）；未配置时行为与之前完全一致。
+- `server/index.mjs` 与 `vite.config.js` 都在启动时开启同步（dev/preview/生产一致）；API 增加 `GET /api/sects/status` 与 `POST /api/sects/refresh`（需登录），分页响应带 `source` 字段。
+- 文档：`docs/SECTS.md` 改写为接入说明（环境变量/映射表/同步与覆盖层语义/运维接口），`docs/DEPLOY.md` 环境变量表、`.env.example` 同步补充。
+- 验收：`tests/sects-source.test.mjs` 6 项（别名映射、非法行跳过、响应形态、覆盖层刷新后仍在、同名去重、故障保留快照、真实 HTTP 拉取、diffPatch 只记改动）；`npm run test:e2e-sects` 增加第 9 段：自带 mock 门派网站 + 带 `ATOM_SECTS_SOURCE` 的服务实例，验证远程门派进大殿/内景（创始人、长老映射）、未登录不能建派、远程模式不写本地门派库。`npm test` 104 项、七套既有 e2e 与两个校验器全绿。

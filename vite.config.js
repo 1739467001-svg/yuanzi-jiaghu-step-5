@@ -9,6 +9,7 @@ import {originAllowed} from './server/world.mjs';
 import {configureEmbeddings} from './server/embeddings.mjs';
 import {followsApiPlugin} from './server/follows.mjs';
 import {sectsApiPlugin} from './server/sects-api.mjs';
+import {configureSectSource} from './server/sects.mjs';
 import {isAdminRequest} from './server/publication-store.mjs';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('.',import.meta.url));
@@ -53,4 +54,7 @@ export default defineConfig(({mode})=>{
   const timer=setInterval(()=>{const now=Date.now();hub.tick(Math.min(.5,(now-last)/1000));last=now;},100);
   server.httpServer.on('close',()=>clearInterval(timer));
  }};
+ // 门派数据：配置 ATOM_SECTS_SOURCE 时从原子公社门派网站拉数据（dev/preview 同样生效）。
+ const sectSync=configureSectSource(env);
+ if(sectSync){sectSync.start();console.log('门派同步: '+sectSync.base);}
  return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),sectsApiPlugin(),roomsApiPlugin(hub,{env,isAdminRequest}),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});

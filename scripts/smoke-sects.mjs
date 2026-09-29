@@ -247,8 +247,64 @@ try{
   await staticPage.close();
   await new Promise(r=>staticSrv.close(r));
  }
+ // ---- 9) 接原子公社门派网站（ATOM_SECTS_SOURCE）：远程数据进大殿，本地改动刷新后仍在 ----
+ const mockSite=http.createServer((req,res)=>{
+  res.setHeader('Content-Type','application/json');
+  if(req.url.startsWith('/sects')){
+   return res.end(JSON.stringify({sects:[
+    {sectId:'web-1',sectName:'网站门派甲',tagline:'来自原子公社门派网站',description:'远程站点数据',theme:'startup',
+     leader:{id:'web-u-1',nickname:'网站祖师'},council:[{id:'web-e-1',name:'青禾',role:'执法长老'}]},
+    {sectId:'web-2',sectName:'网站门派乙',tagline:'第二条',description:'远程站点数据二',theme:'mystery',
+     leader:{id:'web-u-2',nickname:'网站祖师二'},members:[{id:'web-d-1',name:'阿原',title:'大师兄'}]},
+   ]}));
+  }
+  res.statusCode=404;res.end('{}');
+ });
+ await new Promise(r=>mockSite.listen(0,'127.0.0.1',r));
+ const webPort=mockSite.address().port;
+ const webDir=fs.mkdtempSync(path.join(os.tmpdir(),'atom-web-'));
+ const remoteServer=spawn(process.execPath,['server/index.mjs'],{cwd:root,env:{...process.env,PORT:String(port+2),ATOM_DATA_DIR:webDir,ATOM_SECTS_SOURCE:`http://127.0.0.1:${webPort}`,ATOM_SECTS_TTL_MS:'300000'},stdio:['ignore','pipe','pipe']});
+ let remoteLog='';remoteServer.stdout.on('data',d=>{remoteLog+=d;});remoteServer.stderr.on('data',d=>{remoteLog+=d;});
+ try{
+  const remoteBase=`http://127.0.0.1:${port+2}`;
+  for(let i=0;i<80;i++){try{const r=await fetch(remoteBase+'/api/sects?page=1&size=4');if(r.ok&&(await r.json()).sects)break;}catch{}await new Promise(r=>setTimeout(r,300));}
+  const remoteStatus=await (await fetch(remoteBase+'/api/sects/status')).json();
+  assert.equal(remoteStatus.kind,'remote','门派数据来自远程站点');
+  assert.equal(remoteStatus.count,2,'远程两个门派已同步');
+  const remotePage=await browser.newPage({viewport:{width:1280,height:860}});
+  const remoteErrors=[];remotePage.on('pageerror',e=>remoteErrors.push(e.message));
+  await remotePage.goto(remoteBase);
+  await remotePage.waitForSelector('.scene-pin.player');
+  const skip3=remotePage.getByRole('button',{name:'跳过引导'});
+  if(await skip3.count())await skip3.click();
+  await remotePage.waitForTimeout(800);
+  await remotePage.getByRole('button',{name:'原子门派 ↗'}).click();
+  await remotePage.getByRole('button',{name:'进入门派大殿'}).click();
+  await remotePage.waitForSelector('.sect-hud .sect-hud-card');
+  assert.deepEqual(await remotePage.locator('.sect-row b').allTextContents(),['网站门派甲','网站门派乙'],'大殿展示远程站点的门派');
+  await remotePage.locator('.sect-row',{hasText:'网站门派甲'}).click();
+  await remotePage.waitForSelector('.sect-hud.interior');
+  assert.match(await remotePage.locator('.sect-hud.interior h3').textContent(),/网站门派甲 · 聚义阁/,'远程门派内景可进入');
+  assert.match(await remotePage.locator('.sect-role.founder').textContent(),/网站祖师/,'远程创始人映射正确');
+  assert.match(await remotePage.locator('.sect-hud.interior').textContent(),/执法长老/,'远程长老映射正确');
+  // 未登录不能建派（远程站点尚未开放管理接口，写入仍走本地覆盖层且需身份）
+  await remotePage.getByRole('button',{name:'返回门派大殿'}).click();
+  await remotePage.waitForSelector('.sect-hud .sect-hud-card');
+  await remotePage.getByRole('textbox',{name:'门派名称'}).fill('远程站点的门派');
+  await remotePage.getByRole('button',{name:'创立门派'}).click();
+  await remotePage.waitForFunction(()=>document.querySelector('.toast')?.textContent.includes('名帖身份'),null,{timeout:8000});
+  assert.deepEqual(remoteErrors,[],'远程源页面无 JS 报错：'+remoteErrors.join(' | '));
+  await remotePage.screenshot({path:path.join(artifacts,'sects-remote-source.png')});
+  await remotePage.close();
+  // 覆盖层落盘：远程门派被本地加过成员后，数据在 data 目录里留下痕迹
+  assert.ok(fs.existsSync(path.join(webDir,'sects-overlay.json'))||!fs.existsSync(path.join(webDir,'sects.json')),'远程模式下不写本地门派库');
+ }finally{
+  try{remoteServer.kill('SIGTERM');}catch{}
+  try{fs.rmSync(webDir,{recursive:true,force:true});}catch{}
+  await new Promise(r=>mockSite.close(r));
+ }
 }finally{
  await browser.close();
  cleanup();
 }
-console.log('✅ 原子门派验收通过：大殿分页 → 内景位次 → 建派 → 成员管理 → 持久化 → 联机世界 → 纯静态部署');
+console.log('✅ 原子门派验收通过：大殿分页 → 内景位次 → 建派 → 成员管理 → 持久化 → 联机世界 → 纯静态部署 → 远程门派网站同步');

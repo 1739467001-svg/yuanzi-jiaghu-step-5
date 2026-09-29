@@ -3,10 +3,12 @@
 // 三角色：门派创始人（创建者，唯一）、长老阁（自定义角色，如活动负责人/志愿者）、
 // 门派弟子（称号预设：大师兄/二师兄/大师姐/二师姐/师弟/师妹/弟子）。
 // 存储：data/sects.json 原子写入。读取函数保持纯函数形态——
-// 后续对接原子公社门派网站时，只需替换 loadSects/loadSect 的数据来源（见 docs/SECTS.md）。
+// 配置 ATOM_SECTS_SOURCE（原子公社门派网站）后，读取改走远程快照 + 本地覆盖层（server/sects-source.mjs），
+// 写入记进覆盖层；未配置时保持本地文件与内置演示数据。映射与同步语义见 docs/SECTS.md。
 import fs from 'node:fs';
 import path from 'node:path';
 import {THEMES} from '../src/world/config.js';
+import {SectSource} from './sects-source.mjs';
 
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(path.resolve(import.meta.dirname,'..'),'data');
 const sectsFile=()=>path.join(dataDir(),'sects.json');
@@ -51,11 +53,36 @@ function demoSects(){
    [['知微','执法长老'],['朝露','传功长老']],[['星河','二师兄'],['小满','师妹']]),
  ];
 }
+// ---- 数据来源：本地文件/演示数据，或原子公社门派网站（ATOM_SECTS_SOURCE）----
+let source=null;
+// 由 server/index.mjs 启动时调用；返回 null 表示未配置（保持本地数据）。
+export function configureSectSource(env=process.env,{dataDir:dir=dataDir()}={}){
+ const base=String(env.ATOM_SECTS_SOURCE||'').trim();
+ if(!base)return null;
+ source=new SectSource({base,token:String(env.ATOM_SECTS_SOURCE_TOKEN||'').trim(),ttlMs:Number(env.ATOM_SECTS_TTL_MS)||300000,dataDir:dir,
+  onError:msg=>{try{console.warn('[门派同步] '+msg);}catch{}}});
+ source.restore();
+ return source;
+}
+export function sectSource(){return source;}
+export function sectSourceStatus(){
+ return source?source.status():{kind:'local'};
+}
+// 手动同步（运维/后台按钮）：未配置远程时返回本地状态。
+export async function refreshSectSource(){
+ if(!source)return {kind:'local'};
+ await source.refresh({force:true});
+ return source.status();
+}
 export function loadSects(){
+ // 远程快照（含覆盖层）优先；未配置远程时才是本地文件/演示数据。
+ if(source){const s=source.snapshot();if(s.length||source.remote.length)return s;}
  const stored=readJson(sectsFile(),null);
  if(!stored||!Array.isArray(stored.sects))return demoSects();
  return stored.sects;
 }
+// 写入落点：远程模式下记覆盖层（远程站点暂未开放管理接口），否则照旧写本地文件。
+function persist(sects){source?source.writeOverlay(sects):saveSects(sects);}
 function saveSects(sects){writeJsonAtomic(sectsFile(),{sects});}
 export function findSect(id){return loadSects().find(s=>s.id===id)||null;}
 function cleanName(v){return String(v||'').trim();}
@@ -82,7 +109,7 @@ export function createSect(input,user){
  const who={id:cleanName(user?.id)||'anon',name:cleanName(user?.name)||'无名侠客'};
  if(loadSects().some(s=>s.name===base.name))throw new Error('这个门派名已被占用，换一个吧');
  const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[]};
- saveSects([...loadSects(),sect]);
+ persist([...loadSects(),sect]);
  return sect;
 }
 // 仅创始人可改：基础资料与成员管理（长老阁/弟子）。
@@ -95,7 +122,7 @@ export function updateSect(id,input,user){
  const base=validateSect(input);
  if(loadSects().some(s=>s.id!==id&&s.name===base.name))throw new Error('这个门派名已被占用，换一个吧');
  Object.assign(sect,base);
- saveSects(loadSects());
+ persist(loadSects());
  return sect;
 }
 export function addElder(id,member,user){
@@ -103,21 +130,21 @@ export function addElder(id,member,user){
  assertFounder(sect,user);
  const row=memberRow(member.userId,member.name,member.title,ELDER_TITLES,'长老');
  if(sect.elders.some(e=>e.userId===row.userId||e.name===row.name)||sect.disciples.some(d=>d.userId===row.userId||d.name===row.name))throw new Error(`${row.name} 已在门派中`);
- sect.elders.push(row);saveSects(all);return sect;
+ sect.elders.push(row);persist(all);return sect;
 }
 export function removeMember(id,userId,user){
  const all=loadSects();const sect=all.find(x=>x.id===id);if(!sect)throw new Error('门派不存在');
  assertFounder(sect,user);
  sect.elders=sect.elders.filter(e=>e.userId!==userId);
  sect.disciples=sect.disciples.filter(d=>d.userId!==userId);
- saveSects(all);return sect;
+ persist(all);return sect;
 }
 export function addDisciple(id,member,user){
  const all=loadSects();const sect=all.find(x=>x.id===id);if(!sect)throw new Error('门派不存在');
  assertFounder(sect,user);
  const row=memberRow(member.userId,member.name,member.title,DISCIPLE_TITLES,'弟子');
  if(sect.elders.some(e=>e.userId===row.userId||e.name===row.name)||sect.disciples.some(d=>d.userId===row.userId||d.name===row.name))throw new Error(`${row.name} 已在门派中`);
- sect.disciples.push(row);saveSects(all);return sect;
+ sect.disciples.push(row);persist(all);return sect;
 }
 // 分页：每页 4 个（PRD 展示口径），顺序即创建顺序。
 export function pageSects(page=1,size=SECT_PAGE_SIZE){
