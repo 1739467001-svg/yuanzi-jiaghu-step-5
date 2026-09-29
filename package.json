@@ -18,6 +18,7 @@
     "test:e2e-glb": "node scripts/smoke-glb.mjs",
     "start": "node server/index.mjs",
     "test:e2e-rooms": "node scripts/smoke-rooms.mjs",
+    "test:e2e-sects": "node scripts/smoke-sects.mjs",
     "soak": "node scripts/soak-world.mjs",
     "soak:browser": "node scripts/soak-browser.mjs",
     "soak:long": "ATOM_SOAK_MINUTES=120 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs",

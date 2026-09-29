@@ -7,6 +7,7 @@ import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,ato
 import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
+import {buildSectsHall,buildSectInterior} from './sectScene.js';
 import {trackColorOf} from '../content/catalog.js';
 function bubbleTexture(text){
  const c=document.createElement('canvas');c.width=256;c.height=92;const x=c.getContext('2d');
@@ -15,13 +16,13 @@ function bubbleTexture(text){
  x.fillStyle='#41564a';x.font='500 29px "PingFang SC","Noto Sans SC",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,128,41,214);
  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return t;
 }
-export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,labels=true}){
- const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot};
+export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,labels=true,sectPage,sectDetail,onSectEnter}){
+ const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch{setError(true);return;}
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=night?1.15:1.25;el.appendChild(renderer.domElement);
   const palette=THEMES[theme]||THEMES.jianghu,scene=new T.Scene();const nightSky=night?(location==='hall'?'#0b1027':'#243e45'):palette.sky;scene.background=new T.Color(nightSky);scene.fog=new T.Fog(nightSky,105,245);
-  const camera=new T.PerspectiveCamera(37,1,.1,260);camera.position.set(32,30,39);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=160;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
+  const camera=new T.PerspectiveCamera(37,1,.1,260);camera.position.set(32+0,30,39);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=160;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
   scene.add(new T.HemisphereLight(night?'#9fbfce':'#fff8e3',night?'#263b3d':'#9ba994',night?1.5:2.2));const sun=new T.DirectionalLight(night?'#b7d4f0':'#fff1ce',night?1:3.4);sun.position.set(-16,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-29,right:29,top:29,bottom:-29,near:1,far:80});sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;scene.add(sun);
   const base=new T.Group();scene.add(base);const interactive=[],pinSources=[],agentModels=new Map();
   const ground=dmesh(new T.BoxGeometry(39,.8,31),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,10,.95);ground.userData.kind='ground';interactive.push(ground);
@@ -47,7 +48,13 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
  }
   const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};actorGroup.add(player);
   let water,sculpture,bubbles;
-  if(location==='town'){
+  let sectScene=null;
+  if(location==='sects'&&sectPage){
+   sectScene=buildSectsHall(base,{sects:sectPage.sects,page:sectPage.page,pages:sectPage.pages,palette,night},interactive);
+   if(sectScene.banners)for(const b of sectScene.banners)pinSources.push({id:b.id,kind:'sect',name:b.name,point:new T.Vector3(b.x,5.6,b.z)});
+  }else if(location==='sect'&&sectDetail){
+   sectScene=buildSectInterior(base,{sect:sectDetail,palette,night},interactive);
+  }else if(location==='town'){
    // The river is blocked by the navigation grid except at the two bridges.
    water=box(base,0,-.02,5,39,.07,3.5,night?'#376d72':'#81b8b2');water.material=new T.MeshStandardMaterial({color:night?'#376d72':'#81b8b2',metalness:.18,roughness:.28});
    for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
@@ -102,13 +109,12 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   const down=e=>{pointerStart=[e.clientX,e.clientY];};
   const up=e=>{if(Math.hypot(e.clientX-pointerStart[0],e.clientY-pointerStart[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive,true);
    for(const hit of hits){let o=hit.object;while(o&&!o.userData.kind)o=o.parent;if(!o)continue;const {kind,id}=o.userData;
-    if(kind==='place')callbacks.current.onPlace(id);else if(kind==='agent')callbacks.current.onAgent(id);else if(kind==='work')callbacks.current.onWork(id);else if(kind==='ground'){if(location==='town')engine.movePlayer(hit.point.x,hit.point.z);else hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[hit.point.x,hit.point.z],hallWalkable);}break;}
+    if(kind==='place')callbacks.current.onPlace(id);else if(kind==='agent')callbacks.current.onAgent(id);else if(kind==='work')callbacks.current.onWork(id);else if(kind==='sect')callbacks.current.onSectEnter?.(id);else if(kind==='sect-page'){const sp=o.userData;callbacks.current.onSectPage?.(sp.dir);}else if(kind==='sect-back')callbacks.current.onSectBack?.();else if(kind==='ground'){if(location==='town')engine.movePlayer(hit.point.x,hit.point.z);else hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[hit.point.x,hit.point.z],hallWalkable);}break;}
   };
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   let wasNarrow=null;
-  function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;const narrow=w<550;if(narrow!==wasNarrow){camera.position.set(location==='town'?32:23,location==='town'?30:22,location==='town'?39:29);camera.position.multiplyScalar(narrow?2.05:1);controls.target.set(0,0,0);wasNarrow=narrow;}camera.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(el);resize();
-  let focusTarget=null,frame,last=performance.now(),lastPins=0;const home=()=>{camera.position.set(location==='town'?32:23,location==='town'?30:22,location==='town'?39:29);if(el.clientWidth<550)camera.position.multiplyScalar(2.05);controls.target.set(0,0,0);focusTarget=null;};
-  apiRef.current={reset:home,zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},focus:id=>{const p=PLACES.find(p=>p.id===id);if(p){focusTarget=new T.Vector3(p.x,1,p.z);engine.movePlayer(...p.entry);}},locate:()=>{const current=location==='town'?engine.player:hallPlayer;focusTarget=new T.Vector3(current.x,1,current.z);}};
+  function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;const narrow=w<550;if(narrow!==wasNarrow){camera.position.set((location==='town'?32:23)+0,location==='town'?30:22,location==='town'?39:29);camera.position.multiplyScalar(narrow?2.05:1);controls.target.set(0,0,0);wasNarrow=narrow;}camera.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(el);resize();
+  let focusTarget=null,frame,last=performance.now(),lastPins=0;const home=()=>{camera.position.set((location==='town'?32:23)+0,location==='town'?30:22,location==='town'?39:29);if(el.clientWidth<550)camera.position.multiplyScalar(2.05);controls.target.set(0,0,0);focusTarget=null;};  apiRef.current={reset:home,zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},focus:id=>{const p=PLACES.find(p=>p.id===id);if(p){focusTarget=new T.Vector3(p.x,1,p.z);engine.movePlayer(...p.entry);}},locate:()=>{const current=location==='town'?engine.player:hallPlayer;focusTarget=new T.Vector3(current.x,1,current.z);}};
   function render(now){if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;engine.tick(dt);
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
@@ -145,6 +151,6 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    frame=requestAnimationFrame(render);
   }frame=requestAnimationFrame(render);
   return()=>{alive=false;cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose();m.dispose();});}});renderer.dispose();el.removeChild(renderer.domElement);};
- },[engine,theme,night,location,works,playerColor]);
- return <><div className="webgl-host" ref={host} data-testid="world-canvas"/>{error?<div className="webgl-error"><h2>当前设备暂不支持 3D</h2><p>仍可完整浏览赛事与作品。</p><button onClick={()=>onPlace('hall')}>打开比赛展示馆</button></div>:labels&&<div className="scene-labels">{pins.filter(p=>p.visible).map(p=><button key={p.id} className={`scene-pin ${p.kind}`} style={{left:p.x,top:p.y}} onClick={()=>p.kind==='place'?onPlace(p.id):p.kind==='work'?onWork(p.id):p.kind==='agent'?onAgent(p.id):apiRef.current?.locate()}>{p.kind==='place'&&<span className="pin-dot"/>}{p.name}{p.kind==='place'&&<span className="pin-arrow">↗</span>}</button>)}</div>}</>;
+ },[engine,theme,night,location,works,playerColor,sectPage,sectDetail]);
+ return <><div className="webgl-host" ref={host} data-testid="world-canvas"/>{error?<div className="webgl-error"><h2>当前设备暂不支持 3D</h2><p>仍可完整浏览赛事与作品。</p><button onClick={()=>onPlace('hall')}>打开比赛展示馆</button></div>:labels&&<div className="scene-labels">{pins.filter(p=>p.visible).map(p=><button key={p.id} className={`scene-pin ${p.kind}`} style={{left:p.x,top:p.y}} onClick={()=>p.kind==='place'?onPlace(p.id):p.kind==='sect'?onSectEnter?.(p.id):p.kind==='work'?onWork(p.id):p.kind==='agent'?onAgent(p.id):apiRef.current?.locate()}>{p.kind==='place'&&<span className="pin-dot"/>}{p.name}{p.kind==='place'&&<span className="pin-arrow">↗</span>}</button>)}</div>}</>;
 }

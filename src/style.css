@@ -48,6 +48,9 @@
 .night .scene-pin:hover{background:#1c2b45}
 .night .scene-pin.player{background:#f5d27a;border-color:#f5d27a;color:#1a2436}
 .night .scene-pin.player:after{background:#f5d27a;border-color:#f5d27a}
+.night .scene-pin.sect{background:#2a2410ed;border-color:#6d5a24;color:#f0d99a}
+.night .scene-pin.sect:after{background:#2a2410;border-color:#6d5a24}
+.night .scene-pin.sect:hover{background:#3a3016}
 .night .pin-dot{background:var(--gold)}
 .night .pin-arrow{color:#8296b0}
 .night .world-tools{background:#111c30ea;border-color:#2b3d5c}
@@ -285,3 +288,53 @@
 .presence-card ul{margin:0;padding-left:16px;display:grid;gap:4px}
 .presence-card li{font-size:11px;color:#6b7a6b;line-height:1.7}
 .follow-latest{display:block;font-size:10px;color:#8fa08a;margin-top:3px;line-height:1.6}
+
+/* ---- 原子门派 HUD ---- */
+.scene-pin.sect{background:#fdf6e3f0;border-color:#d9c48d;color:#6b5320;font-weight:600}
+.scene-pin.sect:after{background:#fdf6e3;border-color:#d9c48d}
+.scene-pin.sect:hover{background:#fff4d6;z-index:2}
+.sect-hud{position:absolute;inset:0;pointer-events:none;z-index:2;padding:20px}
+.sect-hud>.back-to-town{pointer-events:auto}
+.sect-hud-card{position:absolute;left:24px;top:96px;bottom:24px;width:min(340px,calc(100% - 48px));overflow:auto;background:#fafaf1f2;border:1px solid #dde3d6;border-radius:14px;padding:14px 18px;box-shadow:0 8px 30px #32453014;backdrop-filter:blur(10px);pointer-events:auto;scrollbar-width:thin}
+.sect-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sect-card-head .back-link{display:flex;align-items:center;gap:5px;font-size:11px;color:#5b6f5f;padding:4px 0;white-space:nowrap}
+.sect-card-head .back-link:hover{color:#365740}
+.sect-card-toggle{flex-shrink:0;font-size:10px;color:#7d8b74;border:1px solid #dde3d6;border-radius:6px;padding:4px 9px;background:#fbfbf2;white-space:nowrap}
+.sect-card-toggle:hover{background:#f0f3e6}
+.sect-card-toggle.floating{position:absolute;left:24px;top:96px;pointer-events:auto;background:#fafaf1f2;border-radius:8px;box-shadow:0 8px 30px #32453014;backdrop-filter:blur(10px);padding:7px 13px;font-size:11px}
+.sect-list{display:grid;gap:8px;margin-bottom:16px}
+.sect-row{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;background:#fbfbf0e0;border:1px solid #e2e7d8;border-radius:9px;padding:9px 11px}
+.sect-row:hover{background:#fdf6e3;border-color:#d9c48d}
+.sect-row b{font-size:12px;color:#3b4a3f;letter-spacing:.3px}
+.sect-row small{grid-column:1;font-size:9.5px;color:#8a9784;line-height:1.6}
+.sect-row-style{grid-row:1/3;grid-column:2;align-self:center;font-size:9px;color:#8d7a4e;background:#f4ecd6;border-radius:20px;padding:3px 8px;white-space:nowrap}
+.sect-hud-card h3{font-family:var(--serif);font-size:17px;color:#2f4438;margin-bottom:6px}
+.sect-hud-card>p{font-size:11px;line-height:1.85;color:#75826f;margin-bottom:12px}
+.sect-slogan{color:#5f7d5a!important;font-weight:600}
+.sect-pager{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sect-pager span{flex:1;text-align:center;font-size:10px;color:#8a9784}
+.sect-pager .secondary-button{min-height:30px;padding:6px 10px;font-size:10px;gap:4px}
+.sect-create{border-top:1px dashed #e0e6d8;padding-top:14px}
+.sect-create h4,.sect-admin h4{font-size:12px;color:#3c4a40;margin-bottom:10px}
+.sect-form{display:grid;gap:8px;margin-bottom:8px}
+.sect-form input,.sect-form select,.sect-hud-card textarea,.sect-admin-row input,.sect-admin-row select{width:100%;border:1px solid #dde3d6;border-radius:8px;padding:9px 11px;outline:0;background:#fff;color:#33413a;font-size:12px}
+.sect-hud-card textarea{min-height:64px;resize:vertical;margin-bottom:8px}
+.sect-hint{font-size:10px;color:#9aa88f;line-height:1.7;margin-top:8px}
+.sect-roles{display:grid;gap:12px;margin-bottom:14px}
+.sect-roles h4{font-size:11px;color:#5c6b60;margin-bottom:7px;letter-spacing:.5px}
+.sect-role{display:flex;align-items:baseline;gap:8px;padding:7px 11px;border:1px solid #e3e8db;border-radius:9px;background:#fbfcf7;font-size:12px}
+.sect-role b{color:#3f4d43;font-weight:600}
+.sect-role small{color:#93a08c;font-size:10px}
+.sect-role.founder{background:#f7efdb;border-color:#e3d3a8}
+.sect-role.founder b{color:#8a5a2a}
+.sect-role.elder{background:#eef4ec}
+.sect-disciple-list{display:grid;gap:6px}
+.sect-admin{border-top:1px dashed #e0e6d8;padding-top:14px}
+.sect-admin-row{display:grid;grid-template-columns:1fr 90px auto;gap:6px;margin-bottom:8px;align-items:center}
+.sect-admin-row .secondary-button{min-height:32px;padding:6px 9px;font-size:10px;gap:4px;white-space:nowrap}
+.sect-admin-members{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.sect-chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;padding:4px 8px;border-radius:999px;background:#f0f3ea;color:#5c6b60;border:1px solid #e0e6d8}
+.sect-chip.elder{background:#eef4ec;color:#4a6b52}
+.sect-chip button{display:grid;place-items:center;color:#a4b09a}
+.sect-chip button:hover{color:#c85a4a}
+@media(max-width:650px){.sect-hud{padding:12px}.sect-hud-card{left:12px;right:12px;top:auto;bottom:12px;width:auto;max-height:52dvh}.sect-card-toggle.floating{left:12px;top:auto;bottom:calc(52dvh + 22px)}.sect-admin-row{grid-template-columns:1fr 1fr}.sect-admin-row .secondary-button{grid-column:span 2}}

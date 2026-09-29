@@ -7,7 +7,7 @@ export const PLACES = [
  {id:'workshop',name:'共创工坊',short:'共创工坊',subtitle:'把一个想法，做成一个作品',x:11,z:-5,w:5,d:5,kind:'workshop',entry:[10,-1],description:'人提供经验与认知，Agent 协助整理与探索。带上一个真实问题，和伙伴一起开始。'},
  {id:'library',name:'开源书院',short:'开源书院',subtitle:'分享，是最好的学习',x:-12,z:10,w:5,d:4,kind:'library',entry:[-8,10],description:'个体至上、开放共享、务实求真、互助共赢、持续进化。这里保存原子公社的共建理念。'},
  {id:'pavilion',name:'星火亭',short:'星火亭',subtitle:'星星之火，从一次相遇开始',x:12,z:10,w:3.5,d:3.5,kind:'pavilion',entry:[12,7],description:'这里是未来活动的相聚之所。星火计划的赛事介绍已有资料，最终参赛作品与结果仍在整理中。'},
- {id:'future-lodge',name:'功能待定建筑',short:'功能待定',subtitle:'先留一盏灯，等下一种可能',x:6,z:10,w:4.5,d:3.5,kind:'placeholder',status:'placeholder',entry:[6,7],description:'这是一座可替换的 3D 建筑占位。它先保留江湖街区的尺度、入口和展板，等后续明确功能后再换成客栈、推理所、校园空间或新的社区设施。'},
+ {id:'sect',name:'原子门派',short:'原子门派',subtitle:'社区中的小社区，聚义分立',x:6,z:10,w:4.5,d:3.5,kind:'sect',entry:[6,7],description:'每一位原子公社的成员都能在这里创立自己的门派：自定义名称、slogan、介绍与样式，设长老阁、收门下弟子，按聚义阁的位次共商共建。'},
 ];
 export const AGENTS = [
  {id:'ayuan',name:'阿原',role:'点灯人 · 迎新伙伴',color:'#427ab5',start:[-2,0],places:['tea','hall'],line:'少侠，欢迎来到原子江湖。先喝杯茶，还是去看看大家的作品？'},

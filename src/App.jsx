@@ -1,6 +1,6 @@
 import {useState,useMemo,useRef,useEffect} from 'react';
 import {apiUrl,worldWsUrl,missingWorldServer} from './net/endpoints.js';
-import {ArrowUpRight,ArrowRight,Compass,BookOpen,MessageCircle,Sun,Moon,Settings2,Volume2,VolumeX,Plus,Minus,LocateFixed,RotateCcw,ChevronRight,ChevronLeft,Search,Bookmark,MapPin,Users,Send,Sparkles,Leaf,Footprints,Check,Trash2,SlidersHorizontal,ExternalLink,PanelRightClose,PanelRightOpen,X,Clock,Sparkle,Wifi,WifiOff,UserPlus,LogOut,ShieldOff,Coffee} from 'lucide-react';
+import {ArrowUpRight,ArrowRight,Compass,BookOpen,MessageCircle,Sun,Moon,Settings2,Volume2,VolumeX,Plus,Minus,LocateFixed,RotateCcw,ChevronRight,ChevronLeft,Search,Bookmark,MapPin,Users,Send,Sparkles,Leaf,Footprints,Check,Trash2,SlidersHorizontal,ExternalLink,PanelRightClose,PanelRightOpen,X,Clock,Sparkle,Landmark,Wifi,WifiOff,UserPlus,LogOut,ShieldOff,Coffee} from 'lucide-react';
 import World from './world/World.jsx';
 import {preloadModels} from './world/glb.js';
 import OnlineWorld from './world/OnlineWorld.jsx';
@@ -13,6 +13,7 @@ import {allPublishedWorks} from './content/catalog.js';
 import {SHARED_EXHIBITION,exhibitionZone,exhibitionZoneCount} from './content/exhibition.js';
 import {readStore,writeStore,memoryFor} from './storage.js';
 import Dialog from './Dialog.jsx';
+import SectAdmin from './SectAdmin.jsx';
 const staticDemo=import.meta.env.VITE_STATIC_DEMO==='true';
 // 小镇导览站点：品牌intro + 五处场所 + 入馆收尾。
 const TOUR_STOPS=[
@@ -76,6 +77,13 @@ export default function App(){
  const [onlineActivity,setOnlineActivity]=useState([]);
  // AI 侠客见闻（联机）：id → {recent:[...],views:[...]}，来自服务端低频 presence 广播。
  const [aiPresence,setAiPresence]=useState({});
+ // 原子门派：sectPageState=大殿分页，sectDetail=当前内景，sectForm=建派/编辑表单，
+ // sectCardOpen=门派面板是否展开（收起后面板不再挡住左侧的牌坊，四座门派都能点中）
+ const [sectPageState,setSectPageState]=useState({sects:[],total:0,page:1,pages:1,pageSize:4});
+ const [sectDetail,setSectDetail]=useState(null);
+ const [sectCardOpen,setSectCardOpen]=useState(true);
+ const [sectForm,setSectForm]=useState({name:'',slogan:'',intro:'',style:'jianghu'});
+ const [sectBusy,setSectBusy]=useState(false);
  const [invite,setInvite]=useState(null);
  const [conversation,setConversation]=useState(null);
  const [onlineMessages,setOnlineMessages]=useState([]);
@@ -141,6 +149,58 @@ export default function App(){
   }).catch(()=>{});
   return()=>{alive=false;};
  },[]);
+ // ---- 原子门派 ----
+ const SECT_TOKEN=()=>account?.token||'';
+ const loadSectPage=async(page=1)=>{
+  try{
+   const r=await fetch(apiUrl('/api/sects?page='+page+'&size=4'));
+   if(r.ok){const d=await r.json();setSectPageState(d);return;}
+  }catch{}
+  const {DEMO_SECTS}=await import('./world/demoSects.js');
+  const size=4,total=DEMO_SECTS.length,pages=Math.max(1,Math.ceil(total/size));
+  const cur=Math.min(Math.max(1,page),pages);
+  setSectPageState({sects:DEMO_SECTS.slice((cur-1)*size,cur*size),total,page:cur,pages,pageSize:size});
+ };
+ const enterSectBuilding=async()=>{
+  if(chatId)closeChat();setPanel(null);setSectDetail(null);setSectCardOpen(true);notice('正在打开原子门派 · 门派大殿');
+  await loadSectPage(1);
+  setLocation('sects');
+  notice('已进入原子门派 · 门派大殿');
+ };
+ const openSect=async(id)=>{
+  try{
+   const r=await fetch(apiUrl('/api/sects/'+encodeURIComponent(id)));
+   if(r.ok){const d=await r.json();setSectDetail(d);setSectCardOpen(true);setLocation('sect');return;}
+  }catch{}
+  const {DEMO_SECTS}=await import('./world/demoSects.js');
+  const hit=DEMO_SECTS.find(s=>s.id===id);
+  if(hit){setSectDetail(hit);setSectCardOpen(true);setLocation('sect');}
+ };
+ const backToSectsHall=()=>{setSectDetail(null);setLocation('sects');loadSectPage(sectPageState.page);};
+ const sectPageTurn=dir=>{const next=sectPageState.page+dir;if(next<1||next>sectPageState.pages)return;loadSectPage(next);};
+ const submitSect=async()=>{
+  if(!account){setAuthMode('register');setAuthOpen(true);notice('创建门派需要先有名帖身份');return;}
+  setSectBusy(true);
+  try{
+   const r=await fetch(apiUrl('/api/sects'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(sectForm)});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||'创建失败');
+   notice('门派「'+d.name+'」已创立，你是门派创始人');
+   setSectForm({name:'',slogan:'',intro:'',style:'jianghu'});
+   await loadSectPage(999); // 新门派追加在末页，翻到最后一页就能看到自己的门派
+  }catch(e){notice(e.message);}
+  finally{setSectBusy(false);}
+ };
+ const sectMemberApi=async(path,body)=>{
+  setSectBusy(true);
+  try{
+   const r=await fetch(apiUrl(path),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(body)});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||'操作失败');
+   setSectDetail(d);return d;
+  }catch(e){notice(e.message);}
+  finally{setSectBusy(false);}
+ };
   async function sha256(text){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
   function enterLocalIdentity(user,isNew){
    const token='local-'+user.name;
@@ -316,11 +376,59 @@ export default function App(){
   <main className={`world-layout ${rail?'':'rail-hidden'}`}>
    <div className="world-stage">
     {world==='online'&&!staticDemo
-     ?<OnlineWorld client={clientRef.current} theme={theme} night={night} labels={showLabels} playerColor={account?.color||playerColor} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} apiRef={apiRef}/>
-     :<World engine={engine} theme={theme} night={night} location={location} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} labels={showLabels}/>}
+     ?<OnlineWorld client={clientRef.current} theme={theme} night={night} labels={showLabels} playerColor={account?.color||playerColor} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} apiRef={apiRef}/>
+     :<World engine={engine} theme={theme} night={night} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} labels={showLabels}/>}
     <div className="scene-intro"><span className="eyebrow"><span className="tiny-star">✳</span> 人与 AGENT 共建的开源学习社区</span><h1>{world==='online'&&!staticDemo?'山水有相逢，同路在联机。':location==='town'?'山水有相逢，江湖有同路。':'让每一个好想法，被看见。'}</h1><p>{world==='online'&&!staticDemo?'这是服务端权威的联机世界：点击地面行走，邀请遇到的侠客一对一私聊。':location==='town'?'在这里歇歇脚，聊聊想法，和有趣的灵魂一起创造。':'走近展台，发现来自真实赛事的作品与创作者。'}</p></div>
     <div className="scene-weather">{night?<Moon size={17}/>:<Sun size={18}/>}<span>{phase}<small>{night?'灯火可亲 · 夜景':'草木葱茏 · 日景'}</small></span></div>
     {location==='hall'&&<button className="back-to-town" onClick={()=>{setLocation('town');closePanel();}}><ChevronLeft size={16}/>返回小镇</button>}
+    {location==='sects'&&<div className="sect-hud">
+     {sectCardOpen?<div className="sect-hud-card">
+      <div className="sect-card-head">
+       <button className="back-link" onClick={()=>{setLocation('town');closePanel();}}><ChevronLeft size={15}/>返回小镇</button>
+       <button className="sect-card-toggle" onClick={()=>setSectCardOpen(false)} aria-label="收起门派面板">收起</button>
+      </div>
+      <h3>原子门派 · 门派大殿</h3>
+      <p>每一个注册账号都能创立自己的门派。点下方名录或大殿里的门派牌坊，都能进入内景，看看聚义阁上的位次。</p>
+      <div className="sect-pager">
+       <button className="secondary-button" disabled={sectPageState.page<=1} onClick={()=>sectPageTurn(-1)}><ChevronLeft size={14}/>上一页</button>
+       <span>第 {sectPageState.page} / {sectPageState.pages} 页 · 共 {sectPageState.total} 个门派</span>
+       <button className="secondary-button" disabled={sectPageState.page>=sectPageState.pages} onClick={()=>sectPageTurn(1)}>下一页<ChevronRight size={14}/></button>
+      </div>
+      <div className="sect-list">
+       {sectPageState.sects.length?sectPageState.sects.map(s=><button key={s.id} className="sect-row" onClick={()=>openSect(s.id)}>
+        <b>{s.name}</b><small>{s.slogan||'—'}</small><span className="sect-row-style">{(THEMES[s.style]||{}).name||s.style}</span>
+       </button>):<p className="sect-hint">这一页暂时没有门派。</p>}
+      </div>
+      <div className="sect-create">
+       <h4>创立我的门派</h4>
+       <div className="sect-form">
+        <input aria-label="门派名称" placeholder="门派名称（2—20 字）" maxLength={20} value={sectForm.name} onChange={e=>setSectForm(f=>({...f,name:e.target.value}))}/>
+        <input aria-label="门派 slogan" placeholder="slogan（选填）" maxLength={30} value={sectForm.slogan} onChange={e=>setSectForm(f=>({...f,slogan:e.target.value}))}/>
+        <select aria-label="门派样式" value={sectForm.style} onChange={e=>setSectForm(f=>({...f,style:e.target.value}))}>{Object.entries(THEMES).map(([id,t])=><option key={id} value={id}>{t.name}</option>)}</select>
+       </div>
+       <textarea aria-label="门派介绍" placeholder="门派介绍（选填，200 字以内）" maxLength={200} value={sectForm.intro} onChange={e=>setSectForm(f=>({...f,intro:e.target.value}))}/>
+       <button className="primary-button" disabled={sectBusy||!sectForm.name.trim()} onClick={submitSect}><Landmark size={15}/>{sectBusy?'创立中…':'创立门派'}</button>
+       {!account&&<p className="sect-hint">创建门派需要名帖身份：点顶栏「登录进入联机」，或初次点任意侠客对话时注册。</p>}
+      </div>
+     </div>:<button className="sect-card-toggle floating" onClick={()=>setSectCardOpen(true)} aria-label="展开门派面板">门派面板</button>}
+    </div>}
+    {location==='sect'&&sectDetail&&<div className="sect-hud interior">
+     {sectCardOpen?<div className="sect-hud-card">
+      <div className="sect-card-head">
+       <button className="back-link" onClick={backToSectsHall}><ChevronLeft size={15}/>返回门派大殿</button>
+       <button className="sect-card-toggle" onClick={()=>setSectCardOpen(false)} aria-label="收起门派面板">收起</button>
+      </div>
+      <h3>{sectDetail.name} · 聚义阁</h3>
+      <p className="sect-slogan">{sectDetail.slogan||'—'}</p>
+      <p>{sectDetail.intro}</p>
+      <div className="sect-roles">
+       <section><h4>门派创始人</h4><div className="sect-role founder"><b>{sectDetail.founderName}</b><small>创立门派 · 唯一主位</small></div></section>
+       <section><h4>长老阁（{(sectDetail.elders||[]).length}）</h4>{(sectDetail.elders||[]).length?(sectDetail.elders||[]).map(e=><div className="sect-role elder" key={e.userId}><b>{e.name}</b><small>{e.title}</small></div>):<p className="sect-hint">还没有长老。创始人可在下方添加。</p>}</section>
+       <section><h4>门派弟子（{(sectDetail.disciples||[]).length}）</h4><div className="sect-disciple-list">{[...(sectDetail.disciples||[])].sort((a,b)=>['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'].indexOf(a.title)-['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'].indexOf(b.title)).map(d=><div className="sect-role disciple" key={d.userId}><b>{d.name}</b><small>{d.title}</small></div>)}</div></section>
+      </div>
+      {account&&sectDetail.founderId===account.id?<SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
+     </div>:<button className="sect-card-toggle floating" onClick={()=>setSectCardOpen(true)} aria-label="展开门派面板">门派面板</button>}
+    </div>}
     <div className="map-caption"><div className="compass-mark"><span>N</span><Compass size={37} strokeWidth={1}/></div><div><span className="eyebrow">{location==='hall'?'THE EXHIBITION HALL':world==='online'&&!staticDemo?'THE ONLINE WORLD':'THE ATOM VILLAGE'}</span><h2>{location==='hall'?'武林大会 · 灵感长廊':world==='online'&&!staticDemo?'原子公社 · 联机江湖':'原子公社 · 江湖初见'}</h2><p><MapPin size={13}/>{location==='hall'?'比赛展示馆':'原子广场'}<span>·</span>{location==='hall'?`${filtered.length} 份作品可供探索`:world==='online'&&!staticDemo?`${onlinePlayers.length+1} 位侠客在此相聚`:'8 位 AI 侠客在此生活'}</p></div></div>
     <div className="world-tools"><button aria-label="放大地图" onClick={()=>apiRef.current?.zoom(.85)}><Plus size={18}/></button><button aria-label="缩小地图" onClick={()=>apiRef.current?.zoom(1.15)}><Minus size={18}/></button><span/><button aria-label="回到我的角色" onClick={()=>apiRef.current?.locate()}><LocateFixed size={18}/></button><button aria-label="重置视角" onClick={()=>apiRef.current?.reset()}><RotateCcw size={17}/></button><span/><button aria-label={night?'切换日景':'切换夜景'} onClick={()=>setNight(v=>!v)}>{night?<Sun size={18}/>:<Moon size={18}/>}</button><button aria-label="小镇设置" onClick={()=>openPanel('settings')}><Settings2 size={18}/></button></div>
     <div className="controls-tip"><span className="mouse-icon"/>点击地面行走（或 WASD/方向键）<span>·</span>拖动旋转<span>·</span>滚轮缩放</div>
@@ -372,7 +480,7 @@ export default function App(){
   {toast&&<div className="toast" role="status"><Check size={16}/>{toast}</div>}
   {panel==='gallery'&&<Dialog title="武林大会展示馆" subtitle="EXHIBITIONS · 真实作品，长久相逢" onClose={closePanel} className="gallery-dialog" hidden={!!work}><div className="edition-tabs">{editions.map(e=><button key={e.id} className={e.id===editionId?'active':''} onClick={()=>{setEditionId(e.id);setTrack('全部');setSearch('');}}>{e.title}<span>{e.works.length?`${e.works.length} 份作品`:'介绍整理中'}</span></button>)}</div><div className="edition-intro"><span className="eyebrow">{currentEdition.subtitle}</span><p>{currentEdition.description}</p>{currentEdition.organizers&&<dl className="edition-facts">{Object.entries(currentEdition.organizers).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{Array.isArray(v)?v.join(' · '):v}</dd></div>)}</dl>}{currentEdition.schedule&&<div className="edition-schedule"><h4>赛程</h4>{currentEdition.schedule.map(ph=><div key={ph.阶段} className="schedule-row"><strong>{ph.阶段}<small>{ph.时间}</small></strong><p>{ph.内容}</p></div>)}</div>}{currentEdition.awards&&<div className="edition-awards"><h4>奖项设置 · {currentEdition.awards.总奖金}</h4><table className="awards-table"><tbody>{currentEdition.awards.明细.map(a=><tr key={a.奖项}><td>{a.奖项}</td><td className="award-amount">{a.奖金}</td><td>{a.数量}</td><td className="award-note">{a.说明}</td></tr>)}</tbody></table><small>{currentEdition.awards.备注}</small></div>}{currentEdition.benefits&&<div className="edition-benefits"><h4>参赛权益</h4><ul>{currentEdition.benefits.map(b=><li key={b}>{b}</li>)}</ul></div>}</div><div className="gallery-tools"><div className="search-field"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜索作品、作者或灵感…" aria-label="搜索作品"/>{search&&<button onClick={()=>setSearch('')} aria-label="清空搜索"><X size={15}/></button>}</div><select value={track} onChange={e=>setTrack(e.target.value)} aria-label="筛选赛道"><option>全部</option>{currentEdition.tracks.map(t=><option key={t}>{t}</option>)}</select></div><div className="result-line"><span>{currentEdition.works.length?`${filtered.length} 份作品`:'本届作品整理中'}</span><span>公共展陈 展区 1/{zoneCount} · 全房间一致，筛选只影响本面板</span></div><div className="work-grid">{filtered.map(workCard)}{filtered.length===0&&<div className="empty-state"><Search/><h3>{currentEdition.works.length?'暂未找到相关作品':'本届作品整理中'}</h3><p>{currentEdition.works.length?'试试其他关键词或切换赛道。':'赛事介绍已经发布；参赛作品与结果资料核对后上线。'}</p>{currentEdition.works.length>0&&<button className="secondary-button" onClick={()=>{setSearch('');setTrack('全部');}}>清除筛选</button>}</div>}</div><p className="source-note">{currentEdition.note}</p><button className="secondary-button gallery-walk" onClick={closePanel}><Footprints size={16}/>收起目录，看看 3D 展厅</button></Dialog>}
   {work&&<Dialog title={work.title} subtitle={`${editions.find(e=>e.id===work.editionId).title} / ${work.track}`} onClose={closeWork} className="work-dialog"><div className="work-detail"><a href={work.poster} target="_blank" rel="noreferrer" className="poster-link"><img src={work.poster} alt={`${work.title}原始作品海报`}/><span><ExternalLink size={14}/>打开原图</span></a><div className="work-description"><div className="author-line"><Avatar size={32}/><div><small>作品作者</small><p>{work.author}</p></div></div><blockquote>{work.tagline}</blockquote>{work.highlight&&<p className="work-highlight">{work.highlight}</p>}<h3>关于这个作品</h3><p>{work.description}</p><div className="tag-list">{work.tags.map(t=><span key={t}>{t}</span>)}</div><div className="detail-actions"><button className="primary-button" onClick={()=>toggleBookmark(work.id)}><Bookmark size={17} fill={bookmarks.includes(work.id)?'currentColor':'none'}/>{bookmarks.includes(work.id)?'已收入手札':'收藏到手札'}</button><button className="secondary-button" onClick={share}><ArrowUpRight size={17}/>分享作品</button></div><p className="source-note">来源：原赛事展示资料。作品效果与成果为作者资料陈述。收藏保存在此浏览器。</p></div></div></Dialog>}
-  {panel==='place'&&place&&<Dialog title={place.name} subtitle="江湖地图 · 一处相逢" onClose={closePanel} className="small-dialog"><div className="place-detail"><div className={`place-illustration ${place.id}`}><span>{place.id==='hall'?'展':place.id==='tea'?'茶':place.id==='library'?'书':place.id==='workshop'?'创':place.id==='future-lodge'?'待':'星'}</span></div>{place.status==='placeholder'&&<span className="placeholder-badge">占位建筑 · 等待功能定义</span>}<h3>{place.subtitle}</h3><p>{place.description}</p><div className="detail-actions">{world==='online'&&!staticDemo&&place.id==='tea'&&<div className="seat-picker"><h4>茶桌共坐{mySeat?' · 已入座':''}</h4><div className="seat-grid">{SEATS.map(st=>{const taken=seats.find(x=>x.seat===st.id);return <button key={st.id} className={`seat-chip ${taken?'taken':''} ${mySeat===st.id?'mine':''}`} disabled={!!taken||!!mySeat} onClick={()=>{clientRef.current?.sit(st.id);}}>{taken?taken.name:'空位'}<small>{st.label}</small></button>;})}</div>{mySeat&&<button className="secondary-button" onClick={()=>clientRef.current?.stand()}><LogOut size={15}/>起身</button>}{mySeat&&<div className="seat-table"><h5>同桌 · {mySeatDef?.label.split(' · ')[0]}</h5>{tableMates.length?tableMates.map(m=><div className="table-mate" key={m.userId}><span className="table-mate-name">{m.name}{m.chat?' · 交谈中':''}{m.ai?' · AI':''}</span><button className="secondary-button" disabled={!!m.chat} onClick={()=>clientRef.current?.invite(m.userId)}><MessageCircle size={13}/>{m.ai?'请他闲聊':'邀请私聊'}</button></div>):<p className="setting-description">这一桌暂时只有你。同桌的人会出现在这里，一键就能请他闲聊。</p>}</div>}<p className="setting-description">入座后位置由服务端锁定，附近的侠客会看到你坐在桌旁；坐着也能私聊。</p></div>}{place.status==='placeholder'?<button className="secondary-button" onClick={()=>{setPanel(null);apiRef.current?.focus(place.id);notice('正在前往这座待定建筑');}}><Footprints size={16}/>去看看占位空间</button>:<button className="primary-button" onClick={()=>{if(place.id==='hall')enterHall();else if(place.id==='tea')startChat('qinghe');else if(place.id==='workshop')startChat('xingzhou');else openPanel('about');}}>{place.id==='hall'?'进入展示馆':place.id==='tea'||place.id==='workshop'?'与伙伴交流':'了解更多'}<ArrowUpRight size={17}/></button>}<button className="secondary-button" onClick={()=>{setPanel(null);apiRef.current?.focus(place.id);notice(`正在前往${place.short}`);}}><Footprints size={16}/>走过去</button></div></div></Dialog>}
+  {panel==='place'&&place&&<Dialog title={place.name} subtitle="江湖地图 · 一处相逢" onClose={closePanel} className="small-dialog"><div className="place-detail"><div className={`place-illustration ${place.id}`}><span>{place.id==='hall'?'展':place.id==='tea'?'茶':place.id==='library'?'书':place.id==='workshop'?'创':place.id==='future-lodge'?'待':'星'}</span></div>{place.status==='placeholder'&&<span className="placeholder-badge">占位建筑 · 等待功能定义</span>}<h3>{place.subtitle}</h3><p>{place.description}</p><div className="detail-actions">{world==='online'&&!staticDemo&&place.id==='tea'&&<div className="seat-picker"><h4>茶桌共坐{mySeat?' · 已入座':''}</h4><div className="seat-grid">{SEATS.map(st=>{const taken=seats.find(x=>x.seat===st.id);return <button key={st.id} className={`seat-chip ${taken?'taken':''} ${mySeat===st.id?'mine':''}`} disabled={!!taken||!!mySeat} onClick={()=>{clientRef.current?.sit(st.id);}}>{taken?taken.name:'空位'}<small>{st.label}</small></button>;})}</div>{mySeat&&<button className="secondary-button" onClick={()=>clientRef.current?.stand()}><LogOut size={15}/>起身</button>}{mySeat&&<div className="seat-table"><h5>同桌 · {mySeatDef?.label.split(' · ')[0]}</h5>{tableMates.length?tableMates.map(m=><div className="table-mate" key={m.userId}><span className="table-mate-name">{m.name}{m.chat?' · 交谈中':''}{m.ai?' · AI':''}</span><button className="secondary-button" disabled={!!m.chat} onClick={()=>clientRef.current?.invite(m.userId)}><MessageCircle size={13}/>{m.ai?'请他闲聊':'邀请私聊'}</button></div>):<p className="setting-description">这一桌暂时只有你。同桌的人会出现在这里，一键就能请他闲聊。</p>}</div>}<p className="setting-description">入座后位置由服务端锁定，附近的侠客会看到你坐在桌旁；坐着也能私聊。</p></div>}{place.id==='sect'&&<button className="primary-button" onClick={enterSectBuilding}><Landmark size={16}/>进入门派大殿</button>}{place.status==='placeholder'?<button className="secondary-button" onClick={()=>{setPanel(null);apiRef.current?.focus(place.id);notice('正在前往这座待定建筑');}}><Footprints size={16}/>去看看占位空间</button>:<button className="primary-button" onClick={()=>{if(place.id==='hall')enterHall();else if(place.id==='tea')startChat('qinghe');else if(place.id==='workshop')startChat('xingzhou');else openPanel('about');}}>{place.id==='hall'?'进入展示馆':place.id==='tea'||place.id==='workshop'?'与伙伴交流':'了解更多'}<ArrowUpRight size={17}/></button>}<button className="secondary-button" onClick={()=>{setPanel(null);apiRef.current?.focus(place.id);notice(`正在前往${place.short}`);}}><Footprints size={16}/>走过去</button></div></div></Dialog>}
   {panel==='chat'&&chatAgent&&<Dialog title={`与${chatAgent.name}聊聊`} subtitle={`${chatAgent.role} · AI 角色`} onClose={closeChat} className="chat-dialog" hidden={!!work}><div className="chat-mode"><span className="green-dot"/>{mode==='model'?'模型对话已连接':'本地资料演示 · 尚未连接语言模型'}</div><details className="public-memories"><summary>江湖见闻 · 公开活动记录</summary>{(agents.find(a=>a.id===chatId)?.memory||[]).length?(agents.find(a=>a.id===chatId)?.memory||[]).slice(-3).map((m,i)=><p key={i}>{m}</p>):<p>还没有与其他侠客交流的公开记录。</p>}</details><div className="chat-messages" ref={chatScroll} aria-live="polite">{(messages[chatId]||[]).map((m,i)=><div key={i} className={`message ${m.role} ${m.error?'error':''}`}>{m.role==='assistant'&&<Avatar agent={chatAgent} size={30}/>}<div className="message-body"><p>{m.content}</p>{m.workIds?.map(id=>{const w=allWorks.find(w=>w.id===id);return w?<button key={id} className="chat-work" onClick={()=>openWork(id)}><img src={w.thumb} alt=""/><span>{w.title}<small>{w.track}</small></span><ArrowUpRight size={15}/></button>:null;})}</div></div>)}{sending&&<div className="typing">{chatAgent.name}正在整理思绪<span>···</span></div>}</div><div className="quick-questions">{['推荐效率工具作品','介绍原子公社','你还记得我吗？','你今天在馆里看了什么？'].map(q=><button key={q} disabled={sending} onClick={()=>sendMessage(q)}>{q}</button>)}</div><form className="chat-form" onSubmit={e=>{e.preventDefault();sendMessage();}}><input aria-label="聊天消息" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="聊聊你的想法…" maxLength={1000}/><button aria-label="发送消息" disabled={sending||!draft.trim()}><Send size={19}/></button></form><label className="memory-consent"><input type="checkbox" checked={remember} onChange={e=>changeRemember(e.target.checked)}/>记住我主动表达的兴趣，仅本人账号可见，可随时删除</label></Dialog>}
   {panel==='people'&&<Dialog title="同行侠客" subtitle="每个相逢，都可能是共创的开始" onClose={closePanel} className="people-dialog"><div className="people-list">{AGENTS.map(a=><div key={a.id} className="people-row"><button onClick={()=>startChat(a.id)}><Avatar agent={a} size={52}/><span><strong>{a.name}<i>AI</i></strong><p>{a.role}</p><small>{agents.find(x=>x.id===a.id)?.state}</small></span><MessageCircle size={20}/></button><button className={`follow-button ${isFollowing('ai',a.id)?'on':''}`} onClick={()=>toggleFollow('ai',a.id)} aria-label={`${isFollowing('ai',a.id)?'取消关注':'关注'}${a.name}`}>{isFollowing('ai',a.id)?'已关注':'+ 关注'}</button></div>)}</div><p className="source-note">角色为虚构 AI 伙伴，不代表真实主理人或作者。当前世界运行在本地浏览器。</p></Dialog>}
   {panel==='journal'&&<Dialog title="游历手札" subtitle="你的相逢与发现，留在这里" onClose={closePanel} className="journal-dialog" hidden={!!work}><div className="journal-tabs">{['收藏作品','最近看过','私人记忆','我的关注'].map(t=><button className={journalTab===t?'active':''} key={t} onClick={()=>setJournalTab(t)}>{t}</button>)}</div>{journalTab==='我的关注'?<FollowsTab account={account} follows={follows} onlinePlayers={onlinePlayers} aiPresence={aiPresence} onToggle={toggleFollow} onLogin={()=>{setAuthMode('login');setAuthError('');setAuthOpen(true);}}/>:journalTab==='私人记忆'?<div className="memory-list">{!account?<div className="empty-state"><Sparkles/><h3>登录后查看私人记忆</h3><p>记忆按账号与角色隔离保存，只有本人可见。</p><button className="primary-button" onClick={()=>{setAuthMode('login');setAuthError('');setAuthOpen(true);}}>登录名帖</button></div>:<><p>只有对应侠客会在你开启记忆时使用这些记录；删除后立即不再被引用，并同步清除当前对话上下文。</p>{memories.length===0?<div className="empty-state"><Sparkles/><h3>还没有保存的记忆</h3><p>与侠客聊天时，你可以主动开启兴趣记忆。</p></div>:<>{memories.map(m=><article key={m.id}><Avatar agent={AGENTS.find(a=>a.id===m.agentId)}/><div><small>{AGENTS.find(a=>a.id===m.agentId)?.name} · {m.source}</small><p>{m.text}</p></div><button aria-label="删除这条记忆" className="icon-button" onClick={()=>deleteMemory(m.id)}><Trash2 size={16}/></button></article>)}<button className="danger-button" onClick={()=>deleteMemory()}>删除全部私人记忆</button></>}</>}</div>:<div className="work-grid">{(journalTab==='收藏作品'?bookmarks:visits.map(v=>v.id)).map(id=>allWorks.find(w=>w.id===id)).filter(Boolean).map(workCard)}{(journalTab==='收藏作品'?bookmarks:visits).length===0&&<div className="empty-state"><BookOpen/><h3>手札的第一页，等你来写</h3><p>去展馆发现一个喜欢的作品吧。</p><button className="primary-button" onClick={enterHall}>去看看作品<ArrowRight size={16}/></button></div>}</div>}<p className="source-note">收藏与浏览记录保存在此浏览器；私人记忆保存在你的账号里（仅本人可见）。</p></Dialog>}

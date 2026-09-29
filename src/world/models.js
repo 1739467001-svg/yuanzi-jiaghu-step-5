@@ -82,12 +82,18 @@ export function building(p,color){
  }
  for(let a=0;a<3;a++)dmesh(new T.BoxGeometry(1.9,.18,1.2-a*.15),'#ceccb8','stone',g,0,.12+a*.1,d/2+.9-a*.25,1,.9);
  roof(g,w+1.1,d+1, h+.5,color,1.2);
- if(p.kind==='hall'||p.kind==='tea'){
+ if(p.kind==='hall'||p.kind==='tea'||p.kind==='sect'){
   const w2=w*.65,d2=d*.6;box(g,0,h+1.55,0,w2,1.35,d2,'#e8d6b5');
   for(let x=-w2/2+.3;x<w2/2;x+=.7){box(g,x,h+1.55,d2/2+.04,.46,.7,.07,'#bda274');box(g,x,h+1.55,d2/2+.1,.05,.75,.05,'#5d604c');}
   roof(g,w2+1.4,d2+1.2,h+2.3,color,1.1);
  }
  textSign(g,p.short,0,2.4,d/2+.25,Math.min(w*.6,3.6),.6);
+ if(p.kind==='sect'){
+  // 门派旗幡：两杆高旗 + 旌旗布面，远处即可辨认为「门派」而非普通建筑。
+  for(const sx of [-1,1]){cylinder(g,sx*(w/2+.55),2.1,d/2+.55,.045,.05,3.4,'#6d5943',8);box(g,sx*(w/2+.55),.15,d/2+.55,.34,.3,.34,'#a89a80');}
+  box(g,-(w/2+1.05),2.55,d/2+.55,.75,1.5,.06,'#c85a4a');box(g,(w/2+1.05),2.55,d/2+.55,.75,1.5,.06,'#4a7a9e');
+  ball(g,-(w/2+.55),3.9,d/2+.55,.12,'#d8b56a');ball(g,(w/2+.55),3.9,d/2+.55,.12,'#d8b56a');
+ }
  if(p.kind==='placeholder'){
   // Temporary shell: scaffolding and a blank board make the future replacement explicit.
   for(const x of [-w/2-.18,w/2+.18]){box(g,x,1.5,-d/2-.18,.12,2.9,.12,'#8d7858');box(g,x,1.5,d/2+.18,.12,2.9,.12,'#8d7858');}

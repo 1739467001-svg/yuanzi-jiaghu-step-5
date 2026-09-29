@@ -14,6 +14,7 @@ import {createRoomHub,roomsApiPlugin} from './rooms.mjs';
 import {originAllowed} from './world.mjs';
 import {configureEmbeddings,embeddingsEnabled} from './embeddings.mjs';
 import {followsApiPlugin} from './follows.mjs';
+import {sectsApiPlugin} from './sects-api.mjs';
 import {isAdminRequest} from './publication-store.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -58,7 +59,7 @@ const hub=createRoomHub({env:process.env,reclaimWindowMs});
 contentPlugin(process.env).configureServer(shim);
 authPlugin().configureServer(shim);
 memoryApiPlugin().configureServer(shim);
-followsApiPlugin().configureServer(shim);
+followsApiPlugin().configureServer(shim);sectsApiPlugin().configureServer(shim);
 roomsApiPlugin(hub,{env:process.env,isAdminRequest}).configureServer(shim);
 chatPlugin(process.env).configureServer(shim);
 

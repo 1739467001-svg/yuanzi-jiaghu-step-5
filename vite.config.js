@@ -8,6 +8,7 @@ import {createRoomHub,roomsApiPlugin} from './server/rooms.mjs';
 import {originAllowed} from './server/world.mjs';
 import {configureEmbeddings} from './server/embeddings.mjs';
 import {followsApiPlugin} from './server/follows.mjs';
+import {sectsApiPlugin} from './server/sects-api.mjs';
 import {isAdminRequest} from './server/publication-store.mjs';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('.',import.meta.url));
@@ -52,4 +53,4 @@ export default defineConfig(({mode})=>{
   const timer=setInterval(()=>{const now=Date.now();hub.tick(Math.min(.5,(now-last)/1000));last=now;},100);
   server.httpServer.on('close',()=>clearInterval(timer));
  }};
- return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),roomsApiPlugin(hub,{env,isAdminRequest}),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});
+ return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),sectsApiPlugin(),roomsApiPlugin(hub,{env,isAdminRequest}),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});

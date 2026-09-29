@@ -1,0 +1,28 @@
+// 静态兜底演示门派（与 server/sects.mjs 的演示数据同构）。
+// 纯静态部署（Vercel 等）没有 /api/sects 时，前端用这份数据展示，保证 Demo 可看。
+export const DEMO_SECTS=[
+ {id:'demo-yuanqi',name:'元气满满派',slogan:'一起把想法做出来',intro:'由内容创作者组成的小社区，每周一次作品互评，成员互相打磨原型。',style:'startup',founderId:'demo-1',founderName:'阿原',createdAt:1730000000000,
+  elders:[{userId:'elder-y-qinghe',name:'青禾',title:'执法长老'},{userId:'elder-y-xinghe',name:'星河',title:'传功长老'}],
+  disciples:[{userId:'d-y-ayuan',name:'阿原',title:'大师兄'},{userId:'d-y-xiaoman',name:'小满',title:'二师姐'},{userId:'d-y-zhaolu',name:'朝露',title:'弟子'}]},
+ {id:'demo-jianghu',name:'江湖茶馆分舵',slogan:'一盏茶，遇见同路人',intro:'茶楼里的常驻茶客组成，负责每周的茶会主持与新人引导。',style:'jianghu',founderId:'demo-2',founderName:'墨语',createdAt:1730000000001,
+  elders:[{userId:'elder-j-zhiwei',name:'知微',title:'护法长老'}],
+  disciples:[{userId:'d-j-moyu',name:'墨语',title:'大师姐'},{userId:'d-j-xingzhou',name:'行舟',title:'二师兄'},{userId:'d-j-xinghe2',name:'星河',title:'弟子'}]},
+ {id:'demo-shuzhai',name:'书山小筑',slogan:'分享是最好的学习',intro:'开源学习社群，维护共读书单与学习笔记模板。',style:'mystery',founderId:'demo-3',founderName:'小满',createdAt:1730000000002,
+  elders:[{userId:'elder-s-xiaoman',name:'小满',title:'执法长老'},{userId:'elder-s-zhaolu',name:'朝露',title:'传功长老'},{userId:'elder-s-moyu',name:'墨语',title:'护法长老'}],
+  disciples:[{userId:'d-s-zhiwei',name:'知微',title:'大师兄'},{userId:'d-s-qinghe',name:'青禾',title:'弟子'}]},
+ {id:'demo-xinghuo',name:'星火工坊',slogan:'星星之火，可以燎原',intro:'赛事共创小组，跟踪星火计划各赛道并组队参赛。',style:'campus',founderId:'demo-4',founderName:'行舟',createdAt:1730000000003,
+  elders:[{userId:'elder-x-xingzhou',name:'行舟',title:'执法长老'}],
+  disciples:[{userId:'d-x-xinghe',name:'星河',title:'大师兄'},{userId:'d-x-ayuan',name:'阿原',title:'师弟'},{userId:'d-x-xiaoman',name:'小满',title:'师妹'}]},
+ {id:'demo-shangu',name:'山谷邮局',slogan:'见字如晤',intro:'把每周的共创进展写成信，寄给山谷另一头的伙伴。',style:'startup',founderId:'demo-5',founderName:'星河',createdAt:1730000000004,
+  elders:[{userId:'elder-g-xinghe',name:'星河',title:'传功长老'},{userId:'elder-g-ayuan',name:'阿原',title:'护法长老'}],
+  disciples:[{userId:'d-g-xiaoman',name:'小满',title:'大师兄'},{userId:'d-g-zhaolu',name:'朝露',title:'二师姐'},{userId:'d-g-xinghe2',name:'星河',title:'师弟'}]},
+ {id:'demo-moyin',name:'墨吟诗社',slogan:'把代码写成诗',intro:'用方言与旧体诗词记录技术人的日常，每月一期刊印。',style:'mystery',founderId:'demo-6',founderName:'墨语',createdAt:1730000000005,
+  elders:[{userId:'elder-m-moyu',name:'墨语',title:'执法长老'}],
+  disciples:[{userId:'d-m-qinghe',name:'青禾',title:'大师姐'},{userId:'d-m-zhiwei',name:'知微',title:'二师兄'},{userId:'d-m-xinghe',name:'星河',title:'弟子'}]},
+ {id:'demo-chuangyi',name:'创意杂货铺',slogan:'什么都可以试试看',intro:'收集社区里的小工具、小实验与半成品，随意取用。',style:'jianghu',founderId:'demo-7',founderName:'星河',createdAt:1730000000006,
+  elders:[{userId:'elder-c-xinghe',name:'星河',title:'护法长老'}],
+  disciples:[{userId:'d-c-xinghe',name:'星河',title:'大师兄'},{userId:'d-c-ayuan',name:'阿原',title:'弟子'}]},
+ {id:'demo-yuanqi2',name:'远山棋社',slogan:'落子无悔',intro:'每周线上对局与复盘，用棋盘练判断力与耐心。',style:'campus',founderId:'demo-8',founderName:'知微',createdAt:1730000000007,
+  elders:[{userId:'elder-y2-zhiwei',name:'知微',title:'执法长老'},{userId:'elder-y2-zhaolu',name:'朝露',title:'传功长老'}],
+  disciples:[{userId:'d-y2-xinghe',name:'星河',title:'二师兄'},{userId:'d-y2-xiaoman',name:'小满',title:'师妹'}]},
+];
