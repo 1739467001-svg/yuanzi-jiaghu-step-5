@@ -107,18 +107,21 @@ export function building(p,color){
 }
 export function tree(parent,x,z,size=1,flower=false){const g=new T.Group();g.position.set(x,0,z);parent.add(g);cylinder(g,0,1.1*size,0,.12*size,.21*size,2.2*size,'#8c7960',7);const colors=flower?['#e6b4ac','#efd0be','#dfa499']:['#819c79','#91ab83','#a6bc8d'];
  [[0,2.4,0,1.1],[-.65,2,.25,.9],[.6,2.2,.3,.85],[.1,2.2,-.6,.9]].forEach((a,i)=>{const m=mesh(new T.IcosahedronGeometry(a[3]*size,1),colors[i%3],g,a[0]*size,a[1]*size,a[2]*size);m.scale.y=.8;});return g;}
+// 人物头部（脸盘 + 黑发 + 斗笠 + 五官）：主角色与门派内景的座席人物共用，
+// 保证每一位原子侠都是同一张有眼睛、有微笑的脸。
+export function figureHead(body,color='#427ab5',hat=true){
+ ball(body,0,.96,.025,.43,'#fff9ed',[1.1,.96,.91]);
+ ball(body,0,1.06,-.15,.42,'#393b3a',[1,1,.6]);
+ ball(body,0,1,.10,.415,'#fff9ed',[1.1,.92,.8]);
+ for(const x of [-.16,.16]){ball(body,x,1.04,.408,.066,'#292e2c',[.8,1.25,.4]);ball(body,x-.015,1.065,.432,.022,'#ffffff');ball(body,x*1.4,.92,.36,.078,'#eab0a0',[1,.66,.22]);}
+ const smile=new T.Mesh(new T.TorusGeometry(.065,.012,4,12,Math.PI),material('#a17464'));smile.rotation.z=Math.PI;smile.position.set(0,.92,.431);body.add(smile);
+ if(hat){cylinder(body,0,1.37,0,.11,.72,.28,'#363e3d',24);cylinder(body,0,1.23,0,.73,.73,.035,'#303938',24);ball(body,0,1.58,-.12,.16,'#363b3a');cylinder(body,0,1.51,-.12,.12,.13,.07,color);}
+}
 export function character(color='#427ab5',scale=1){
  const g=new T.Group(),body=new T.Group();g.add(body);g.scale.setScalar(scale);g.userData.body=body;
  const feet=[ball(body,-.16,.14,.04,.2,'#f3eee3',[.8,.7,1.1]),ball(body,.16,.14,.04,.2,'#f3eee3',[.8,.7,1.1])];
  cylinder(body,0,.47,0,.28,.39,.57,'#f5eee0');cylinder(body,0,.39,0,.36,.37,.1,color);
- ball(body,0,.96,.025,.43,'#fff9ed',[1.1,.96,.91]);
- // Black hair and a wide, gently raised bamboo hat.
- ball(body,0,1.06,-.15,.42,'#393b3a',[1,1,.6]);
- ball(body,0,1,.10,.415,'#fff9ed',[1.1,.92,.8]);
- cylinder(body,0,1.37,0,.11,.72,.28,'#363e3d',24);cylinder(body,0,1.23,0,.73,.73,.035,'#303938',24);
- ball(body,0,1.58,-.12,.16,'#363b3a');cylinder(body,0,1.51,-.12,.12,.13,.07,color);
- for(const x of [-.16,.16]){ball(body,x,1.04,.408,.066,'#292e2c',[.8,1.25,.4]);ball(body,x-.015,1.065,.432,.022,'#ffffff');ball(body,x*1.4,.92,.36,.078,'#eab0a0',[1,.66,.22]);}
- const smile=new T.Mesh(new T.TorusGeometry(.065,.012,4,12,Math.PI),material('#a17464'));smile.rotation.z=Math.PI;smile.position.set(0,.92,.431);body.add(smile);
+ figureHead(body,color);
  const collar1=box(body,-.1,.69,.275,.1,.35,.06,color);collar1.rotation.z=.65;const collar2=box(body,.08,.64,.29,.1,.42,.06,color);collar2.rotation.z=-.65;
  const arms=[ball(body,-.36,.55,0,.18,'#f3eee3',[.8,1.2,.8]),ball(body,.36,.55,0,.18,'#f3eee3',[.8,1.2,.8])];
  cylinder(body,-.37,.47,.02,.145,.145,.09,color);cylinder(body,.37,.47,.02,.145,.145,.09,color);

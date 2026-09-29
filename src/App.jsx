@@ -175,6 +175,8 @@ export default function App(){
   if(hit){setSectDetail(hit);setSectCardOpen(true);setLocation('sect');}
  };
  const backToSectsHall=()=>{setSectDetail(null);setLocation('sects');loadSectPage(sectPageState.page);};
+ // 走到聚义阁上某位成员的座席前（HUD 点名字用）：世界层负责寻路与转身。
+ const goToSectSeat=(x,z)=>apiRef.current?.gotoSectSeat?.(x,z);
  const sectPageTurn=dir=>{const next=sectPageState.page+dir;if(next<1||next>sectPageState.pages)return;loadSectPage(next);};
  const submitSect=async()=>{
   if(!account){setAuthMode('register');setAuthOpen(true);notice('创建门派需要先有名帖身份');return;}
@@ -452,11 +454,12 @@ export default function App(){
       <h3>{sectDetail.name} · 聚义阁</h3>
       <p className="sect-slogan">{sectDetail.slogan||'—'}</p>
       <p>{sectDetail.intro}</p>
-      <div className="sect-roles">
-       <section><h4>门派创始人</h4><div className="sect-role founder"><b>{sectDetail.founderName}</b><small>创立门派 · 唯一主位</small></div></section>
-       <section><h4>长老阁（{(sectDetail.elders||[]).length}）</h4>{(sectDetail.elders||[]).length?(sectDetail.elders||[]).map(e=><div className="sect-role elder" key={e.userId}><b>{e.name}</b><small>{e.title}</small></div>):<p className="sect-hint">还没有长老。创始人可在下方添加。</p>}</section>
-       <section><h4>门派弟子（{(sectDetail.disciples||[]).length}）</h4><div className="sect-disciple-list">{[...(sectDetail.disciples||[])].sort((a,b)=>['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'].indexOf(a.title)-['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'].indexOf(b.title)).map(d=><div className="sect-role disciple" key={d.userId}><b>{d.name}</b><small>{d.title}</small></div>)}</div></section>
+       <div className="sect-roles">
+       <section><h4>门派创始人</h4><button className="sect-role founder" onClick={()=>goToSectSeat(0,-8)}><b>{sectDetail.founderName}</b><small>创立门派 · 唯一主位</small></button></section>
+       <section><h4>长老阁（{(sectDetail.elders||[]).length}）</h4>{(sectDetail.elders||[]).length?(sectDetail.elders||[]).map((e,i)=>{const side=i%2?1:-1,row=Math.floor(i/2);return <button className="sect-role elder" key={e.userId} onClick={()=>goToSectSeat(side*(5.2+row*3.4),-4+row*.4)}><b>{e.name}</b><small>{e.title}</small></button>;}):<p className="sect-hint">还没有长老。创始人可在下方添加。</p>}</section>
+       <section><h4>门派弟子（{(sectDetail.disciples||[]).length}）</h4><div className="sect-disciple-list">{[...(sectDetail.disciples||[])].sort((a,b)=>['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'].indexOf(a.title)-['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'].indexOf(b.title)).map((d,i)=>{const row=Math.floor(i/4),col=i%4;return <button className="sect-role disciple" key={d.userId} onClick={()=>goToSectSeat((col-1.5)*3.1,2+row*2.6)}><b>{d.name}</b><small>{d.title}</small></button>;})}</div></section>
       </div>
+      <p className="sect-hint">点名字（或点聚义阁里的座席）就能走到对应位置，席上的人会转身面向你。</p>
       {account&&sectDetail.founderId===account.id?<SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
      </div>:<button className="sect-card-toggle floating" onClick={()=>setSectCardOpen(true)} aria-label="展开门派面板">门派面板</button>}
     </div>}

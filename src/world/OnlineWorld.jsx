@@ -62,12 +62,13 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   bridge(base,-4);bridge(base,10);
   box(base,-1,.04,-.5,13,.12,8,'#d4d0b7');box(base,-8,.03,-1,13,.1,2.5,'#d1cdb6');box(base,8,.03,-1,12,.1,2.5,'#d1cdb6');box(base,0,.03,-4,3,.1,5,'#d1cdb6');box(base,-4,.03,10,2.8,.1,9,'#d1cdb6');box(base,10,.03,10,2.8,.1,9,'#d1cdb6');box(base,2,.03,11,18,.1,2.3,'#d1cdb6');
   }
-  let sectScene=null;
+  let sectScene=null,sectSeats=[];
   if(location==='sects'&&sectPage){
    sectScene=buildSectsHall(base,{sects:sectPage.sects,page:sectPage.page,pages:sectPage.pages,palette,night},interactive);
    if(sectScene.banners)for(const b of sectScene.banners)pinSources.push({id:b.id,kind:'sect',name:b.name,point:new T.Vector3(b.x,5.6,b.z)});
   }else if(location==='sect'&&sectDetail){
    sectScene=buildSectInterior(base,{sect:sectDetail,palette,night},interactive);
+   sectSeats=(sectScene.seats||[]).map(s=>({group:s,targetRot:undefined}));
   }else{
   for(const p of PLACES){const g=building(p,palette.roof);base.add(g);interactive.push(g);pinSources.push({id:p.id,kind:'place',name:p.short,point:new T.Vector3(p.x,p.kind==='hall'?6.9:p.kind==='tea'?6.2:4.9,p.z)});}
   atomSculpture(base);
@@ -84,6 +85,12 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     if(kind==='place')callbacks.current.onPlace(id);
     else if(kind==='remote')callbacks.current.onActor(id);
     else if(kind==='sect')callbacks.current.onSectEnter?.(id);
+    else if(kind==='sect'){
+     // 点击聚义阁座席：少侠走到座位前，席上的人转身面向他（脸的朝向随位置而不同）。
+     const sx=o.position.x,sz=o.position.z,tx=Math.round(sx),tz=Math.round(sz+2.8),self=selfRef.current;
+     self.path=findPath([self.x,self.z],[tx,tz],()=>true);self.state='正在前往';
+     o.userData.faceTo?.(tx-sx,tz-sz);
+    }
     else if(kind==='sect-page'){const sp=o.userData;callbacks.current.onSectPage?.(sp.dir);}
     else if(kind==='sect-back')callbacks.current.onSectBack?.();
     else if(kind==='ground'){
@@ -135,6 +142,15 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
    zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},
    locate:()=>{const self=selfRef.current;controls.target.set(self.x,1,self.z);camera.position.set(self.x+32,31,self.z+39);},
    focus:id=>{const p=PLACES.find(p=>p.id===id);if(!p)return;focusTarget=new T.Vector3(p.x,1,p.z);const self=selfRef.current;self.path=findPath([self.x,self.z],p.entry);self.state='正在前往';client?.move(p.entry[0],p.entry[1]);},
+   // 走到聚义阁某位成员的座席前：相机跟随，席上的人转身面向少侠。
+   gotoSectSeat:(x,z)=>{
+    if(location!=='sect')return;
+    const tx=Math.round(x),tz=Math.round(z+2.8),self=selfRef.current;
+    self.path=findPath([self.x,self.z],[tx,tz],()=>true);self.state='正在前往';
+    focusTarget=new T.Vector3(tx,1,tz);
+    const seat=sectSeats.find(s=>Math.abs(s.group.position.x-x)<.01&&Math.abs(s.group.position.z-z)<.01);
+    seat?.group.userData.faceTo?.(tx-x,tz-z);
+   },
   };
   // 快照 → 远程角色目标位置；自己的角色以服务端位置纠正预测偏差。
   const onSnapshot=data=>{
@@ -205,6 +221,14 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
    if(player.userData.body){player.userData.body.position.y=moving?Math.abs(Math.sin(now*.009))*.055:Math.sin(now*.002+self.x)*.016;player.userData.feet.forEach((f,i)=>f.position.z=.04+(moving?Math.sin(now*.01+i*Math.PI)*.13:0));}
    else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,moving);}
    const dest=self.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],groundY(dest[0],dest[1])+.18,dest[1]);
+   // 聚义阁座席：被点击的人缓步转身面向走近的少侠。
+   for(const seat of sectSeats){
+    const want=seat.group.userData.targetRot;
+    if(want===undefined)continue;
+    const g=seat.group;let d=((want-g.rotation.y+Math.PI*3)%(Math.PI*2))-Math.PI;
+    if(Math.abs(d)<.02){g.rotation.y=want;g.userData.targetRot=undefined;continue;}
+    g.rotation.y+=d*Math.min(1,dt*5);
+   }
    for(const [id,entry] of remoteRef.current){
     entry.x+=(entry.tx-entry.x)*Math.min(1,dt*9);entry.z+=(entry.tz-entry.z)*Math.min(1,dt*9);
     entry.model.position.set(entry.x,groundY(entry.x,entry.z)-(entry.seat?.28:0),entry.z);entry.model.rotation.y=entry.angle;

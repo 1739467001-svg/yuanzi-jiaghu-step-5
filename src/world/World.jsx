@@ -48,12 +48,13 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
  }
   const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};actorGroup.add(player);
   let water,sculpture,bubbles;
-  let sectScene=null;
+  let sectScene=null,sectSeats=[];
   if(location==='sects'&&sectPage){
    sectScene=buildSectsHall(base,{sects:sectPage.sects,page:sectPage.page,pages:sectPage.pages,palette,night},interactive);
    if(sectScene.banners)for(const b of sectScene.banners)pinSources.push({id:b.id,kind:'sect',name:b.name,point:new T.Vector3(b.x,5.6,b.z)});
   }else if(location==='sect'&&sectDetail){
    sectScene=buildSectInterior(base,{sect:sectDetail,palette,night},interactive);
+   sectSeats=(sectScene.seats||[]).map(s=>({group:s,targetRot:undefined}));
   }else if(location==='town'){
    // The river is blocked by the navigation grid except at the two bridges.
    water=box(base,0,-.02,5,39,.07,3.5,night?'#376d72':'#81b8b2');water.material=new T.MeshStandardMaterial({color:night?'#376d72':'#81b8b2',metalness:.18,roughness:.28});
@@ -109,12 +110,28 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   const down=e=>{pointerStart=[e.clientX,e.clientY];};
   const up=e=>{if(Math.hypot(e.clientX-pointerStart[0],e.clientY-pointerStart[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive,true);
    for(const hit of hits){let o=hit.object;while(o&&!o.userData.kind)o=o.parent;if(!o)continue;const {kind,id}=o.userData;
-    if(kind==='place')callbacks.current.onPlace(id);else if(kind==='agent')callbacks.current.onAgent(id);else if(kind==='work')callbacks.current.onWork(id);else if(kind==='sect')callbacks.current.onSectEnter?.(id);else if(kind==='sect-page'){const sp=o.userData;callbacks.current.onSectPage?.(sp.dir);}else if(kind==='sect-back')callbacks.current.onSectBack?.();else if(kind==='ground'){if(location==='town')engine.movePlayer(hit.point.x,hit.point.z);else hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[hit.point.x,hit.point.z],hallWalkable);}break;}
+    if(kind==='place')callbacks.current.onPlace(id);else if(kind==='agent')callbacks.current.onAgent(id);else if(kind==='work')callbacks.current.onWork(id);else if(kind==='sect')callbacks.current.onSectEnter?.(id);
+    else if(kind==='sect-seat'){
+     // 点击聚义阁上的座席：少侠走到座位前，席上的人转身面向他（脸的朝向随位置而不同）。
+     const sx=o.position.x,sz=o.position.z,tx=sx,tz=sz+2.8;
+     hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[tx,tz],()=>true);
+     o.userData.faceTo?.(tx-sx,tz-sz);
+    }
+    else if(kind==='sect-page'){const sp=o.userData;callbacks.current.onSectPage?.(sp.dir);}else if(kind==='sect-back')callbacks.current.onSectBack?.();else if(kind==='ground'){if(location==='town')engine.movePlayer(hit.point.x,hit.point.z);else hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[hit.point.x,hit.point.z],hallWalkable);}break;}
   };
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   let wasNarrow=null;
-  function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;const narrow=w<550;if(narrow!==wasNarrow){camera.position.set((location==='town'?32:23)+0,location==='town'?30:22,location==='town'?39:29);camera.position.multiplyScalar(narrow?2.05:1);controls.target.set(0,0,0);wasNarrow=narrow;}camera.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(el);resize();
-  let focusTarget=null,frame,last=performance.now(),lastPins=0;const home=()=>{camera.position.set((location==='town'?32:23)+0,location==='town'?30:22,location==='town'?39:29);if(el.clientWidth<550)camera.position.multiplyScalar(2.05);controls.target.set(0,0,0);focusTarget=null;};  apiRef.current={reset:home,zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},focus:id=>{const p=PLACES.find(p=>p.id===id);if(p){focusTarget=new T.Vector3(p.x,1,p.z);engine.movePlayer(...p.entry);}},locate:()=>{const current=location==='town'?engine.player:hallPlayer;focusTarget=new T.Vector3(current.x,1,current.z);}};
+  function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;const narrow=w<550;if(narrow!==wasNarrow){camera.position.set((location==='town'?32:23),location==='town'?30:22,location==='town'?39:29);camera.position.multiplyScalar(narrow?2.05:1);controls.target.set(0,0,0);wasNarrow=narrow;}camera.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(el);resize();
+  let focusTarget=null,frame,last=performance.now(),lastPins=0;const home=()=>{camera.position.set(location==='town'?32:23,location==='town'?30:22,location==='town'?39:29);if(el.clientWidth<550)camera.position.multiplyScalar(2.05);controls.target.set(0,0,0);focusTarget=null;};  apiRef.current={reset:home,zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},focus:id=>{const p=PLACES.find(p=>p.id===id);if(p){focusTarget=new T.Vector3(p.x,1,p.z);engine.movePlayer(...p.entry);}},locate:()=>{const current=location==='town'?engine.player:hallPlayer;focusTarget=new T.Vector3(current.x,1,current.z);},
+   // 走到聚义阁某位成员的座席前：相机跟随过去，席上的人转身面向少侠。
+   gotoSectSeat:(x,z)=>{
+    if(location!=='sect'){return;}
+    const tx=Math.round(x),tz=Math.round(z+2.8);
+    hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[tx,tz],()=>true);hallPlayer.state='正在前往';
+    focusTarget=new T.Vector3(tx,1,tz);
+    const seat=sectSeats.find(s=>Math.abs(s.group.position.x-x)<.01&&Math.abs(s.group.position.z-z)<.01);
+    seat?.group.userData.faceTo?.(tx-x,tz-z);
+   }};
   function render(now){if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;engine.tick(dt);
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
@@ -131,6 +148,14 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
     const dest=engine.player.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],terrainHeight(dest[0],dest[1])+.18,dest[1]);
    }else {
     engine.advance(hallPlayer,dt,3.2);player.position.set(hallPlayer.x,0,hallPlayer.z);player.rotation.y=hallPlayer.angle;const dest=hallPlayer.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],.18,dest[1]);if(player.userData.body)player.userData.body.position.y=hallPlayer.path.length?Math.abs(Math.sin(now*.009))*.055:0;else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(hallPlayer.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,hallPlayer.path.length>0);}
+    // 聚义阁座席：被点击的人缓步转身面向走近的少侠。
+    for(const seat of sectSeats){
+     const want=seat.group.userData.targetRot;
+     if(want===undefined)continue;
+     const g=seat.group;let d=((want-g.rotation.y+Math.PI*3)%(Math.PI*2))-Math.PI;
+     if(Math.abs(d)<.02){g.rotation.y=want;g.userData.targetRot=undefined;continue;}
+     g.rotation.y+=d*Math.min(1,dt*5);
+    }
     // 展厅 AI 行为：选一个展位 → 走到展位前 → 驻足观展（朝向展板）→ 下一个。
     for(const ha of hallAgents){
      advanceHallAgent(ha,hallStands,dt);
