@@ -16,7 +16,7 @@ function sessionOf(req){
  try{const s=verify(token);return s?{id:s.user.id,name:s.user.name}:null;}catch{return null;}
 }
 export function sectsApiPlugin(){
- return {name:'atom-sects-api',configureServer(server){
+ const plugin={name:'atom-sects-api',configureServer(server){
   server.middlewares.use(async(req,res,next)=>{
    const url=new URL(req.url,'http://localhost');
    if(!url.pathname.startsWith('/api/sects'))return next();
@@ -46,5 +46,8 @@ export function sectsApiPlugin(){
    }catch(error){return send(res,400,{error:error.message||'操作失败'});}
   });
  }};
+ // dev 与 preview 都要挂载（与 content/auth/chat 插件同模式）。
+ plugin.configurePreviewServer=plugin.configureServer;
+ return plugin;
 }
 export {ELDER_TITLES,DISCIPLE_TITLES} from './sects.mjs';

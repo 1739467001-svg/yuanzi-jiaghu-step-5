@@ -764,3 +764,10 @@ Vercel 故障的直接教训：本地能跑不代表仓库完整——`.gitignor
 - 修复：门派子路由曾被 `:id` 匹配吃掉（ elders/disciples 一律 404）；`sectPage/sectDetail` 未进场景 effect 依赖导致大殿建好就再不刷新；OnlineWorld 切换地点不重建场景、远程角色残留旧场景引用、大厅 `ring` 作用域；演示创始人改为具名成员（服务端与静态兜底一致）；补 favicon（消除 404 噪音）。
 
 验收：`npm test` 95 项全绿（含 `tests/sects.test.mjs`：演示分页、建派校验与名称唯一、仅创始人可管理与称号预设、数据持久化）；新增第七套 e2e `npm run test:e2e-sects`（自带临时服务）：进入建筑 → 8 门派分 2 页 → 目录与 3D 名牌一致 → 进内景校验三角色位次 → 注册建派落在末页 → 加长老/收弟子计数与名单元同步 → 刷新后仍在 → 联机世界同样可用。六套既有 e2e、`validate:world`、`validate:content`、`verify:repo` 均通过。
+
+### 阶段 39 增补（2026-09-29 下午）：纯静态部署可用 + 预览服务挂载修复
+
+- `src/world/sectStore.js`：静态部署（无 `/api/sects`）的本机演示层——内置 8 个演示门派 + 本机自建门派（localStorage 覆盖层），分页/查找/建派/成员管理与服务端口径一致（`tests/sect-store.test.mjs` 3 项镜像测试）。接入世界服务端后自动走服务端，覆盖层不参与。
+- 修复 `sectsApiPlugin` 未设置 `configurePreviewServer`，导致 `vite preview`（及同模式挂载）下 `/api/sects` 落到 index.html——现在 dev 与 preview 都挂载（与 content/auth/chat 插件同模式）。
+- 登录/注册的服务端可用性判定改为"响应是 JSON 且带 user/token"（静态托管对未知路径回退 index.html 或 404，不再被误判成登录成功），服务端拒绝（重名/密码错）仍如实提示；本地演示身份补上稳定 id（门派创始人判定、记忆归属按 id 走）。
+- e2e 增补第 8 段：自带一个只发 `dist/` 的静态服务（`/api/*` 404、未知路径回退 index.html，模拟 Vercel 形态），验证"注册降级本地身份 → 建派 → 加长老收弟子 → 刷新后仍在"。

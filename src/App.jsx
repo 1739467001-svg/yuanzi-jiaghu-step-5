@@ -154,12 +154,10 @@ export default function App(){
  const loadSectPage=async(page=1)=>{
   try{
    const r=await fetch(apiUrl('/api/sects?page='+page+'&size=4'));
-   if(r.ok){const d=await r.json();setSectPageState(d);return;}
+   if(r.ok&&(r.headers.get('content-type')||'').includes('json')){setSectPageState(await r.json());return;}
   }catch{}
-  const {DEMO_SECTS}=await import('./world/demoSects.js');
-  const size=4,total=DEMO_SECTS.length,pages=Math.max(1,Math.ceil(total/size));
-  const cur=Math.min(Math.max(1,page),pages);
-  setSectPageState({sects:DEMO_SECTS.slice((cur-1)*size,cur*size),total,page:cur,pages,pageSize:size});
+  const {pageSects}=await import('./world/sectStore.js');
+  setSectPageState(pageSects(page,4));
  };
  const enterSectBuilding=async()=>{
   if(chatId)closeChat();setPanel(null);setSectDetail(null);setSectCardOpen(true);notice('正在打开原子门派 · 门派大殿');
@@ -170,10 +168,10 @@ export default function App(){
  const openSect=async(id)=>{
   try{
    const r=await fetch(apiUrl('/api/sects/'+encodeURIComponent(id)));
-   if(r.ok){const d=await r.json();setSectDetail(d);setSectCardOpen(true);setLocation('sect');return;}
+   if(r.ok&&(r.headers.get('content-type')||'').includes('json')){const d=await r.json();setSectDetail(d);setSectCardOpen(true);setLocation('sect');return;}
   }catch{}
-  const {DEMO_SECTS}=await import('./world/demoSects.js');
-  const hit=DEMO_SECTS.find(s=>s.id===id);
+  const {findSect}=await import('./world/sectStore.js');
+  const hit=findSect(id);
   if(hit){setSectDetail(hit);setSectCardOpen(true);setLocation('sect');}
  };
  const backToSectsHall=()=>{setSectDetail(null);setLocation('sects');loadSectPage(sectPageState.page);};
@@ -182,10 +180,19 @@ export default function App(){
   if(!account){setAuthMode('register');setAuthOpen(true);notice('创建门派需要先有名帖身份');return;}
   setSectBusy(true);
   try{
-   const r=await fetch(apiUrl('/api/sects'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(sectForm)});
-   const d=await r.json().catch(()=>({}));
-   if(!r.ok)throw new Error(d.error||'创建失败');
-   notice('门派「'+d.name+'」已创立，你是门派创始人');
+   let created=null;
+   try{
+    const r=await fetch(apiUrl('/api/sects'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(sectForm)});
+    const d=((r.headers.get('content-type')||'').includes('json')?await r.json().catch(()=>({})):{});
+    if(!r.ok||!d?.id)throw new Error(d?.error||'服务端未接入');
+    created=d;
+   }catch(net){
+    // 没有世界服务端（静态部署）：落在本机演示层，体验与线上一致，接入服务端后自动走服务端。
+    if(!account?.local)throw net;
+    const {createSect}=await import('./world/sectStore.js');
+    created=createSect(sectForm,account);
+   }
+   notice('门派「'+created.name+'」已创立，你是门派创始人');
    setSectForm({name:'',slogan:'',intro:'',style:'jianghu'});
    await loadSectPage(999); // 新门派追加在末页，翻到最后一页就能看到自己的门派
   }catch(e){notice(e.message);}
@@ -194,10 +201,27 @@ export default function App(){
  const sectMemberApi=async(path,body)=>{
   setSectBusy(true);
   try{
-   const r=await fetch(apiUrl(path),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(body)});
-   const d=await r.json().catch(()=>({}));
-   if(!r.ok)throw new Error(d.error||'操作失败');
-   setSectDetail(d);return d;
+   let updated=null;
+   try{
+    const r=await fetch(apiUrl(path),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(body)});
+    const d=((r.headers.get('content-type')||'').includes('json')?await r.json().catch(()=>({})):{});
+    if(!r.ok||!d?.id)throw new Error(d?.error||'服务端未接入');
+    updated=d;
+   }catch(net){
+    if(!account?.local)throw net;
+    const {updateMembers}=await import('./world/sectStore.js');
+    const id=sectDetail?.id||'';
+    const member={userId:body.userId,name:body.name,title:body.title};
+    updated=updateMembers(id,account,sect=>{
+     const row={...member,userId:member.userId||('m-'+member.name)};
+     const clash=s=>s.elders.some(e=>e.name===row.name||e.userId===row.userId)||s.disciples.some(d=>d.name===row.name||d.userId===row.userId);
+     if(path.endsWith('/elders')){if(clash(sect))throw new Error(row.name+' 已在门派中');sect.elders.push(row);}
+     else if(path.endsWith('/disciples')){if(clash(sect))throw new Error(row.name+' 已在门派中');sect.disciples.push(row);}
+     else if(path.endsWith('/members/remove')){sect.elders=sect.elders.filter(e=>e.userId!==body.userId);sect.disciples=sect.disciples.filter(d=>d.userId!==body.userId);}
+     else throw new Error('操作失败');
+    });
+   }
+   setSectDetail(updated);return updated;
   }catch(e){notice(e.message);}
   finally{setSectBusy(false);}
  };
@@ -214,7 +238,8 @@ export default function App(){
    const stored=readStore('authLocal',null);
    const hash=await sha256(password+'|'+user.name);
    if(stored&&stored.name===user.name&&stored.passHash&&stored.passHash!==hash)throw new Error('本地演示身份密码不匹配（此身份仅存于本浏览器）');
-   const merged={...user,passHash:hash};
+   // 本地身份也要有稳定 id：门派创始人判定、记忆归属都按 id 走（服务端账号同样有 id）。
+   const merged={...user,id:(stored&&stored.name===user.name&&stored.id)||('local-'+user.name),passHash:hash};
    writeStore('authLocal',merged);return merged;
   }
   async function submitAuth(){
@@ -224,16 +249,22 @@ export default function App(){
     if(!name)throw new Error('请填写名帖昵称');
     if(authMode==='register'&&authForm.password.length<6)throw new Error('密码至少 6 位');
     let online=false;
+    const offline=()=>Object.assign(new Error('服务端未接入'),{offline:true});
     try{
+     // 静态托管（Vercel 等）对未知路径回退 index.html 或直接 404，而不是账号接口：
+     // 只有真的拿到 JSON 且是成功响应，才算服务端可用，否则降级本地身份。
      const r=await fetch(apiUrl(authMode==='register'?'/api/auth/register':'/api/auth/login'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(authForm)});
-     const d=await r.json().catch(()=>({}));
-     if(!r.ok)throw new Error(d.error||'操作失败');
+     const json=(r.headers.get('content-type')||'').includes('json');
+     if(!json||r.status===404||r.status===405)throw offline();
+     const d=json?await r.json().catch(()=>({})):{};
+     if(!r.ok)throw new Error(d?.error||'操作失败'); // 服务端在，但拒绝（重名/密码错）：如实提示
+     if(!d?.user||!d?.token)throw offline();
      writeStore('authToken',d.token);
      setAccount({...d.user,token:d.token});
      setAuthOpen(false);{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');online=true;
      notice('欢迎来到联机江湖，'+d.user.name);
     }catch(serverError){
-     if(serverError.message&&!/fetch|网络|Failed to fetch/i.test(serverError.message)&&serverError.message!=='操作失败')throw serverError;
+     if(!serverError?.offline)throw serverError;
      // 服务端不可达或未接入账号接口（纯静态部署）：降级为真实的本地演示身份。
      const user=await localIdentity({name,color:authForm.color||'#427ab5'},authForm.password||'');
      enterLocalIdentity(user,authMode==='register');
@@ -245,8 +276,8 @@ export default function App(){
   setAuthBusy(true);setAuthError('');
   try{
    const r=await fetch(apiUrl('/api/auth/external'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:externalToken.trim()})});
-   const d=await r.json().catch(()=>({}));
-   if(!r.ok)throw new Error(d.error||'社区账号验证失败');
+   const d=((r.headers.get('content-type')||'').includes('json')?await r.json().catch(()=>({})):{});
+   if(!r.ok||!d?.user||!d?.token)throw new Error(d?.error||'社区账号验证失败');
    writeStore('authToken',d.token);
    setAccount({...d.user,token:d.token});
    setAuthOpen(false);{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');

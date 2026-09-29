@@ -2,11 +2,13 @@
 // 1) 门派大殿：进入建筑 → 4 座门派牌坊 + 分页（8 个演示门派分 2 页）→ 名牌可点击；
 // 2) 门派内景：创始人主位居中 → 长老阁 → 弟子按称号排序；
 // 3) 注册名帖 → 创立自己的门派（追加在末页）→ 加长老/弟子 → 位次实时更新；
-// 4) 刷新后门派与成员仍在（服务端持久化）；5) 联机世界里门派大殿同样可用。
-// 用法：node scripts/smoke-sects.mjs（TEST_PORT 可换端口，默认 5199）
+// 4) 刷新后门派与成员仍在（服务端持久化）；5) 联机世界里门派大殿同样可用；
+// 6) 纯静态部署（没有 /api/sects，Vercel 形态）：本机演示层同样能建派并管理成员。
+// 用法：node scripts/smoke-sects.mjs（TEST_PORT 可换端口，默认 5199；需先 npm run build）
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -175,8 +177,78 @@ try{
  await page.screenshot({path:path.join(artifacts,'sects-online-interior.png')});
 
  assert.deepEqual(errors,[],'页面无 JS 报错：'+errors.join(' | '));
+
+ // ---- 8) 纯静态部署（Vercel 形态：没有 /api/sects）也能建派并管理成员 ----
+ assert.ok(fs.existsSync(path.join(root,'dist','index.html')),'需要先 npm run build 生成 dist/');
+ const staticPort=port+1;
+ const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.json':'application/json','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp'};
+ const staticSrv=http.createServer((req,res)=>{
+  const url=new URL(req.url,'http://x');
+  if(url.pathname.startsWith('/api/')){res.statusCode=404;res.setHeader('Content-Type','text/html');return res.end('<!doctype html><title>404</title>');}
+  const file=path.join(root,'dist',decodeURIComponent(url.pathname));
+  const send=f=>{res.setHeader('Content-Type',mime[path.extname(f)]||'application/octet-stream');res.end(fs.readFileSync(f));};
+  if(file.startsWith(path.join(root,'dist'))&&fs.existsSync(file)&&fs.statSync(file).isFile())return send(file);
+  res.statusCode=200;return send(path.join(root,'dist','index.html')); // 静态托管把未知路径回退到 index.html
+ });
+ await new Promise(r=>staticSrv.listen(staticPort,'127.0.0.1',r));
+ const staticPage=await browser.newPage({viewport:{width:1280,height:860}});
+ const staticErrors=[];
+ staticPage.on('pageerror',e=>staticErrors.push(e.message));
+ try{
+  await staticPage.goto(`http://127.0.0.1:${staticPort}/`);
+  await staticPage.waitForSelector('.scene-pin.player');
+  const skip2=staticPage.getByRole('button',{name:'跳过引导'});
+  if(await skip2.count())await skip2.click();
+  await staticPage.waitForTimeout(800);
+  // 没有世界服务端：注册降级为真实的本地演示身份
+  await staticPage.getByRole('button',{name:'切换世界模式'}).click();
+  await staticPage.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
+  const nick2=`静态掌门-${Date.now().toString(36)}`;
+  await staticPage.getByRole('textbox',{name:'名帖昵称'}).fill(nick2);
+  await staticPage.getByRole('textbox',{name:'密码'}).fill('password123');
+  await staticPage.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
+  await staticPage.waitForFunction(()=>document.querySelector('.toast')?.textContent.includes('本地演示身份'),null,{timeout:20000});
+  await staticPage.getByRole('button',{name:'切换世界模式'}).click();
+  await staticPage.waitForFunction(n=>document.querySelector('.profile-button')?.textContent.includes(n),nick2,{timeout:20000});
+  await staticPage.waitForSelector('.scene-pin',{hasText:'原子门派'});
+  await staticPage.getByRole('button',{name:'原子门派 ↗'}).click();
+  await staticPage.getByRole('button',{name:'进入门派大殿'}).click();
+  await staticPage.waitForSelector('.sect-hud .sect-hud-card');
+  assert.equal((await staticPage.locator('.sect-row b').allTextContents()).length,4,'静态站同样列出门派名录（内置演示数据）');
+  const sect2='静态演示门';
+  await staticPage.getByRole('textbox',{name:'门派名称'}).fill(sect2);
+  await staticPage.getByRole('textbox',{name:'门派 slogan'}).fill('没有服务端也能建派');
+  await staticPage.getByRole('combobox',{name:'门派样式'}).selectOption('mystery');
+  await staticPage.getByRole('button',{name:'创立门派'}).click();
+  await staticPage.waitForFunction(n=>document.querySelector('.toast')?.textContent.includes(n),sect2,{timeout:10000});
+  assert.match(await staticPage.locator('.sect-pager span').textContent(),/第 3 \/ 3 页 · 共 9 个门派/,'本机自建门派并入分页');
+  await staticPage.locator('.sect-row',{hasText:sect2}).click();
+  await staticPage.waitForSelector('.sect-hud.interior');
+  assert.match(await staticPage.locator('.sect-role.founder').textContent(),new RegExp(nick2),'本机身份的创始人也认得出');
+  await staticPage.getByRole('textbox',{name:'长老昵称'}).fill('知微');
+  await staticPage.getByRole('combobox',{name:'长老称号'}).selectOption('执法长老');
+  await staticPage.getByRole('button',{name:'加入长老阁'}).click();
+  await staticPage.waitForFunction(()=>document.querySelector('.sect-hud.interior .sect-role.elder')?.textContent.includes('知微'),null,{timeout:10000});
+  await staticPage.getByRole('textbox',{name:'弟子昵称'}).fill('小满');
+  await staticPage.getByRole('combobox',{name:'弟子称号'}).selectOption('大师姐');
+  await staticPage.getByRole('button',{name:'收入门下'}).click();
+  await staticPage.waitForFunction(()=>document.querySelector('.sect-hud.interior .sect-role.disciple')?.textContent.includes('小满'),null,{timeout:10000});
+  // 刷新后本机门派仍在（localStorage 演示层持久化）
+  await staticPage.reload();
+  await staticPage.waitForSelector('.scene-pin.player');
+  assert.ok(await staticPage.evaluate(()=>JSON.parse(localStorage.getItem('atomLocalSects')||'[]').length===1),'本机门派已持久化');
+  await staticPage.getByRole('button',{name:'原子门派 ↗'}).click();
+  await staticPage.getByRole('button',{name:'进入门派大殿'}).click();
+  await staticPage.waitForSelector('.sect-hud .sect-hud-card');
+  assert.match(await staticPage.locator('.sect-pager span').textContent(),/共 9 个门派/,'刷新后门派仍在');
+  assert.deepEqual(staticErrors,[],'静态页无 JS 报错：'+staticErrors.join(' | '));
+  await staticPage.screenshot({path:path.join(artifacts,'sects-static-demo.png')});
+ }finally{
+  await staticPage.close();
+  await new Promise(r=>staticSrv.close(r));
+ }
 }finally{
  await browser.close();
  cleanup();
 }
-console.log('✅ 原子门派验收通过：大殿分页 → 内景位次 → 建派 → 成员管理 → 持久化 → 联机世界');
+console.log('✅ 原子门派验收通过：大殿分页 → 内景位次 → 建派 → 成员管理 → 持久化 → 联机世界 → 纯静态部署');
