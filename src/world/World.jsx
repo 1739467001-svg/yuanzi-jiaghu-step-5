@@ -9,6 +9,7 @@ import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
 import {declutterPins} from './pins.js';
+import {createClickFx} from './clickFx.js';
 import {trackColorOf} from '../content/catalog.js';
 function bubbleTexture(text){
  const c=document.createElement('canvas');c.width=256;c.height=92;const x=c.getContext('2d');
@@ -107,9 +108,12 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    tree(base,-15,-7,1.4);tree(base,15,-7,1.4);player.position.set(0,0,8);camera.position.set(23,22,29);controls.target.set(0,0,-1);
   }
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
+  // 点击聚焦反馈：鼠标与手指触摸共用
+  const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
   const raycaster=new T.Raycaster(),pointer=new T.Vector2(),projection=new T.Vector3();let pointerStart=[0,0];
   const down=e=>{pointerStart=[e.clientX,e.clientY];};
   const up=e=>{if(Math.hypot(e.clientX-pointerStart[0],e.clientY-pointerStart[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive,true);
+   if(hits.length)clickFx.spawn(hits[0].point.x,hits[0].point.y+.05,hits[0].point.z);
    for(const hit of hits){let o=hit.object;while(o&&!o.userData.kind)o=o.parent;if(!o)continue;const {kind,id}=o.userData;
     if(kind==='place')callbacks.current.onPlace(id);else if(kind==='agent')callbacks.current.onAgent(id);else if(kind==='work')callbacks.current.onWork(id);else if(kind==='sect')callbacks.current.onSectEnter?.(id);
     else if(kind==='sect-seat'){
@@ -133,7 +137,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
     const seat=sectSeats.find(s=>Math.abs(s.group.position.x-x)<.01&&Math.abs(s.group.position.z-z)<.01);
     seat?.group.userData.faceTo?.(tx-x,tz-z);
    }};
-  function render(now){if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;engine.tick(dt);
+  function render(now){if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;engine.tick(dt);   clickFx.update(dt);
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
    if(location==='town'){

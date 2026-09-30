@@ -7,6 +7,7 @@ import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomScul
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
 import {declutterPins} from './pins.js';
+import {createClickFx} from './clickFx.js';
 
 // 远程玩家气泡：私聊中的“交谈中”与公开表情（内容不可见，PRD 9.1 旁观规则）。
 const EMOTE_LABELS={wave:'打招呼',bow:'作揖',clap:'鼓掌',think:'思考'};
@@ -58,6 +59,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   }
   const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};scene.add(player);
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
+  // 点击聚焦反馈：鼠标与手指触摸共用
+  const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
   if(!indoor){
   const water=box(base,0,-.02,5,39,.07,3.5,night?'#376d72':'#81b8b2');water.material=new T.MeshStandardMaterial({color:night?'#376d72':'#81b8b2',metalness:.18,roughness:.28});
   for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
@@ -84,6 +87,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   const raycaster=new T.Raycaster(),pointer=new T.Vector2();let pointerStart=[0,0];
   const down=e=>{pointerStart=[e.clientX,e.clientY];};
   const up=e=>{if(Math.hypot(e.clientX-pointerStart[0],e.clientY-pointerStart[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive,true);
+   if(hits.length)clickFx.spawn(hits[0].point.x,hits[0].point.y+.05,hits[0].point.z);
    for(const hit of hits){let o=hit.object;while(o&&!o.userData.kind)o=o.parent;if(!o)continue;const {kind,id}=o.userData;
     if(kind==='place')callbacks.current.onPlace(id);
     else if(kind==='remote')callbacks.current.onActor(id);
@@ -215,7 +219,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   if(client)client.handlers.onSnapshot=onSnapshot;
   let frame,last=performance.now(),lastPins=0;
   function render(now){
-   if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;
+   if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;   clickFx.update(dt);
+
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
    const self=selfRef.current;if(!selfSeat.current)stepActor(self,dt,3.2);
