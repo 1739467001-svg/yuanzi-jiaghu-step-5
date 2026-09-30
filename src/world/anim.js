@@ -1,8 +1,9 @@
 // 角色程序化动画：行走时身体侧倾、手臂摆动、脚步交替；静止时呼吸起伏。
-// angleSmooth 保存每个模型上一次的朝向，用于转身插值（避免瞬间跳变）。
+// angleMemory 保存每个模型上一次的朝向，用于转身插值（避免瞬间跳变）。
+// 注意：转身（rotation.y）必须在 GLB 判断之前完成——GLB 角色没有 userData.body，
+// 早期实现在 return 之前才转朝向，导致接入 GLB 的角色只平移不转身（横着走）。
 const angleMemory=new WeakMap();
 export function animateCharacter(model,angle,moving,now,held){
- const body=model.userData.body;if(!body)return;
  // 转身插值：按最短弧线逼近目标角度，产生惯性感。
  const prev=angleMemory.get(model);
  let a=prev===undefined?angle:prev;
@@ -10,6 +11,7 @@ export function animateCharacter(model,angle,moving,now,held){
  a+=delta*Math.min(1,.18);
  angleMemory.set(model,a);
  model.rotation.y=a;
+ const body=model.userData.body;if(!body)return;
  if(moving){
   const t=now*.009;
   body.position.y=Math.abs(Math.sin(t))*.055;

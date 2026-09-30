@@ -159,6 +159,29 @@ try{
   assert.match(await admin.locator('.ops-panel').textContent(),/服务进程/,'进程状态可见');
   await admin.close();
  }
+ // 纯静态托管（Vercel 等没有世界服务端）：注册降级为本地演示身份，界面如实标注，且本地身份可改名。
+ await page.route('**/api/**',route=>route.fulfill({status:404,contentType:'text/html',body:'<!doctype html><title>404</title>'}));
+ await page.reload();await page.waitForSelector('.scene-pin.player');
+ const skip2=page.getByRole('button',{name:'跳过引导'});
+ if(await skip2.count())await skip2.click();
+ await page.waitForTimeout(900);
+ await page.getByRole('button',{name:'切换世界模式'}).click();
+ await page.getByRole('dialog',{name:'创建侠客名帖'}).waitFor();
+ assert.match(await page.locator('.auth-dialog').textContent(),/本地演示身份：数据只保存在此浏览器/,'静态站如实说明身份只存本浏览器');
+ const staticNick=`静态少侠-${Date.now().toString(36)}`;
+ await page.getByRole('textbox',{name:'名帖昵称'}).fill(staticNick);
+ await page.getByRole('textbox',{name:'密码'}).fill('password123');
+ await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
+ await page.waitForFunction(()=>document.querySelector('.toast')?.textContent.includes('本地演示身份'),null,{timeout:20000});
+ assert.match(await page.locator('.profile-button').textContent(),new RegExp(staticNick),'静态站用本地演示身份登录');
+ // 本地身份改名（原来这里只能失败）
+ await page.getByRole('button',{name:'定制我的侠客'}).click();
+ await page.getByRole('textbox',{name:'我的昵称'}).fill(staticNick+'·改名');
+ await page.getByRole('button',{name:'保存名帖'}).click();
+ await page.waitForFunction(()=>document.querySelector('.toast')?.textContent.includes('本地演示身份已更新'),null,{timeout:10000});
+ await page.reload();await page.waitForSelector('.scene-pin.player');await page.waitForTimeout(1000);
+ assert.match(await page.locator('.profile-button').textContent(),new RegExp(staticNick+'·改名'),'改名后的本地身份刷新后仍在');
+ await page.unroute('**/api/**');
  assert.deepEqual(errors,[]);
- console.log('PASS: 38/18 works, search, bookmarking, deep-link reload, chat retrieval, opt-in memory, deletion, input focus, customization, night mode, mobile, no-WebGL fallback, invalid API input, admin withdraw/republish with audit. No page exceptions.');
+ console.log('PASS: 38/18 works, search, bookmarking, deep-link reload, chat retrieval, opt-in memory, deletion, input focus, customization, night mode, mobile, no-WebGL fallback, invalid API input, admin withdraw/republish with audit, static-deploy local identity + rename. No page exceptions.');
 }finally{await browser.close();}

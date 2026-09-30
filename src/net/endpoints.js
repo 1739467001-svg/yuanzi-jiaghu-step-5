@@ -17,7 +17,9 @@ export const worldWsUrl=()=>{
 // 是否为分离部署（用于提示与运维判断）。
 export const isSplitDeploy=()=>!!(apiBase||wsBase);
 // 跑在 Vercel 等静态托管上、却没配置世界服务端地址：联机世界必然不可用，需明确告知。
+// 也覆盖「配了 API 却没配 WS」这种半配状态——那时页面能开、联机必然连不上。
 export const missingWorldServer=()=>{
+ if(apiBase&&!wsBase)return '已配置 VITE_API_BASE 但缺少 VITE_WS_URL：联机世界连不上，请在部署环境补上 VITE_WS_URL 后重新部署。';
  if(apiBase||wsBase)return null;
  if(!env.VITE_VERCEL_ENV)return null;
  return '当前站点未配置世界服务端（VITE_API_BASE / VITE_WS_URL），联机世界不可用；请在 Vercel 项目设置环境变量后重新部署。';
