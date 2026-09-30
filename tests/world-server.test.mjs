@@ -188,7 +188,7 @@ test('a human can chat with an AI companion and the reply cites real works only'
  assert.equal(reply.ai,true);
  assert.equal(reply.mode,'demo');
  assert.ok(reply.workIds.length>0);
- for(const id of reply.workIds)assert.ok(id.startsWith('funskills--')||id.startsWith('hackathon--'),'作品 ID 必须来自已发布目录');
+ for(const id of reply.workIds)assert.ok(id.startsWith('funskills--'),'作品 ID 必须来自已发布目录（繁星之夜）');
  assert.equal(a.find('chat-ack').length,1,'回复与确认一起到达');
  // 第三方读不到与 AI 的私聊内容。
  assert.equal(b.find('chat-msg').length,0);

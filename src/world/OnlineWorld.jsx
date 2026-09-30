@@ -20,12 +20,14 @@ function bubbleTexture(text){
 // 联机世界：服务端权威位置，客户端本地预测 + 快照插值。
 // 自己的角色立即响应点击（预测），其他人的角色按 10Hz 快照插值；
 // 与服务端偏差过大时以服务端位置纠正。模型不得直接执行坐标修改。
-export default function OnlineWorld({client,theme,night,labels=true,playerColor,onPlayers,onPlace,onActor,apiRef,location='town',sectPage,sectDetail,onSectEnter,onSectPage,onSectBack}){
+export default function OnlineWorld({client,theme,night,labels=true,playerColor,playerName='少侠',onPlayers,onPlace,onActor,apiRef,location='town',sectPage,sectDetail,onSectEnter,onSectPage,onSectBack}){
  const host=useRef(),callbacks=useRef({});callbacks.current={onPlayers,onPlace,onActor};
  const [error,setError]=useState(false),[pins,setPins]=useState([]);
  const selfRef=useRef({x:-3,z:1,angle:0,path:[],id:'you',state:'自在漫游'});
  const selfId=useRef(null);
  const selfSeat=useRef(null);
+ // 自己的名字以服务端快照为准（账号名帖），拿不到时退回前端身份——和顶栏显示同一个名字。
+ const selfName=useRef('');
  const remoteRef=useRef(new Map());
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;
@@ -163,6 +165,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
      const self=selfRef.current,dx=a.x-self.x,dz=a.z-self.z,dist=Math.hypot(dx,dz);
      if(dist>3){self.x=a.x;self.z=a.z;self.path=[];}
      else if(dist>.05){self.x+=dx*.25;self.z+=dz*.25;}
+     if(a.name)selfName.current=a.name;   // 顶栏与 3D 名牌共用服务端给的账号名
      continue;
     }
     seenIds.add(a.id);
@@ -252,7 +255,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     lastPins=now;
     const sources=[...pinSources];
     for(const [id,entry] of remoteRef.current)sources.push({id,kind:'remote',name:entry.name,point:new T.Vector3(entry.x,2.05+groundY(entry.x,entry.z),entry.z)});
-    sources.push({id:'you',kind:'player',name:'你在这里',point:new T.Vector3(self.x,2.05+groundY(self.x,self.z),self.z)});
+    sources.push({id:'you',kind:'player',name:selfName.current||playerName,point:new T.Vector3(self.x,2.05+groundY(self.x,self.z),self.z)});
     const projection=new T.Vector3();
     const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});
     setPins(arr);

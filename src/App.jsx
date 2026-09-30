@@ -56,7 +56,6 @@ export default function App(){
  const sceneWorks=useMemo(()=>zoneWorks.map(w=>({...w,poster:assetUrl(w.poster),thumb:assetUrl(w.thumb)})),[zoneWorks]);
  const exhibitedIds=useMemo(()=>new Set(zoneWorks.map(w=>w.id)),[zoneWorks]);
  const zoneCount=exhibitionZoneCount(exhibition,liveWorks);
- useEffect(()=>{engine.player.name=nickname==='初来江湖的你'?'你':nickname||'你';},[nickname,engine]);
  useEffect(()=>{const t=setInterval(()=>setPhase(engine.phase().name),4000);return()=>clearInterval(t);},[engine]);
  const apiRef=useRef(),abortRef=useRef(),chatScroll=useRef(),toastTimer=useRef(),memoryRev=useRef(0);
  // 联机世界：账号身份由服务端会话令牌决定（注册/登录后进入），不是生产鉴权体系。
@@ -64,6 +63,10 @@ export default function App(){
  const [room,setRoom]=useSaved('room','jianghu');
  const [rooms,setRooms]=useState([]);
  const [account,setAccount]=useState(null);
+ // 角色身份的唯一来源：登录后是账号名帖，未登录是本机昵称（都没有则「少侠」）。
+ // 顶栏、3D 场景名牌、设置面板都读这一个值，保证「我是谁」全场一致。
+ const playerName=account?.name||(nickname&&nickname!=='初来江湖的你'?nickname:'少侠');
+ useEffect(()=>{engine.player.name=playerName;},[playerName,engine]);
  const [authOpen,setAuthOpen]=useState(false);
  const [authMode,setAuthMode]=useState('register');
  const [authProvider,setAuthProvider]=useState('local');
@@ -374,7 +377,7 @@ export default function App(){
  useEffect(()=>{function nav(){const id=new URLSearchParams(window.location.search).get('work');setWorkId(allWorks.some(w=>w.id===id)?id:null);}window.addEventListener('popstate',nav);return()=>window.removeEventListener('popstate',nav);},[]);
  function closeChat(){abortRef.current?.abort();setSending(false);if(chatId)engine.release(chatId);setChatId(null);setPanel(null);setDraft('');}
  function closePanel(){if(panel==='chat')closeChat();else setPanel(null);}
- function openPanel(id){if(chatId)closeChat();if(id==='settings')setProfileDraft({name:account?account.name:(nickname==='初来江湖的你'?'':nickname),color:account?account.color:playerColor});setPanel(id);}
+ function openPanel(id){if(chatId)closeChat();if(id==='settings')setProfileDraft({name:account?account.name:(playerName==='少侠'?'':playerName),color:account?account.color:playerColor});setPanel(id);}
  function enterHall(){if(chatId)closeChat();setLocation('hall');setPanel('gallery');setPlaceId(null);notice('已进入武林大会展示馆');}
  function openWork(id){const w=allWorks.find(w=>w.id===id);if(!w)return;setWorkId(id);const url=new URL(window.location.href);url.searchParams.set('work',id);history.pushState({},'',url);setVisits(v=>[{id,time:Date.now()},...v.filter(x=>x.id!==id)].slice(0,50));}
  function closeWork(){setWorkId(null);const url=new URL(window.location.href);url.searchParams.delete('work');history.replaceState({},'',url);}
@@ -429,13 +432,13 @@ export default function App(){
   <header className="topbar">
    <button className="brand" onClick={()=>{closePanel();setLocation('town');apiRef.current?.reset();}} aria-label="回到原子江湖"><span className="brand-seal">原<span>子</span></span><span className="brand-word">原子江湖<small>ATOMHUB · A LIVING WORLD</small></span></button>
    <nav aria-label="主导航"><button className={location==='town'&&!['journal','about'].includes(panel)?'active':''} onClick={()=>{closePanel();setLocation('town');}}><Compass size={17}/>漫游小镇</button><button className={location==='hall'?'active':''} onClick={enterHall}><BookOpen size={17}/>武林大会</button><button className={panel==='journal'?'active':''} onClick={()=>openPanel('journal')}><Bookmark size={16}/>游历手札{bookmarks.length>0&&<b>{bookmarks.length}</b>}</button></nav>
-   <div className="top-actions">{staticDemo?<span className="world-status"><i/>本地世界</span>:<button className={`world-status mode-switch ${world}`} onClick={()=>{if(world==='online'){setWorld('demo');return;}if(!account){setAuthMode('register');setAuthForm({name:nickname==='初来江湖的你'?'':nickname,password:'',color:playerColor});setAuthError('');setAuthOpen(true);return;}if(account.local){notice('当前是本地演示身份，无法进入联机世界：需要联机服务端注册/登录（部署时接入 ATOM_ALLOWED_ORIGINS 对应的服务端）');return;}{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');}} aria-label="切换世界模式">{world==='online'?<><Wifi size={13}/>{onlineState==='online'?'联机世界':onlineState==='queued'?`排队中 ${queue?.position||1}`:onlineState==='connecting'?'连接中…':onlineState==='taken-over'?'已被接管':'重连中…'}</>:<><WifiOff size={13}/>{account?.local?'本地演示':account?'进入联机':'登录进入联机'}</>}</button>}<button className="profile-button" onClick={()=>openPanel('settings')} aria-label="定制我的侠客"><Avatar size={34}/><span>{account?account.name:nickname==='初来江湖的你'?'少侠':nickname}</span><ChevronRight size={14}/></button></div>
+   <div className="top-actions">{staticDemo?<span className="world-status"><i/>本地世界</span>:<button className={`world-status mode-switch ${world}`} onClick={()=>{if(world==='online'){setWorld('demo');return;}if(!account){setAuthMode('register');setAuthForm({name:nickname==='初来江湖的你'?'':nickname,password:'',color:playerColor});setAuthError('');setAuthOpen(true);return;}if(account.local){notice('当前是本地演示身份，无法进入联机世界：需要联机服务端注册/登录（部署时接入 ATOM_ALLOWED_ORIGINS 对应的服务端）');return;}{const warn=missingWorldServer();if(warn)notice(warn);}setWorld('online');}} aria-label="切换世界模式">{world==='online'?<><Wifi size={13}/>{onlineState==='online'?'联机世界':onlineState==='queued'?`排队中 ${queue?.position||1}`:onlineState==='connecting'?'连接中…':onlineState==='taken-over'?'已被接管':'重连中…'}</>:<><WifiOff size={13}/>{account?.local?'本地演示':account?'进入联机':'登录进入联机'}</>}</button>}<button className="profile-button" onClick={()=>openPanel('settings')} aria-label="定制我的侠客"><Avatar size={34}/><span>{playerName}</span><ChevronRight size={14}/></button></div>
   </header>
   <main className={`world-layout ${rail?'':'rail-hidden'}`}>
    <div className="world-stage">
     {world==='online'&&!staticDemo
-     ?<OnlineWorld client={clientRef.current} theme={theme} night={night} labels={showLabels} playerColor={account?.color||playerColor} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} apiRef={apiRef}/>
-     :<World engine={engine} theme={theme} night={night} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} labels={showLabels}/>}
+     ?<OnlineWorld client={clientRef.current} theme={theme} night={night} labels={showLabels} playerColor={account?.color||playerColor} playerName={playerName} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} apiRef={apiRef}/>
+     :<World engine={engine} theme={theme} night={night} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} labels={showLabels}/>}
     <div className="scene-intro"><span className="eyebrow"><span className="tiny-star">✳</span> 人与 AGENT 共建的开源学习社区</span><h1>{world==='online'&&!staticDemo?'山水有相逢，同路在联机。':location==='town'?'山水有相逢，江湖有同路。':'让每一个好想法，被看见。'}</h1><p>{world==='online'&&!staticDemo?'这是服务端权威的联机世界：点击地面行走，邀请遇到的侠客一对一私聊。':location==='town'?'在这里歇歇脚，聊聊想法，和有趣的灵魂一起创造。':'走近展台，发现来自真实赛事的作品与创作者。'}</p></div>
     <div className="scene-weather">{night?<Moon size={17}/>:<Sun size={18}/>}<span>{phase}<small>{night?'灯火可亲 · 夜景':'草木葱茏 · 日景'}</small></span></div>
     {location==='hall'&&<button className="back-to-town" onClick={()=>{setLocation('town');closePanel();}}><ChevronLeft size={16}/>返回小镇</button>}

@@ -9,8 +9,8 @@ const work = (editionId, id, extra = {}) => ({id: `${editionId}--${id}`, title: 
 const fixture = (id, works, extra = {}) => ({id, title: '测试赛事', tracks: ['赛道'], works, ...extra});
 
 test('published catalog has stable edition and work IDs', () => {
-  assert.equal(catalog.editions.length, 3); // funskills + hackathon + spark
-  assert.equal(allPublishedWorks().length, 56);
+  assert.equal(catalog.editions.length, 2); // funskills(繁星之夜) + spark(星火计划)
+  assert.equal(allPublishedWorks().length, 38);
   assert.equal(new Set(catalog.editions.map(e => e.id)).size, catalog.editions.length);
   assert.equal(new Set(allPublishedWorks().map(w => w.id)).size, allPublishedWorks().length);
   assert.ok(allPublishedWorks().every(w => w.publicationStatus === '已发布' && w.contentVersion >= 1));
@@ -55,11 +55,11 @@ test('drafts and withdrawn content never reach public reads', () => {
 
 test('work query supports edition, track and text filters', () => {
   assert.equal(queryWorks({editionId: 'funskills'}).length, 38);
-  assert.equal(queryWorks({editionId: 'hackathon', track: '科研实验'}).length, 4);
+  assert.equal(queryWorks({editionId: 'funskills', track: '效率工具'}).length, 10);
   const results = queryWorks({q: 'StoryMap'});
   assert.equal(results.length, 1);
   assert.equal(queryWorks({q: 'not-a-real-work'}).length, 0);
-  assert.equal(queryWorks().length, 56);
+  assert.equal(queryWorks().length, 38);
 });
 
 test('shared exhibition is fixed by layout version and only cites published works', () => {
@@ -89,19 +89,19 @@ test('map and character configs carry comparable versions', () => {
 test('catalog loader prefers the API, falls back to the bundled snapshot, and stays static when asked', async () => {
   const staticLoad = await loadCatalog({staticDemo: true});
   assert.equal(staticLoad.source, 'static-snapshot');
-  assert.equal(staticLoad.catalog.editions.length, 3);
+  assert.equal(staticLoad.catalog.editions.length, 2);
   assert.equal(staticLoad.exhibition.config.id, SHARED_EXHIBITION.id);
   assert.equal(staticLoad.exhibition.mismatch, false);
 
   const ok = await loadCatalog({fetchImpl: async () => ({ok: true, json: async () => ({snapshotId: 'remote-v1', exhibition: {id: 'exp-x', layoutVersion: 9, zoneCount: 3, entryIds: []}, editions: catalog.editions})})});
   assert.equal(ok.source, 'api');
-  assert.equal(ok.catalog.editions.length, 3);
+  assert.equal(ok.catalog.editions.length, 2);
   assert.equal(ok.exhibition.config.layoutVersion, 9);
   assert.equal(ok.exhibition.mismatch, true);
 
   const degraded = await loadCatalog({fetchImpl: async () => { throw new Error('offline'); }});
   assert.equal(degraded.source, 'snapshot-fallback');
-  assert.equal(degraded.catalog.editions.length, 3);
+  assert.equal(degraded.catalog.editions.length, 2);
   assert.ok(degraded.error);
 });
 
@@ -124,7 +124,7 @@ test('catalog load times out and falls back to the bundled snapshot', async () =
  assert.ok(Date.now()-started<5000,'在超时窗口内返回（不无限等待）');
  assert.equal(result.source,'snapshot-fallback','超时降级到内置快照');
  assert.ok(result.error,'记录失败原因');
- assert.equal(result.catalog.editions.length,3,'快照内容可用');
+ assert.equal(result.catalog.editions.length,2,'快照内容可用');
  // 显式传入 signal 时尊重调用方（不被内部超时覆盖）。
  let seen=null;
  await loadCatalog({fetchImpl:(url,init)=>{seen=init?.signal;return Promise.reject(new Error('boom'));}});
@@ -143,6 +143,9 @@ test('repo integrity: build-scope files must be tracked or intentionally ignored
  assert.deepEqual(findMissing(['data/accounts.json','dist/index.html','node_modules/x/y.js'],[],[ 'data/','dist/','node_modules/' ]),[]);
  // 白名单不保护 SCOPE_DIRS 内的同名目录：src/data 必须入库。
  assert.ok(!IGNORE_ALLOWLIST.includes('src/data')&&SCOPE_DIRS.includes('src'));
+ // 系统垃圾（.DS_Store 等）在 .gitignore 里，不算构建缺失。
+ assert.deepEqual(findMissing(['public/.DS_Store','src/.DS_Store'],[],[ '.DS_Store' ]),[]);
+ assert.deepEqual(findMissing(['src/data/editions.json','src/.DS_Store'],[],[ '.DS_Store' ]),['src/data/editions.json'],'真缺失仍然要报');
  // 非 ASCII 路径：NFD/NFC 与引号转义都不应误报。
  assert.deepEqual(findMissing(['public/brand/source/原子之心logo-白字.png'],['public/brand/source/原子之心logo-白字.png'],[]),[]);
 });

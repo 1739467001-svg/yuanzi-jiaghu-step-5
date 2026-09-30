@@ -255,7 +255,7 @@ export function applyImport(payload,actor='local-admin',note=''){
 export function importDryRun(){
  const sources=[
   {id:'funskills',folder:'繁星之夜-showcase',ext:'jpg'},
-  {id:'hackathon',folder:'hackathon-showcase',ext:'webp'},
+
  ];
  const report={checkedAt:new Date().toISOString(),editions:[],totals:{new:0,updated:0,unchanged:0,missing:0}};
  for(const source of sources){

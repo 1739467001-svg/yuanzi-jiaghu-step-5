@@ -14,6 +14,8 @@ export const SCOPE_DIRS=['src','server','public','scripts','tests','docs'];
 export const SCOPE_ROOT_FILES=['index.html','admin.html','vite.config.js','package.json','package-lock.json','vercel.json','Dockerfile','docker-compose.yml','.env.example','.nvmrc','.gitignore'];
 // 允许被忽略的运行期产物（仅根级）；src/ 下的同名目录不在其列。
 export const IGNORE_ALLOWLIST=['data','dist','artifacts','node_modules','.git'];
+// 与本仓库无关的系统垃圾（macOS Finder 元数据等）：.gitignore 里已忽略，不该算"构建缺失"。
+const SYSTEM_JUNK=/^\.DS_Store$|^Thumbs\.db$|^desktop\.ini$/i;
 
 // 纯比较：返回"既未跟踪、也未被允许忽略"的文件列表（相对路径，正斜杠，NFC 归一化）。
 // macOS 文件系统是 NFD、git 默认对非 ASCII 路径加引号转义，两侧都要归一化再比较。
@@ -24,6 +26,7 @@ export function findMissing(files,tracked,ignored){
   return IGNORE_ALLOWLIST.includes(first)?first:f;
  }));
  return files.map(f=>f.normalize('NFC')).filter(f=>{
+  if(SYSTEM_JUNK.test(f.split('/').pop()))return false;
   if(trackedSet.has(f))return false;
   const top=f.split('/')[0];
   if(pageIsIgnored(top,allowed))return false;

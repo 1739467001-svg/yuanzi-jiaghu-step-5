@@ -23,8 +23,7 @@ try{
  assert.equal(await page.locator('.exhibiting-badge').count(),8);
  assert.match(await page.locator('.result-line').textContent(),/公共展陈 展区 1\/\d+/);
  assert.match(await page.locator('.version-line').textContent(),/editions-snapshot-v1/);
- await page.getByRole('button',{name:/数智星光展/}).click();assert.equal(await page.locator('.work-card').count(),18);
- assert.equal(await page.locator('.exhibiting-badge').count(),0);
+ assert.equal(await page.getByRole('button',{name:/数智星光展/}).count(),0,'数智星光展已下线，只保留繁星之夜与星火计划');
  await page.getByRole('button',{name:/繁星之夜/}).click();
  // 星火计划：真实赛事介绍（主办方/赛程/奖项）。
  await page.getByRole('button',{name:/星火计划/}).click();
@@ -183,5 +182,5 @@ try{
  assert.match(await page.locator('.profile-button').textContent(),new RegExp(staticNick+'·改名'),'改名后的本地身份刷新后仍在');
  await page.unroute('**/api/**');
  assert.deepEqual(errors,[]);
- console.log('PASS: 38/18 works, search, bookmarking, deep-link reload, chat retrieval, opt-in memory, deletion, input focus, customization, night mode, mobile, no-WebGL fallback, invalid API input, admin withdraw/republish with audit, static-deploy local identity + rename. No page exceptions.');
+ console.log('PASS: 38 works ( search, bookmarking, deep-link reload, chat retrieval, opt-in memory, deletion, input focus, customization, night mode, mobile, no-WebGL fallback, invalid API input, admin withdraw/republish with audit, static-deploy local identity + rename. No page exceptions.');
 }finally{await browser.close();}

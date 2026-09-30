@@ -12,8 +12,8 @@ const {getLiveCatalog,getStateVersion,livePublishedWorks,liveQueryWorks,liveFind
 
 test('baseline live catalog matches the bundled snapshot', () => {
  const catalog=getLiveCatalog();
- assert.equal(catalog.editions.length,3);
- assert.equal(livePublishedWorks().length,56);
+ assert.equal(catalog.editions.length,2);
+ assert.equal(livePublishedWorks().length,38);
  assert.equal(getStateVersion(),0);
 });
 
@@ -31,7 +31,7 @@ test('withdrawing a work removes it from every public read and records an audit 
  assert.equal(result.stateVersion,1);
  assert.equal(liveFindWork('funskills--ecom-video'),null);
  assert.equal(anyLiveWork('funskills--ecom-video').publicationStatus,'已撤回');
- assert.equal(liveQueryWorks().length,55);
+ assert.equal(liveQueryWorks().length,37);
  assert.equal(liveQueryWorks({q:'电商视频全能版'}).length,0);
  const [event]=getAudit(1);
  assert.equal(event.action,'withdraw_work');
@@ -43,21 +43,21 @@ test('withdrawing a work removes it from every public read and records an audit 
 
 test('withdrawing an edition hides all of its works until rollback restores them', () => {
  setEditionStatus('funskills','已撤回','tester','e2e withdraw edition');
- assert.equal(liveQueryWorks().length,18);
+ assert.equal(liveQueryWorks().length,0);
  assert.equal(liveQueryWorks({editionId:'funskills'}).length,0);
  const withdrawEvent=getAudit(10).find(e=>e.action==='withdraw_edition');
  const rolled=rollbackEdition('funskills',withdrawEvent.id,'tester');
  assert.equal(rolled.stateVersion,3);
- // 回滚到“撤回赛事”之前的状态：赛事恢复发布，此前已撤回的单件作品保持撤回（55 条）。
- assert.equal(liveQueryWorks().length,55);
+ // 回滚到“撤回赛事”之前的状态：赛事恢复发布，此前已撤回的单件作品保持撤回（37 条）。
+ assert.equal(liveQueryWorks().length,37);
  assert.equal(liveQueryWorks({editionId:'funskills'}).length,37);
  const events=getAudit(10);
  assert.equal(events.filter(e=>e.action==='rollback_edition').length,1);
  // 审计只追加：撤回事件仍然在日志里。
  assert.ok(events.some(e=>e.action==='withdraw_edition'));
- // 单件作品重新发布后恢复 56 条，供后续分页测试使用完整目录。
+ // 单件作品重新发布后恢复 38 条，供后续分页测试使用完整目录。
  setWorkStatus('funskills--ecom-video','已发布','tester','e2e republish');
- assert.equal(liveQueryWorks().length,56);
+ assert.equal(liveQueryWorks().length,38);
 });
 
 test('invalid statuses are rejected without writing anything', () => {
@@ -71,19 +71,19 @@ test('invalid statuses are rejected without writing anything', () => {
 test('stable pagination keeps catalog order and clamps bounds', () => {
  const items=livePublishedWorks();
  const first=stablePage(items,{limit:10});
- assert.equal(first.total,56);
+ assert.equal(first.total,38);
  assert.equal(first.items.length,10);
  assert.deepEqual(first.items.map(w=>w.id),items.slice(0,10).map(w=>w.id));
  const second=stablePage(items,{limit:10,offset:10});
  assert.deepEqual(second.items.map(w=>w.id),items.slice(10,20).map(w=>w.id));
  assert.deepEqual(stablePage(items,{limit:10,offset:1000}).items,[]);
- assert.equal(stablePage(items,{limit:9999}).items.length,56);
+ assert.equal(stablePage(items,{limit:9999}).items.length,38);
 });
 
 test('import check reports candidate diffs without writing publication state', () => {
  const before=getStateVersion();
  const report=importDryRun();
- assert.ok(report.editions.length>=2);
+ assert.ok(report.editions.length>=1);
  const funskills=report.editions.find(e=>e.id==='funskills');
  // 基线已包含来源全部记录：dry-run 应报告 0 条新增、0 条缺失。
  assert.ok(funskills.items.every(i=>i.status!=='new'&&i.status!=='missing'));

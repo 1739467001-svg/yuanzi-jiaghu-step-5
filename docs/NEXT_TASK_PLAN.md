@@ -805,3 +805,10 @@ Vercel 故障的直接教训：本地能跑不代表仓库完整——`.gitignor
   4. 登录页也显示「衣带颜色」（只与注册有关）——登录态隐藏，减少误解。
   5. 注册/登录成功后密码不清空；`missingWorldServer()` 补上「配了 VITE_API_BASE 却没配 VITE_WS_URL」这种半配状态的明确告警。
 - 验收：`npm test` 114 项；`npm run test:e2e` 增补纯静态托管段（`/api/*` 404 → 副标题如实、降级本地身份、本地身份可改名且刷新后仍在）；其余六套 e2e 与两个校验器全绿。
+
+## 阶段 43：存储报备与选型 + 身份单点展示 + 下线「数智星光展」（2026-09-30 执行）
+
+- **存储报备**：新增 `docs/STORAGE.md`——现状是 `data/` 下 JSON 文件（原子写入，无数据库服务），量化为 402 账号/402 会话、审计流水 122KB；列明 5 个真实问题（读-改-写竞态、会话只增不除、全量重写、线性扫描、只能单机）；给出 SQLite（推荐先做）/ PostgreSQL（多机）/ MySQL（不建议，账号统一走已有外部身份接入点）的对比、表设计（users/sessions/memories/follows/sects/audit_log，含作用域索引）与"零上层改动"的迁移路径（`ATOM_STORE=sqlite` 开关 + 一次性导入脚本）。
+- **身份单点展示**：`src/App.jsx` 增加唯一来源 `playerName`（登录后=账号名帖，未登录=本机昵称，都没有=「少侠」），顶栏、3D 场景名牌、设置面板全部读这一个值；联机世界里自己的名牌改从服务端快照取账号名（`OnlineWorld` `selfName`），顶栏与场景不再各说各话。修掉一处因此引入的 TDZ（playerName 曾声明在 account 之前）。
+- **下线「数智星光展」**：`src/data/editions.json` 移除 hackathon 赛事（-426 行），只保留繁星之夜（38 条）与星火计划；同步更新 `tests/content.test.mjs`、`tests/publication.test.mjs`、`tests/world.test.mjs`、`scripts/smoke-browser.mjs`（改为"该页签不存在"的守护断言）、`scripts/import-content.mjs` 与 `server/publication-store.mjs` 的导入来源；删除 3.7MB 不再被引用的 `public/works/hackathon/`。
+- 验收：`npm test` 114 项；七套 e2e 全绿（负载高时 `test:e2e-queue` 用 `TEST_PROD=1`）；`validate:world`、`validate:content`、`verify:repo` 通过。
