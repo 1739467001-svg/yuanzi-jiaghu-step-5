@@ -6,6 +6,7 @@ import {findPath,walkable,stepActor,terrainHeight} from './engine.js';
 import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern} from './models.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
+import {declutterPins} from './pins.js';
 
 // 远程玩家气泡：私聊中的“交谈中”与公开表情（内容不可见，PRD 9.1 旁观规则）。
 const EMOTE_LABELS={wave:'打招呼',bow:'作揖',clap:'鼓掌',think:'思考'};
@@ -258,7 +259,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     sources.push({id:'you',kind:'player',name:selfName.current||playerName,point:new T.Vector3(self.x,2.05+groundY(self.x,self.z),self.z)});
     const projection=new T.Vector3();
     const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});
-    setPins(arr);
+    setPins(el.clientWidth<550?declutterPins(arr):arr);
    }
    frame=requestAnimationFrame(render);
   }

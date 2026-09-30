@@ -215,7 +215,7 @@ function AdminApp({onExit}){
  };
  return <div className="admin">
   <header>
-   <span className="brand-seal">原<span>子</span></span>
+   <img className="brand-seal" src="/brand/atomhub-mark-black.png" alt="原子公社" width="34" height="31"/>
    <div><h1>原子江湖 · 运营后台</h1><small>本地演示：发布、撤回、回滚与审计。生产权限系统尚未接入。</small></div>
    <nav>
     {[['editions','赛事管理'],['works','作品管理'],['import','赛事导入'],['ops','运行状态'],['audit','审计日志']].map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}

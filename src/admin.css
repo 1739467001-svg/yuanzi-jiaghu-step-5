@@ -9,7 +9,7 @@ h1,h2,h3,p{margin:0}svg{flex-shrink:0;vertical-align:-2px}
 .admin>header nav{margin-left:auto;display:flex;gap:6px;align-items:center}
 .admin>header nav button{padding:7px 14px;border-radius:8px;font-size:13px;color:#6f7a71}
 .admin>header nav button.active{background:#e7ecdf;color:#365b48;font-weight:600}
-.brand-seal{display:grid;place-items:center;width:34px;height:37px;font-family:"Songti SC",serif;font-size:16px;font-weight:700;border:1.5px solid #54705d;border-radius:5px;color:#486750;transform:rotate(-3deg);letter-spacing:-3px}
+.brand-seal{width:auto;height:34px;display:block}
 .brand-seal span{margin-top:12px;font-size:14px}
 .admin main{flex:1;padding:22px 28px 40px;max-width:1180px;width:100%;margin:0 auto}
 .admin>footer{padding:14px 28px;border-top:1px solid #dce2d5;background:#f9faf5e6}

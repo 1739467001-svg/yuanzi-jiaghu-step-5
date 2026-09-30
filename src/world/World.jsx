@@ -8,6 +8,7 @@ import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
+import {declutterPins} from './pins.js';
 import {trackColorOf} from '../content/catalog.js';
 function bubbleTexture(text){
  const c=document.createElement('canvas');c.width=256;c.height=92;const x=c.getContext('2d');
@@ -172,7 +173,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    if(focusTarget){const delta=focusTarget.clone().sub(controls.target).multiplyScalar(.035);controls.target.add(delta);camera.position.add(delta);if(delta.length()<.003)focusTarget=null;}
    controls.update();renderer.render(scene,camera);
    if(now-lastPins>120){lastPins=now;const sources=[...pinSources];{const current=location==='town'?engine.player:hallPlayer;sources.push({id:'you',kind:'player',name:playerName,point:new T.Vector3(current.x,2.05+(location==='town'?terrainHeight(current.x,current.z):0),current.z)});};
-    const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});setPins(arr);callbacks.current.onSnapshot(engine.snapshot());}
+    const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});setPins(el.clientWidth<550?declutterPins(arr):arr);callbacks.current.onSnapshot(engine.snapshot());}
    frame=requestAnimationFrame(render);
   }frame=requestAnimationFrame(render);
   return()=>{alive=false;cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose();m.dispose();});}});renderer.dispose();el.removeChild(renderer.domElement);};

@@ -812,3 +812,10 @@ Vercel 故障的直接教训：本地能跑不代表仓库完整——`.gitignor
 - **身份单点展示**：`src/App.jsx` 增加唯一来源 `playerName`（登录后=账号名帖，未登录=本机昵称，都没有=「少侠」），顶栏、3D 场景名牌、设置面板全部读这一个值；联机世界里自己的名牌改从服务端快照取账号名（`OnlineWorld` `selfName`），顶栏与场景不再各说各话。修掉一处因此引入的 TDZ（playerName 曾声明在 account 之前）。
 - **下线「数智星光展」**：`src/data/editions.json` 移除 hackathon 赛事（-426 行），只保留繁星之夜（38 条）与星火计划；同步更新 `tests/content.test.mjs`、`tests/publication.test.mjs`、`tests/world.test.mjs`、`scripts/smoke-browser.mjs`（改为"该页签不存在"的守护断言）、`scripts/import-content.mjs` 与 `server/publication-store.mjs` 的导入来源；删除 3.7MB 不再被引用的 `public/works/hackathon/`。
 - 验收：`npm test` 114 项；七套 e2e 全绿（负载高时 `test:e2e-queue` 用 `TEST_PROD=1`）；`validate:world`、`validate:content`、`verify:repo` 通过。
+
+## 阶段 44：换上真实 logo + 移动端布局体检（2026-09-30 执行）
+
+- **真实 logo**：原先把「原/子」两个字画进 CSS 边框当 logo（左上角、运营后台、favicon 三处都是手绘占位）。现在从工作区 `Logo/` 文件夹的真实 logo 文件出发，用 `scripts/trim-logo.mjs`（透明边距裁剪 + 按空白列拆分图标/字标 + 区域平均降采样，纯 zlib 实现 PNG 编解码）生成 `public/brand/` 下的 `atomhub-mark-{black,white}.png`（从真实 logo 里切出的纯图标）、`atomhub-lockup-*`、`atomesh-lockup-*`；左上角与后台换成真实 logo 图片（夜间自动切白字版），favicon 也用真实 logo。顺手清掉 6 个不再被引用的旧品牌文件（其中 `source/` 原始大图 2MB）。
+- **移动端体检**：新增 `npm run audit:mobile`（`scripts/mobile-audit.mjs`）——在 3 个手机 + 平板 + 桌面共 5 档视口逐屏检查：横向溢出、关键元素两两重叠（父子嵌套不算）、触控目标 <24px、场景名牌互叠、门派面板是否超出屏幕、内景返回键是否真能点、作品网格列数，并各存一张截图到 `artifacts/`。
+- 体检发现并修掉 4 个真问题：① 左下角「地图说明」和右下角「工具栏」在手机上叠在一起（22—37px）——工具栏改竖排并移到场景右上；② 顶栏导航按钮只有 25px 宽——放到 32px，超窄屏隐藏品牌英文副标；③ 场景名牌「星火亭↗」和「原子门派↗」在小屏上叠字——新增 `src/world/pins.js` 避让算法（不藏标签，把后一个上下挪一档，实在没位置才让位；「你在这里」永远保留且优先安置）；④ 平板档工具栏按钮 25px、侧栏「全部」与页脚链接只有 13px 高——分别放到 30px 与 24px 最小触控高度。
+- 验收：`audit:mobile` 5 档视口全绿（无重叠/无溢出/无过小触控目标）；`npm test` 114 项、七套 e2e、两个校验器、`verify:repo` 全绿。
