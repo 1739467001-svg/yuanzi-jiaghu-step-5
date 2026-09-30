@@ -43,7 +43,11 @@ try{
  await page.getByRole('button',{name:'下一站'}).click();
  assert.match(await page.locator('.tour-card').textContent(),/江湖茶楼/,'第一站：茶楼');
  await page.getByRole('button',{name:'下一站'}).click();assert.match(await page.locator('.tour-card').textContent(),/共创工坊/,'第二站：工坊');
- await page.getByRole('button',{name:'上一站'}).click();assert.match(await page.locator('.tour-card').textContent(),/江湖茶楼/,'可回退');
+ await page.getByRole('button',{name:'下一站'}).click();assert.match(await page.locator('.tour-card').textContent(),/开源书院/,'第三站：书院');
+ await page.getByRole('button',{name:'下一站'}).click();assert.match(await page.locator('.tour-card').textContent(),/原子门派/,'第四站：原子门派（新建的社区组织）');
+ assert.match(await page.locator('.tour-card').textContent(),/门派/,'门派站讲清建派与聚义阁');
+ await page.getByRole('button',{name:'上一站'}).click();assert.match(await page.locator('.tour-card').textContent(),/开源书院/,'可回退');
+ await page.getByRole('button',{name:'下一站'}).click();assert.match(await page.locator('.tour-card').textContent(),/原子门派/,'再前进回到门派站');
  await page.getByRole('button',{name:'结束导览'}).click();assert.equal(await page.locator('.tour-card').count(),0,'导览可结束');
  await page.getByRole('button',{name:'返回小镇',exact:true}).click();
  // AI 私聊是成员能力：先注册名帖账号，再回到本地演示模式聊天（账号保持登录）。

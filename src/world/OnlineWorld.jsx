@@ -3,11 +3,12 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,THEMES} from './config.js';
 import {findPath,walkable,stepActor,terrainHeight} from './engine.js';
-import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern} from './models.js';
+import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds} from './models.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
 import {declutterPins} from './pins.js';
 import {createClickFx} from './clickFx.js';
+import {createPetals,createBirds,createSmoke,createFlags,createMountains,createDust} from './ambience.js';
 
 // 远程玩家气泡：私聊中的“交谈中”与公开表情（内容不可见，PRD 9.1 旁观规则）。
 const EMOTE_LABELS={wave:'打招呼',bow:'作揖',clap:'鼓掌',think:'思考'};
@@ -59,6 +60,13 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   }
   const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};scene.add(player);
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
+  // 江湖氛围：花瓣、飞鸟、香烟、招幡、远山、扬尘
+  const petals=createPetals(scene,{count:el.clientWidth<550?70:140,color:night?'#d8a9cf':'#f6c3d2',night});
+  const birds=createBirds(scene,{count:el.clientWidth<550?2:3});
+  const smoke=createSmoke(scene,[{x:11.5,y:5.9,z:-5},{x:-4,y:3.6,z:12.4}],{night});
+  const flags=createFlags(scene,[{x:-6.2,y:0,z:12.3,color:'#c85a4a',dir:-1},{x:16.5,y:0,z:8.5,color:'#4a7a9e',dir:-1},{x:6.9,y:0,z:11.2,color:'#c8a24a',dir:1}],{night});
+  createMountains(scene,palette,{night});
+  const dust=createDust(scene);
   // 点击聚焦反馈：鼠标与手指触摸共用
   const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
   if(!indoor){
@@ -66,6 +74,9 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
   for(let i=0;i<24;i++){const x=-18+(i*7.7)%36,z=4+(i*1.3)%2;box(base,x,.04,z,.4+(i%3)*.28,.014,.04,'#c0d8cc');}
   bridge(base,-4);bridge(base,10);
+  // 河岸垂柳与芦苇：水边的江湖意象
+  for(const [x,z,s] of [[-15.5,3.6,1.1],[16.5,6.6,1.25],[-17,6.2,.95],[17.5,3.4,1.05]])willow(base,x,z,s);
+  for(const [x,z] of [[-6.5,2.6],[3.5,7.4],[-14,7.2],[15,2.4],[8.5,2.2],[-10.5,7.6]])reeds(base,x,z);
   box(base,-1,.04,-.5,13,.12,8,'#d4d0b7');box(base,-8,.03,-1,13,.1,2.5,'#d1cdb6');box(base,8,.03,-1,12,.1,2.5,'#d1cdb6');box(base,0,.03,-4,3,.1,5,'#d1cdb6');box(base,-4,.03,10,2.8,.1,9,'#d1cdb6');box(base,10,.03,10,2.8,.1,9,'#d1cdb6');box(base,2,.03,11,18,.1,2.3,'#d1cdb6');
   }
   let sectScene=null,sectSeats=[];
@@ -88,6 +99,11 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   const down=e=>{pointerStart=[e.clientX,e.clientY];};
   const up=e=>{if(Math.hypot(e.clientX-pointerStart[0],e.clientY-pointerStart[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(interactive,true);
    if(hits.length)clickFx.spawn(hits[0].point.x,hits[0].point.y+.05,hits[0].point.z);
+   else{
+    // 点到水面/天空/远处：把视线射线投到地面平面，照样给反馈。
+    const plane=new T.Plane(new T.Vector3(0,1,0),0),hitPoint=new T.Vector3();
+    if(raycaster.ray.intersectPlane(plane,hitPoint)&&Math.abs(hitPoint.x)<24&&Math.abs(hitPoint.z)<18)clickFx.spawn(hitPoint.x,.06,hitPoint.z);
+   }
    for(const hit of hits){let o=hit.object;while(o&&!o.userData.kind)o=o.parent;if(!o)continue;const {kind,id}=o.userData;
     if(kind==='place')callbacks.current.onPlace(id);
     else if(kind==='remote')callbacks.current.onActor(id);
@@ -220,6 +236,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   let frame,last=performance.now(),lastPins=0;
   function render(now){
    if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;   clickFx.update(dt);
+   petals.update(dt,now);birds.update(dt,now);smoke.update(dt,now);flags.update(dt,now);
 
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
@@ -229,7 +246,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
    const moving=self.path.length>0&&!selfSeat.current;
    if(player.userData.body){player.userData.body.position.y=moving?Math.abs(Math.sin(now*.009))*.055:Math.sin(now*.002+self.x)*.016;player.userData.feet.forEach((f,i)=>f.position.z=.04+(moving?Math.sin(now*.01+i*Math.PI)*.13:0));}
    else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,moving);}
-   const dest=self.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],groundY(dest[0],dest[1])+.18,dest[1]);
+   const dest=self.path.at(-1);ring.visible=!!dest;
+  if(self.path.length&&Math.random()<dt*7)dust.spawn(self.x,self.z);if(dest)ring.position.set(dest[0],groundY(dest[0],dest[1])+.18,dest[1]);
    // 聚义阁座席：被点击的人缓步转身面向走近的少侠。
    for(const seat of sectSeats){
     const want=seat.group.userData.targetRot;
@@ -255,6 +273,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     entry.sprite.visible=!!label;
     if(label)entry.sprite.position.set(entry.x,groundY(entry.x,entry.z)+2.85,entry.z);
    }
+   dust.update(dt);
    controls.update();renderer.render(scene,camera);
    if(focusTarget){const delta=focusTarget.clone().sub(controls.target).multiplyScalar(.035);controls.target.add(delta);camera.position.add(delta);if(delta.length()<.003)focusTarget=null;}
    if(now-lastPins>120){

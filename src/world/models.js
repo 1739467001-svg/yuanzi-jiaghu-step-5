@@ -128,6 +128,33 @@ export function character(color='#427ab5',scale=1){
  const sword=new T.Group();sword.position.set(.34,.5,-.15);sword.rotation.z=-.5;box(sword,0,0,0,.1,.85,.09,'#66533f');box(sword,0,.3,0,.3,.06,.12,'#d7ae5f');cylinder(sword,0,.5,0,.07,.07,.1,'#d7ae5f');body.add(sword);
  g.userData.feet=feet;g.userData.arms=arms;return g;
 }
+
+// 垂柳：河岸武侠意象——树干 + 一圈垂落的柳条，远处一看就知道是水边。
+export function willow(parent,x,z,size=1){
+ const g=new T.Group();g.position.set(x,0,z);parent.add(g);
+ cylinder(g,0,1.5*size,0,.16*size,.3*size,3*size,'#8a6b4a',8);
+ for(let ring=0;ring<4;ring++){
+  const a0=ring*1.2;
+  for(let i=0;i<9;i++){
+   const ang=a0+i*.7,r=1.25*size;
+   const sx=Math.cos(ang)*r,sz=Math.sin(ang)*r,len=(1.1+Math.random()*.8)*size;
+   const strand=box(g,sx,3*size-len/2+.1*size,sz,.055*size,len,.055*size,'#7fa05a');
+   strand.rotation.z=(Math.random()-.5)*.22;strand.rotation.x=(Math.random()-.5)*.22;
+  }
+ }
+ ball(g,0,3.1*size,0,.7*size,'#87a765',[1,.55,1]);
+ return g;
+}
+// 水边芦苇/菖蒲：贴水一丛，补足水岸细节。
+export function reeds(parent,x,z,n=7){
+ const g=new T.Group();g.position.set(x,0,z);parent.add(g);
+ for(let i=0;i<n;i++){
+  const h=.9+Math.random()*.7,ang=Math.random()*Math.PI*2,r=Math.random()*.45;
+  const blade=cylinder(g,Math.cos(ang)*r,h/2,Math.sin(ang)*r,.018,.03,h,'#8fa05c',5);
+  blade.rotation.z=(Math.random()-.5)*.3;blade.rotation.x=(Math.random()-.5)*.3;
+ }
+ return g;
+}
 export function bridge(parent,x){
  const g=new T.Group();g.position.set(x,0,5);parent.add(g);
  for(let i=0;i<12;i++){const z=-2.3+i*.42,y=.18+Math.sin(i/11*Math.PI)*.55;box(g,0,y,z,2.3,.18,.47,'#c8c5af');for(const sx of [-1.1,1.1]){box(g,sx,y+.4,z,.12,.8,.12,'#a9b4a2');if(i<11)box(g,sx,y+.77,z+.21,.14,.12,.5,'#b7bba4');}}

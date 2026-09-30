@@ -15,17 +15,17 @@ import {readStore,writeStore,memoryFor} from './storage.js';
 import Dialog from './Dialog.jsx';
 import SectAdmin from './SectAdmin.jsx';
 const staticDemo=import.meta.env.VITE_STATIC_DEMO==='true';
-// 小镇导览站点：品牌intro + 五处场所 + 入馆收尾。
+// 小镇导览站点：品牌intro + 六处场所 + 入馆收尾。
 const TOUR_STOPS=[
- {id:'intro',eyebrow:'原子江湖 · 导览',title:'山水有相逢，江湖有同路。',text:'原子公社是人与 Agent 共建的开源学习社区。这座小镇把社区的迎宾、交流、实践、学习与成果展示放进了五处场所。我带你逐一看看。'},
+ {id:'intro',eyebrow:'原子江湖 · 导览',title:'山水有相逢，江湖有同路。',text:'原子公社是人与 Agent 共建的开源学习社区。这座小镇把社区的迎宾、交流、实践、学习、组织与成果展示放进了六处场所。我带你逐一看看。'},
  {id:'tea',eyebrow:'第一站 · 相遇',title:'江湖茶楼',text:'一盏茶，遇见同路人。侠客们在此歇脚、闲聊、碰撞想法；你也可以随时邀请任何一位一对一私聊。'},
  {id:'workshop',eyebrow:'第二站 · 实践',title:'共创工坊',text:'把一个想法，做成一个作品。人提供经验与认知，Agent 协助整理与探索——务实求真，从能跑起来的原型开始。'},
  {id:'library',eyebrow:'第三站 · 学习',title:'开源书院',text:'分享是最好的学习。个体至上、开放共享、务实求真、互助共赢、持续进化——五个价值观是社区所有决策的基石。'},
- {id:'pavilion',eyebrow:'第四站 · 活动',title:'星火亭',text:'星星之火，从一次相遇开始。星火计划等真实赛事的介绍在此公布，参赛作品与结果资料核对后上线。'},
- {id:'hall',eyebrow:'第五站 · 成果',title:'武林大会展示馆',text:'每一份作品，都值得被看见。历届真实比赛的作品与作者介绍在这里陈列，可以阅读、收藏、分享，或请 AI 侠客陪你导览。'},
+ {id:'sect',eyebrow:'第四站 · 组织',title:'原子门派',text:'社区里的小社区。每一位成员都能创立自己的门派：自定义名称、slogan 与门派样式，设长老阁、收门下弟子，按聚义阁的位次共商共建——点进大殿就能看到分层的内景。'},{id:'pavilion',eyebrow:'第五站 · 活动',title:'星火亭',text:'星星之火，从一次相遇开始。星火计划等真实赛事的介绍在此公布，参赛作品与结果资料核对后上线。'},
+ {id:'hall',eyebrow:'第六站 · 成果',title:'武林大会展示馆',text:'每一份作品，都值得被看见。历届真实比赛的作品与作者介绍在这里陈列，可以阅读、收藏、分享，或请 AI 侠客陪你导览。'},
  {id:'end',eyebrow:'导览完成',title:'江湖路远，随时再来。',text:'小镇会因新作品、新朋友与新活动而变化。现在就进展馆看看大家的作品，或找位侠客聊聊吧。'},
 ];
-const TOUR_FOCUS={tea:'tea',workshop:'workshop',library:'library',pavilion:'pavilion',hall:'hall'};
+const TOUR_FOCUS={tea:'tea',workshop:'workshop',library:'library',sect:'sect',pavilion:'pavilion',hall:'hall'};
 const assetUrl=path=>import.meta.env.BASE_URL+path.replace(/^\//,'');
 const initialEvents=[{id:'welcome',text:'山门已开，欢迎来到原子江湖',kind:'welcome',time:Date.now()}];
 function useSaved(key,fallback){const [v,set]=useState(()=>readStore(key,fallback));const update=n=>set(prev=>{const next=typeof n==='function'?n(prev):n;writeStore(key,next);return next;});return [v,update];}
