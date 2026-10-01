@@ -117,7 +117,7 @@ export function figureHead(body,color='#427ab5',hat=true){
  const smile=new T.Mesh(new T.TorusGeometry(.065,.012,4,12,Math.PI),material('#a17464'));smile.rotation.z=Math.PI;smile.position.set(0,.92,.431);body.add(smile);
  if(hat){cylinder(body,0,1.37,0,.11,.72,.28,'#363e3d',24);cylinder(body,0,1.23,0,.73,.73,.035,'#303938',24);ball(body,0,1.58,-.12,.16,'#363b3a');cylinder(body,0,1.51,-.12,.12,.13,.07,color);}
 }
-export function character(color='#427ab5',scale=1){
+export function character(color='#b4432f',scale=1){
  const g=new T.Group(),body=new T.Group();g.add(body);g.scale.setScalar(scale);g.userData.body=body;
  const feet=[ball(body,-.16,.14,.04,.2,'#f3eee3',[.8,.7,1.1]),ball(body,.16,.14,.04,.2,'#f3eee3',[.8,.7,1.1])];
  cylinder(body,0,.47,0,.28,.39,.57,'#f5eee0');cylinder(body,0,.39,0,.36,.37,.1,color);
