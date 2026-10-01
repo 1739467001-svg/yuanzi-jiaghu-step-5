@@ -25,7 +25,8 @@
     "soak:72h": "ATOM_SOAK_MINUTES=4320 ATOM_SOAK_PLAYERS=24 node scripts/soak-world.mjs",
     "verify:repo": "node scripts/verify-repo.mjs",
     "audit:mobile": "node scripts/mobile-audit.mjs",
-    "test:e2e-sect-share": "node scripts/smoke-sect-share.mjs"
+    "test:e2e-sect-share": "node scripts/smoke-sect-share.mjs",
+    "test:e2e-sect-studio": "node scripts/smoke-sect-studio.mjs"
   },
   "dependencies": {
     "jose": "^6.2.12",

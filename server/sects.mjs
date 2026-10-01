@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {THEMES} from '../src/world/config.js';
 import {SectSource} from './sects-source.mjs';
+import {validateLayoutShape,normalizeLayout,defaultLayout} from '../src/world/townPresets.js';
 
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(path.resolve(import.meta.dirname,'..'),'data');
 const sectsFile=()=>path.join(dataDir(),'sects.json');
@@ -108,7 +109,7 @@ export function createSect(input,user){
  const base=validateSect(input);
  const who={id:cleanName(user?.id)||'anon',name:cleanName(user?.name)||'无名侠客'};
  if(loadSects().some(s=>s.name===base.name))throw new Error('这个门派名已被占用，换一个吧');
- const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[]};
+ const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[],townLayout:defaultLayout()};
  persist([...loadSects(),sect]);
  return sect;
 }
@@ -122,7 +123,18 @@ export function updateSect(id,input,user){
  const base=validateSect(input);
  if(loadSects().some(s=>s.id!==id&&s.name===base.name))throw new Error('这个门派名已被占用，换一个吧');
  Object.assign(sect,base);
- persist(loadSects());
+ persist(all);
+ return sect;
+}
+
+// 门派小镇布局：仅创始人可改；服务端逐项按预设白名单校验（不信任客户端提交）。
+export function updateLayout(id,layout,user){
+ const all=loadSects();const sect=all.find(x=>x.id===id);if(!sect)throw new Error('门派不存在');
+ assertFounder(sect,user);
+ const checked=validateLayoutShape(layout||sect.townLayout||defaultLayout());
+ if(!checked.ok)throw new Error(checked.error);
+ sect.townLayout=normalizeLayout(layout||sect.townLayout||defaultLayout());
+ persist(all);
  return sect;
 }
 export function addElder(id,member,user){

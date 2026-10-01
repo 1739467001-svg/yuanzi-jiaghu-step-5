@@ -10,6 +10,7 @@
 | GET | `/api/sects/:id` | 门派详情（含三角色） |
 | POST | `/api/sects` | 建派 `{name,slogan,intro,style}`，需登录 |
 | PATCH | `/api/sects/:id` | 改资料，仅创始人 |
+| POST | `/api/sects/:id/layout` | 发布门派小镇布局（仅创始人），按预设白名单校验 |
 | POST | `/api/sects/:id/elders` | `{name,title}` 加入长老阁，仅创始人 |
 | POST | `/api/sects/:id/disciples` | `{name,title}` 收入弟子，仅创始人 |
 | POST | `/api/sects/:id/members/remove` | `{userId}` 移出成员，仅创始人 |

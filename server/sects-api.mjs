@@ -6,7 +6,7 @@
 // POST /api/sects/:id/elders       {name,title} 加入长老阁（仅创始人）
 // POST /api/sects/:id/disciples    {name,title} 收入弟子（仅创始人）
 // POST /api/sects/:id/members/remove {userId} 移出成员（仅创始人）
-import {createSect,updateSect,addElder,addDisciple,removeMember,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
+import {createSect,updateSect,updateLayout,addElder,addDisciple,removeMember,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
 import {verify} from './accounts.mjs';
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
 const readBody=async(req,limit=8000)=>{let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)throw new Error('请求过大');body+=chunk;}return JSON.parse(body||'{}');};
@@ -33,19 +33,17 @@ export function sectsApiPlugin(){
     if(!user)return send(res,401,{error:'请先登录（或创建本地演示身份）'});
     // 手动触发一次远程同步（仅登录用户；同步本身是只读的远程拉取）。
     if(url.pathname==='/api/sects/refresh'&&req.method==='POST')return send(res,200,{source:await refreshSectSource()});
-    // 成员管理子路由必须单独匹配：/api/sects/:id/elders 这类路径不等于 :id 本身。
-    const sub=/^\/api\/sects\/([^/]+)\/(elders|disciples|members\/remove)$/.exec(url.pathname);
+    // 成员管理与小镇布局都是「:id/子路径」，必须和 :id 分开匹配（否则整条落到 404）。
+    const sub=/^\/api\/sects\/([^/]+)\/(elders|disciples|members\/remove|layout)$/.exec(url.pathname);
     if(sub){
      const id=decodeURIComponent(sub[1]),body=await readBody(req);
      if(sub[2]==='elders')return send(res,200,addElder(id,body,user));
      if(sub[2]==='disciples')return send(res,200,addDisciple(id,body,user));
+     if(sub[2]==='layout')return send(res,200,updateLayout(id,body,user));
      return send(res,200,removeMember(id,String(body.userId||''),user));
     }
     if(url.pathname==='/api/sects'&&req.method==='POST')return send(res,200,createSect(await readBody(req),user));
-    if(idMatch){
-     const id=decodeURIComponent(idMatch[1]);
-     if(req.method==='PATCH')return send(res,200,updateSect(id,await readBody(req),user));
-    }
+    if(idMatch&&req.method==='PATCH')return send(res,200,updateSect(decodeURIComponent(idMatch[1]),await readBody(req),user));
     return send(res,404,{error:'接口不存在'});
    }catch(error){return send(res,400,{error:error.message||'操作失败'});}
   });

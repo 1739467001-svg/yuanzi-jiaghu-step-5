@@ -6,7 +6,8 @@
 // 所有可点击对象挂 userData：{kind:'sect',id} / {kind:'sect-page',dir} / {kind:'sect-back'}。
 import * as T from 'three';
 import {THEMES} from './config.js';
-import {box,ball,cylinder,dmesh,material,textSign,roof,figureHead,lantern} from './models.js';
+import {TOWN_THEMES,TOWN_BUILDINGS,defaultLayout} from './townPresets.js';
+import {box,ball,cylinder,mesh,dmesh,material,textSign,roof,figureHead,lantern} from './models.js';
 
 const ROLE_ORDER=['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'];
 function discipleRank(m){
@@ -28,6 +29,54 @@ function hallFloor(parent,palette,night){
  box(g,-8.5,4.6,13.55,1.2,.9,.08,'#f2ecd8');box(g,8.5,4.6,13.55,1.2,.9,.08,'#f2ecd8');
  return g;
 }
+
+// 五种地形装饰：在同一块场地上做增量，聚义阁的位次与可点击对象不受影响。
+function terrainDecor(parent,terrain,theme,night){
+ const g=new T.Group();parent.add(g);
+ if(terrain==='lakeside'){
+  // 一汪碧水绕到阁后，两座小桥，四条锦鲤，两株垂柳
+  dmesh(new T.BoxGeometry(46,.1,9),night?'#2c4a52':'#7fb4b0','plaster',g,0,.02,-19,6,.95);
+  dmesh(new T.BoxGeometry(46,.06,9.4),night?'#8fd0e8':'#a8d4d0','plaster',g,0,.09,-19,6,.5);
+  for(const x of [-16,-4,6,18])box(g,x,.06,-19,.5,.12,7,'#b5a77e');
+  for(const x of [-10,14])for(const dz of [-1,1])box(g,x+dz*1.2,.1,-19,2.4,.16,.9,'#c3bfa7');
+  // 锦鲤：橙色身体 + 白斑，沿水面前后巡游
+  const koi=[['#d9663a',-8],['#e8e2d2',3],['#c2452f',12],['#e0a54a',-17]];
+  for(const [c,x0] of koi){
+   const k=new T.Group();k.position.set(x0,.16,-19+((x0%3)-1)*2.2);g.add(k);
+   const body=mesh(new T.SphereGeometry(.34,10,8),c,k,0,0,0);body.scale.set(1,.62,1.7);
+   ball(k,-.3,0,0,.14,'#ffffff',[1,.8,1.4]);ball(k,.3,.02,0,.14,'#ffffff',[1,.8,1.4]);
+   for(const sz of [-1,1]){const tail=new T.Mesh(new T.ConeGeometry(.22,.5,6),new T.MeshStandardMaterial({color:c}));tail.position.z=sz*.6;tail.rotation.x=sz>0?Math.PI:0;k.add(tail);}
+  }
+  for(const [x,z] of [[-19,-16],[19,-16]]){cylinder(g,x,2,z,.16,.28,4,'#8a6b4a',8);for(let i=0;i<10;i++){const a=i*.7,r=1.3;ball(g,x+Math.cos(a)*r,3.4-Math.sin(i)*.9,z+Math.sin(a)*r,.17,'#7fa05a',[.5,1.1,.5]);}}
+ }
+ if(terrain==='forest'){
+  // 桃林环抱：八株桃树 + 满地落瓣（静态一批，动态花瓣由氛围层负责）
+  const spots=[[-13,-12],[13,-12],[-15,-2],[15,-2],[-13,8],[13,8],[-8,-16],[8,-16]];
+  for(const [x,z] of spots){
+   cylinder(g,x,1.6,z,.16,.26,3.2,'#8a6b4a',8);
+   ball(g,x,3.5,z,1.5,'#e8a7bd',[1,.85,1]);ball(g,x+.8,3.1,z-.5,1.1,'#f0c0cd',[1,.9,1]);
+   for(let i=0;i<10;i++)ball(g,x+(Math.random()-.5)*3.4,.12,z+(Math.random()-.5)*3.4,.09,'#f2c3d2',[1,.4,1]);
+  }
+ }
+ if(terrain==='mountain'){
+  // 石阶与高台：主位抬高两层，远山做屏
+  dmesh(new T.BoxGeometry(30,.5,6),'#c3bfa7','stone',g,0,.25,-6,3,.95);
+  dmesh(new T.BoxGeometry(30,.5,5),'#b9b8a7','stone',g,0,.75,-8,3,.95);
+  for(const sx of [-1,1])for(const dz of [0,1])box(g,sx*13,dz*.3,-6.5+dz*1.2,.6,.5+dz*.3,.7,'#a9a693');
+  for(const sx of [-1,1]){cylinder(g,sx*15,2.6,-11,.4,.5,5.2,'#8f8578',8);}
+  box(g,-15,4.6,-11,1.6,.9,.6,'#7c6a4c');box(g,15,4.6,-11,1.6,.9,.6,'#7c6a4c');
+ }
+ if(terrain==='float'){
+  // 浮岛：场地下方留空，四角浮石与云气
+  dmesh(new T.BoxGeometry(40,.9,30),night?'#3a4a44':'#c9c4a8','stone',g,0,-1.2,0,8,.95);
+  for(const [x,z] of [[-17,-13],[17,-13],[-17,13],[17,13]]){
+   dmesh(new T.CylinderGeometry(1.6,2.6,2.4,7),night?'#2f3d38':'#b9b8a7','stone',g,x,-2.4,z,2,.9);
+   ball(g,x,-3.6,z,.9,'#f2ecd8',[1.6,.5,1.6]);
+  }
+ }
+ return g;
+}
+
 function sectBanner(parent,sect,x,z,palette,interactive){
  const g=new T.Group();g.position.set(x,0,z);parent.add(g);
  g.userData={kind:'sect',id:sect.id};if(interactive)interactive.push(g);
@@ -151,10 +200,13 @@ function hallDecor(parent,palette,night){
 }
 export function buildSectInterior(parent,{sect,palette,night},interactive=[]){
  const g=new T.Group();parent.add(g);
+ const layout={...defaultLayout(),...(sect.townLayout||{})};
+ const theme=TOWN_THEMES.find(t=>t.id===layout.theme)||TOWN_THEMES[0];
  hallFloor(g,palette,night);
- const style=sect.style==='startup'?'#587c92':sect.style==='mystery'?'#625d79':sect.style==='campus'?'#ad7860':'#42746d';
+ terrainDecor(g,layout.terrain,theme,night);
+ const style=theme.roof;
  // 聚义阁主厅：后壁 + 匾额
- dmesh(new T.BoxGeometry(30,.6,4),'#eee2c5','plaster',g,0,.3,-13,4,.92);
+ dmesh(new T.BoxGeometry(30,.6,4),theme.wall,'plaster',g,0,.3,-13,4,.92);
  roof(g,31,5,4.2,style,1.2);
  textSign(g,sect.name+' · 聚义阁',0,4.6,-12.4,6,.9);
  textSign(g,sect.slogan||'—',0,3.6,-12.5,4.4,.45,'#f2ecd8','#6b6152');
@@ -172,6 +224,36 @@ export function buildSectInterior(parent,{sect,palette,night},interactive=[]){
   const row=Math.floor(i/4),col=i%4;
   seats.push(seatFigure(g,{name:m.name,title:m.title,color:'#6e8fb0',x:(col-1.5)*3.1,z:2+row*2.6,face:Math.PI},interactive));
  });
+ // 按布局摆放建筑：藏书阁与演武场（议事堂即聚义阁本体，常驻）
+ if(layout.buildings.includes('cangshu')){
+  const cg=new T.Group();cg.position.set(-13,0,-6);g.add(cg);
+  dmesh(new T.BoxGeometry(5,.4,4),'#b7b8a7','stone',cg,0,.2,0,2,.95);
+  dmesh(new T.BoxGeometry(4.4,3.2,3.6),theme.wall,'plaster',cg,0,2,0,2,.92);
+  roof(cg,5.2,4.4,3.8,style,1.1);
+  for(const sx of [-1,1]){cylinder(cg,sx*1.5,1.7,1.9,.14,.16,2.6,'#826247',8);box(cg,sx*1.5,1.7,1.9,.1,2.2,.1,'#e6b978');}
+  textSign(cg,'藏书阁',0,2.9,1.95,2.2,.5);
+ }
+ if(layout.buildings.includes('wuchang')){
+  const wg=new T.Group();wg.position.set(13,0,-6);g.add(wg);
+  dmesh(new T.BoxGeometry(6,.3,5),'#c9b98f','stone',wg,0,.15,0,3,.95);
+  for(const sx of [-1,1])for(const sz of [-1,1])cylinder(wg,sx*2.4,.9,sz*1.9,.12,.14,1.8,'#8a6b4a',8);
+  dmesh(new T.BoxGeometry(5.6,.2,4.6),'#a8783f','plaster',wg,0,1.85,0,2,.9);
+  cylinder(wg,0,.7,0,.5,.55,1.4,'#a8783f',10);
+  for(const sx of [-1,1]){box(wg,sx*2.2,1.2,0,.16,2.4,.16,'#7c5f3a');box(wg,sx*2.2,1.9,0,.14,.14,2.4,'#8f8578');}
+  textSign(wg,'演武场',0,2.4,2.5,2.4,.55);
+ }
+ // 按布局摆放门派元素（匾额/旗帜/灯笼/石碑/兵器架/盆栽）
+ for(const el of layout.elements){
+  switch(el.type){
+   case 'flag':{cylinder(g,el.x,3.4,el.z,.06,.07,6.8,'#6d5943',8);box(g,el.x,6,el.z,.06,.6,.06,'#a8683f');ball(g,el.x,6.7,el.z,.11,'#d8b56a');
+    box(g,el.x+(el.x>0?-.8:.8),5.4,el.z,1.5,2.4,.07,style);box(g,el.x+(el.x>0?-.8:.8),5.4,el.z,1.1,1.9,.06,theme.wall);break;}
+   case 'lantern':{cylinder(g,el.x,3.1,el.z,.03,.03,.6,'#6a5540',6);ball(g,el.x,2.8,el.z,.28,'#dd9b56',[.8,1.2,.8]);break;}
+   case 'stele':{dmesh(new T.BoxGeometry(1.2,2.4,.4),'#b9b8a7','stone',g,el.x,1.2,el.z,1,.9);textSign(g,sect.name,el.x,2.2,el.z+.24,1.5,.4);break;}
+   case 'rack':{box(g,el.x,1.4,el.z,1.4,.12,.12,'#6d4f33');for(const sx of [-1,1])cylinder(g,el.x+sx*.5,2.1,el.z,.05,.05,1.6,'#8f8578',6);break;}
+   case 'planter':{cylinder(g,el.x,.7,el.z,.3,.36,1.1,'#5d7a63',10);ball(g,el.x,1.35,el.z,.45,'#7fa06a',[.7,.85,.7]);break;}
+   case 'plaque':{textSign(g,sect.name,el.x,3.4,el.z,3.2,.8,theme.wall,theme.accent);break;}
+  }
+ }
  // 返回大殿的门口
  const back=new T.Group();back.position.set(0,0,15);g.add(back);
  back.userData={kind:'sect-back'};if(interactive)interactive.push(back);

@@ -289,6 +289,26 @@
 .follow-latest{display:block;font-size:10px;color:#8fa08a;margin-top:3px;line-height:1.6}
 
 /* ---- 原子门派 HUD ---- */
+.sect-studio{border:1px solid #dde3d6;border-radius:12px;background:#fbfbf0e0;padding:14px 16px;margin-bottom:14px}
+.sect-studio h4{font-size:12px;color:#3c4a40;margin-bottom:6px}
+.sect-preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.sect-preset{position:relative;display:grid;gap:4px;text-align:left;border:1px solid #e2e7d8;border-radius:10px;background:#fbfbf0e0;padding:10px 11px}
+.sect-preset:hover{border-color:#c9d3bf}
+.sect-preset.on{border-color:#b4432f;background:#fdf3ec}
+.sect-preset-name{font-size:12px;font-weight:600;color:#3c4a40}
+.sect-preset-desc{font-size:9.5px;line-height:1.7;color:#8a9784}
+.sect-preset svg{position:absolute;top:8px;right:8px;color:#b4432f}
+.sect-theme-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sect-theme-label{display:flex;align-items:center;gap:5px;font-size:10px;color:#7d8b74}
+.sect-theme-dot{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #dde3d6;display:grid;place-items:center;color:#fff}
+.sect-theme-dot.on{box-shadow:0 0 0 2px #b4432f}
+.sect-studio-summary{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:10px}
+.sect-studio-summary div{display:grid}
+.sect-studio-summary small{font-size:8px;color:#a3ad98;letter-spacing:1px}
+.sect-studio-summary b{font-size:11px;color:#3c4a40}
+.sect-studio-actions{display:flex;flex-wrap:wrap;gap:8px}
+.sect-studio-actions .primary-button,.sect-studio-actions .secondary-button{min-height:34px;padding:8px 12px;font-size:11px}
+
 .sect-town-actions{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
 .sect-town-actions .secondary-button{min-height:32px;padding:7px 11px;font-size:11px;text-decoration:none}
 .sect-intro-card{background:#fdf6e3;border:1px solid #e3d3a8;border-radius:10px;padding:12px 14px;margin-bottom:12px}

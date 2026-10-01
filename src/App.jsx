@@ -14,8 +14,10 @@ import {SHARED_EXHIBITION,exhibitionZone,exhibitionZoneCount} from './content/ex
 import {readStore,writeStore,memoryFor} from './storage.js';
 import Dialog from './Dialog.jsx';
 import SectAdmin from './SectAdmin.jsx';
+import SectStudio from './SectStudio.jsx';
 const staticDemo=import.meta.env.VITE_STATIC_DEMO==='true';
 // 原子公社门派大厅（官网）地址：配置后内景「返回门派大厅/官网」直接跳转；未配置则给出提示。
+const TERRAINS_NAME={village:'村落',lakeside:'湖畔',forest:'林间',mountain:'山地',float:'浮岛'};
 const SECT_HALL_URL=import.meta.env.VITE_SECT_HALL_URL||'';
 // 小镇导览站点：品牌intro + 六处场所 + 入馆收尾。
 const TOUR_STOPS=[
@@ -244,6 +246,17 @@ export default function App(){
     });
    }
    setSectDetail(updated);return updated;
+  }catch(e){notice(e.message);}
+  finally{setSectBusy(false);}
+ };
+ const publishTownLayout=async layout=>{
+  setSectBusy(true);
+  try{
+   const r=await fetch(apiUrl('/api/sects/'+encodeURIComponent(sectDetail.id)+'/layout'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify(layout)});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||'发布失败');
+   setSectDetail(d);
+   notice('门派小镇已发布：'+({village:'村落',lakeside:'湖畔',forest:'林间',mountain:'山地',float:'浮岛'}[d.townLayout?.terrain]||d.townLayout?.terrain||'')+'地形，访客通过分享链接看到的就是这样');
   }catch(e){notice(e.message);}
   finally{setSectBusy(false);}
  };
@@ -536,7 +549,7 @@ export default function App(){
        <p><b>一个门派 = 一张门派卡 + 一座小镇。</b>官网门派大厅负责「登记与发现」（成员、公告、开放加入），这里是你门派在江湖里的「立体家园」——聚义阁上的位次，就是门派里的位次。</p>
        <button className="text-button" onClick={()=>{writeStore('sectIntroSeen',true);setSectIntroSeen(true);}}>知道了</button>
       </div>}
-      {account&&sectDetail.founderId===account.id?<SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
+      {account&&sectDetail.founderId===account.id?<><SectStudio sect={sectDetail} busy={sectBusy} onPublish={publishTownLayout} onShare={shareSect}/><SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/></>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
      </div>:<button className="sect-card-toggle floating" onClick={()=>setSectCardOpen(true)} aria-label="展开门派面板">门派面板</button>}
     </div>}
     <div className="map-caption"><div className="compass-mark"><span>N</span><Compass size={37} strokeWidth={1}/></div><div><span className="eyebrow">{location==='hall'?'THE EXHIBITION HALL':world==='online'&&!staticDemo?'THE ONLINE WORLD':'THE ATOM VILLAGE'}</span><h2>{location==='hall'?'武林大会 · 灵感长廊':world==='online'&&!staticDemo?'原子公社 · 联机江湖':'原子公社 · 江湖初见'}</h2><p><MapPin size={13}/>{location==='hall'?'比赛展示馆':'原子广场'}<span>·</span>{location==='hall'?`${filtered.length} 份作品可供探索`:world==='online'&&!staticDemo?`${onlinePlayers.length+1} 位侠客在此相聚`:'8 位 AI 侠客在此生活'}</p></div></div>
