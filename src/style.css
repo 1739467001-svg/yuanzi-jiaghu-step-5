@@ -316,6 +316,14 @@
 .sect-mini.no{background:#f6ece9;color:#a06a5c}
 .sect-join{border:1px dashed #d9c48d;border-radius:12px;background:#fdf6e3a8;padding:12px 14px;margin-bottom:12px}
 
+.sect-benefit{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed #e6ebdc}
+.sect-benefit b{font-size:12px;color:#3c4a40}
+.sect-benefit p{font-size:10.5px;line-height:1.7;color:#75826f;margin:2px 0}
+.sect-benefit a{font-size:10px;color:#7a6a3a}
+.sect-benefit button{color:#b0b8a7;padding:4px}
+.sect-benefit button:hover{color:#b4432f}
+.sect-invite-log{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+
 /* ---- 原子门派 HUD ---- */
 .sect-studio{border:1px solid #dde3d6;border-radius:12px;background:#fbfbf0e0;padding:14px 16px;margin-bottom:14px}
 .sect-studio h4{font-size:12px;color:#3c4a40;margin-bottom:6px}

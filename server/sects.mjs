@@ -32,7 +32,7 @@ function writeJsonAtomic(file,value){
 function demoSects(){
  const mk=(id,name,slogan,intro,style,founder,elders,disciples)=>({
   id,name,slogan,intro,style,founderId:(typeof founder==='object'?founder.id:String(founder)),founderName:(typeof founder==='object'?founder.name:('演示成员-'+String(founder).slice(-1))),createdAt:Date.now()-86400000,
-  elders:elders.map(([n,t])=>({userId:'elder-'+id+'-'+n,name:n,title:t})),joinPolicy:'apply',notices:[],applications:[],
+  elders:elders.map(([n,t])=>({userId:'elder-'+id+'-'+n,name:n,title:t})),joinPolicy:'apply',notices:[],applications:[],benefits:[],
   disciples:disciples.map(([n,t])=>({userId:'disciple-'+id+'-'+n,name:n,title:t})),
  });
  return [
@@ -109,7 +109,7 @@ export function createSect(input,user){
  const base=validateSect(input);
  const who={id:cleanName(user?.id)||'anon',name:cleanName(user?.name)||'无名侠客'};
  if(loadSects().some(s=>s.name===base.name))throw new Error('这个门派名已被占用，换一个吧');
- const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[],townLayout:defaultLayout(),joinPolicy:'apply',notices:[],applications:[]};
+ const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[],townLayout:defaultLayout(),joinPolicy:'apply',notices:[],applications:[],benefits:[]};
  persist([...loadSects(),sect]);
  return sect;
 }
@@ -172,7 +172,7 @@ function fillSocial(sect){
 // 已在本门派中（创始人/长老/弟子）？
 function isMember(sect,user){return !!user&&(sect.founderId===user.id||sect.elders.some(e=>e.userId===user.id)||sect.disciples.some(d=>d.userId===user.id));}
 // 申请加入：需要登录身份（游客点按钮会先被引导注册/登录，与私聊同一套约束）。
-export function applyToSect(id,{message}={},user){
+export function applyToSect(id,{message,inviter}={},user){
  if(!user)throw new Error('需要先有名帖身份才能申请加入');
  const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
  if(isMember(sect,user))throw new Error('你已经在这座门派里了');
@@ -184,7 +184,10 @@ export function applyToSect(id,{message}={},user){
  }
  const pending=sect.applications.find(a=>a.userId===user.id&&a.status==='pending');
  if(pending)throw new Error('你的申请正在等掌门过目，别重复提交');
- sect.applications.push({id:'app-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),userId:user.id,name:user.name,message:cleanText(message,200),status:'pending',createdAt:Date.now()});
+  const inviterId=cleanText(inviter);
+ const app={id:'app-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),userId:user.id,name:user.name,message:cleanText(message,200),status:'pending',createdAt:Date.now()};
+ if(inviterId)app.inviterId=inviterId;   // 邀请赠金记录（接口就绪后按这条结算）
+ sect.applications.push(app);
  persist(all);return {sect,joined:false};
 }
 // 申请列表：掌门与长老可见（含待处理与历史）。
@@ -230,6 +233,28 @@ export function removeNotice(id,noticeId,user){
  const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
  if(!user||(sect.founderId!==user.id&&!sect.elders.some(e=>e.userId===user.id)))throw new Error('只有掌门与长老可以删除公告');
  sect.notices=sect.notices.filter(n=>n.id!==noticeId);
+ persist(all);return sect;
+}
+
+// ---- M3：权益展示（Token 碑 / OPC 权益的承载位）----
+export const BENEFIT_MAX=12;
+function validBenefits(list){
+ if(!Array.isArray(list))throw new Error('权益格式不正确');
+ if(list.length>BENEFIT_MAX)throw new Error('权益最多 '+BENEFIT_MAX+' 条');
+ return list.map((b,i)=>{
+  const title=cleanText(b?.title,30);
+  if(!title)throw new Error('第 '+(i+1)+' 条权益缺少标题');
+  const detail=cleanText(b?.detail,200);
+  const url=cleanText(b?.url,200);
+  if(url&&!/^https:\/\//.test(url))throw new Error('权益链接必须以 https:// 开头');
+  return {id:cleanText(b?.id)||('benefit-'+Date.now().toString(36)+i),title,detail,url};
+ });
+}
+// 权益碑内容：掌门与长老可维护；网站/权益系统接口就绪后可改成只读同步。
+export function setBenefits(id,benefits,user){
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ if(!user||(sect.founderId!==user.id&&!sect.elders.some(e=>e.userId===user.id)))throw new Error('只有掌门与长老可以维护权益碑');
+ sect.benefits=validBenefits(benefits||[]);
  persist(all);return sect;
 }
 

@@ -252,6 +252,18 @@ export default function App(){
   }catch(e){notice(e.message);}
   finally{setSectBusy(false);}
  };
+ // 权益碑维护（掌门/长老）：权益系统的接口就绪后，这里可以改成只读同步。
+ const saveBenefits=async list=>{
+  setSectBusy(true);
+  try{
+   const r=await fetch(apiUrl('/api/sects/'+encodeURIComponent(sectDetail.id)+'/benefits'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify({benefits:list})});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||'保存失败');
+   setSectDetail(d);
+   notice('权益碑已更新');
+  }catch(e){notice(e.message);}
+  finally{setSectBusy(false);}
+ };
  const publishTownLayout=async layout=>{
   setSectBusy(true);
   try{
@@ -268,7 +280,8 @@ export default function App(){
   if(!account){setAuthMode(readStore('authLocal',null)?'login':'register');setAuthError('');setAuthOpen(true);notice('申请加入门派需要先有名帖身份');return;}
   setSectBusy(true);
   try{
-   const r=await fetch(apiUrl('/api/sects/'+encodeURIComponent(sectDetail.id)+'/apply'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify({message})});
+   const from=new URLSearchParams(window.location.search).get('from')||'';
+   const r=await fetch(apiUrl('/api/sects/'+encodeURIComponent(sectDetail.id)+'/apply'),{method:'POST',headers:{'Content-Type':'application/json','x-atom-token':SECT_TOKEN()},body:JSON.stringify({message,inviter:from})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(d.error||'申请失败');
    setSectDetail(d.sect);
@@ -437,6 +450,7 @@ export default function App(){
   async function shareSect(){
    const id=sectDetail?.id;if(!id)return;
    const url=new URL(window.location.href);url.searchParams.set('sect',id);url.hash='';
+   if(account?.id)url.searchParams.set('from',account.id);   // 邀请追踪：谁带进来的人
    const link=url.toString();
    // 触摸设备优先调系统分享面板；其余（桌面与无 share 能力的环境）一律复制链接，
    // 分享失败也回落到复制——保证任何设备都能把链接发出去。
@@ -573,7 +587,7 @@ export default function App(){
        <p><b>一个门派 = 一张门派卡 + 一座小镇。</b>官网门派大厅负责「登记与发现」（成员、公告、开放加入），这里是你门派在江湖里的「立体家园」——聚义阁上的位次，就是门派里的位次。</p>
        <button className="text-button" onClick={()=>{writeStore('sectIntroSeen',true);setSectIntroSeen(true);}}>知道了</button>
       </div>}
-      {account&&sectDetail.founderId===account.id?<><SectStudio sect={sectDetail} busy={sectBusy} onPublish={publishTownLayout} onShare={shareSect}/><SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/><SectConsole sect={sectDetail} busy={sectBusy} meId={account?.id} onApi={sectMemberApi}/></>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
+      {account&&sectDetail.founderId===account.id?<><SectStudio sect={sectDetail} busy={sectBusy} onPublish={publishTownLayout} onShare={shareSect}/><SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/><SectConsole sect={sectDetail} busy={sectBusy} meId={account?.id} onApi={sectMemberApi} onSaveBenefits={saveBenefits} onShare={shareSect}/></>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
      </div>:<button className="sect-card-toggle floating" onClick={()=>setSectCardOpen(true)} aria-label="展开门派面板">门派面板</button>}
     </div>}
     <div className="map-caption"><div className="compass-mark"><span>N</span><Compass size={37} strokeWidth={1}/></div><div><span className="eyebrow">{location==='hall'?'THE EXHIBITION HALL':world==='online'&&!staticDemo?'THE ONLINE WORLD':'THE ATOM VILLAGE'}</span><h2>{location==='hall'?'武林大会 · 灵感长廊':world==='online'&&!staticDemo?'原子公社 · 联机江湖':'原子公社 · 江湖初见'}</h2><p><MapPin size={13}/>{location==='hall'?'比赛展示馆':'原子广场'}<span>·</span>{location==='hall'?`${filtered.length} 份作品可供探索`:world==='online'&&!staticDemo?`${onlinePlayers.length+1} 位侠客在此相聚`:'8 位 AI 侠客在此生活'}</p></div></div>

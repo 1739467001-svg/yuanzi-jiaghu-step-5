@@ -7,6 +7,7 @@
 import * as T from 'three';
 import {THEMES} from './config.js';
 import {TOWN_THEMES,TOWN_BUILDINGS,defaultLayout} from './townPresets.js';
+import {benefitsStele} from './benefitsStele.js';
 import {box,ball,cylinder,mesh,dmesh,material,textSign,roof,figureHead,lantern} from './models.js';
 
 const ROLE_ORDER=['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'];
@@ -254,6 +255,8 @@ export function buildSectInterior(parent,{sect,palette,night},interactive=[]){
    case 'plaque':{textSign(g,sect.name,el.x,3.4,el.z,3.2,.8,theme.wall,theme.accent);break;}
   }
  }
+ // 权益碑：门派权益的展示位（接口就绪前显示「权益待接入」）
+ benefitsStele(g,15,2,sect.benefits||[],theme);
  // 返回大殿的门口
  const back=new T.Group();back.position.set(0,0,15);g.add(back);
  back.userData={kind:'sect-back'};if(interactive)interactive.push(back);

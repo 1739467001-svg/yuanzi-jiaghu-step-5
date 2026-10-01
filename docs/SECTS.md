@@ -14,6 +14,7 @@
 | GET | `/api/sects/:id/applications` | 入派申请列表（掌门/长老可见） |
 | POST | `/api/sects/:id/applications/:appId` | 审核申请 （仅掌门；通过自动入驻为弟子） |
 | POST | `/api/sects/:id/join-policy` | 加入方式 `{policy:open|apply|invite}`（仅掌门） |
+| POST | `/api/sects/:id/benefits` | 维护权益碑 `{benefits:[…]}`（掌门/长老） |
 | POST | `/api/sects/:id/notices` | 发公告 `{text}`（掌门/长老） |
 | POST | `/api/sects/:id/notices/:noticeId` | 删公告（掌门/长老） |
 | POST | `/api/sects/:id/layout` | 发布门派小镇布局（仅创始人），按预设白名单校验 |

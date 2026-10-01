@@ -6,7 +6,7 @@
 // POST /api/sects/:id/elders       {name,title} 加入长老阁（仅创始人）
 // POST /api/sects/:id/disciples    {name,title} 收入弟子（仅创始人）
 // POST /api/sects/:id/members/remove {userId} 移出成员（仅创始人）
-import {createSect,updateSect,updateLayout,addElder,addDisciple,removeMember,applyToSect,listApplications,decideApplication,setJoinPolicy,addNotice,removeNotice,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
+import {createSect,updateSect,updateLayout,addElder,addDisciple,removeMember,applyToSect,listApplications,decideApplication,setJoinPolicy,setBenefits,addNotice,removeNotice,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
 import {verify} from './accounts.mjs';
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
 const readBody=async(req,limit=8000)=>{let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)throw new Error('请求过大');body+=chunk;}return JSON.parse(body||'{}');};
@@ -36,7 +36,7 @@ export function sectsApiPlugin(){
     // 手动触发一次远程同步（仅登录用户；同步本身是只读的远程拉取）。
     if(url.pathname==='/api/sects/refresh'&&req.method==='POST')return send(res,200,{source:await refreshSectSource()});
     // 成员管理、小镇布局、入派申请、公告都是「:id/子路径」，必须和 :id 分开匹配（否则整条落到 404）。
-    const sub=/^\/api\/sects\/([^/]+)\/(elders|disciples|members\/remove|layout|apply|applications|applications\/[^/]+|notices|notices\/[^/]+|join-policy)$/.exec(url.pathname);
+    const sub=/^\/api\/sects\/([^/]+)\/(elders|disciples|members\/remove|layout|apply|applications|applications\/[^/]+|notices|notices\/[^/]+|join-policy|benefits)$/.exec(url.pathname);
     if(sub){
      const id=decodeURIComponent(sub[1]),body=await readBody(req),leaf=sub[2];
      if(leaf==='elders')return send(res,200,addElder(id,body,user));
@@ -44,6 +44,7 @@ export function sectsApiPlugin(){
      if(leaf==='layout')return send(res,200,updateLayout(id,body,user));
      if(leaf==='apply')return send(res,200,applyToSect(id,body,user));
      if(leaf==='join-policy')return send(res,200,setJoinPolicy(id,String(body.policy||''),user));
+     if(leaf==='benefits')return send(res,200,setBenefits(id,Array.isArray(body.benefits)?body.benefits:body,user));
      if(leaf==='applications')return send(res,200,listApplications(id,user));
      if(leaf.startsWith('applications/'))return send(res,200,decideApplication(id,leaf.slice('applications/'.length),String(body.decision||''),user));
      if(leaf==='notices')return send(res,200,addNotice(id,body,user));
