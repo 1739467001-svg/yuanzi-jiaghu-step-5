@@ -26,12 +26,12 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch{setError(true);return;}
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=night?1.15:1.25;el.appendChild(renderer.domElement);
-  const palette=THEMES[theme]||THEMES.jianghu,scene=new T.Scene();const nightSky=night?(location==='hall'?'#0b1027':'#243e45'):palette.sky;scene.background=new T.Color(nightSky);scene.fog=new T.Fog(nightSky,105,245);
-  const camera=new T.PerspectiveCamera(37,1,.1,260);camera.position.set(32+0,30,39);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=160;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
+  const palette=THEMES[theme]||THEMES.jianghu,scene=new T.Scene();const nightSky=night?(location==='hall'?'#0b1027':'#243e45'):palette.sky;scene.background=new T.Color(nightSky);scene.fog=new T.Fog(nightSky,125,275);
+  const camera=new T.PerspectiveCamera(41,1,.1,300);camera.position.set(35,33,43);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=190;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
   scene.add(new T.HemisphereLight(night?'#9fbfce':'#fff8e3',night?'#263b3d':'#9ba994',night?1.5:2.2));const sun=new T.DirectionalLight(night?'#b7d4f0':'#fff1ce',night?1:3.4);sun.position.set(-16,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-29,right:29,top:29,bottom:-29,near:1,far:80});sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;scene.add(sun);
   const base=new T.Group();scene.add(base);const interactive=[],pinSources=[],agentModels=new Map();
-  const ground=dmesh(new T.BoxGeometry(39,.8,31),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,10,.95);ground.userData.kind='ground';interactive.push(ground);
-  dmesh(new T.BoxGeometry(39.1,.22,31.1),'#c3bfa7','stone',base,0,-.95,0,10,.95);dmesh(new T.BoxGeometry(38.4,.6,30.4),'#d6cfb8','stone',base,0,-1.3,0,10,.95);
+  const ground=dmesh(new T.BoxGeometry(46,.8,36),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,12,.95);ground.userData.kind='ground';interactive.push(ground);
+  dmesh(new T.BoxGeometry(46.1,.22,36.1),'#c3bfa7','stone',base,0,-.95,0,12,.95);dmesh(new T.BoxGeometry(38.4,.6,30.4),'#d6cfb8','stone',base,0,-1.3,0,10,.95);
   const backdrop=box(scene,0,-1.72,0,1000,.1,1000,night?'#263e43':palette.sky);backdrop.receiveShadow=true;
   const hallPlayer={id:'you',x:0,z:8,angle:0,path:[],state:'看展中'};
  let hallAgents=[],hallStands=[];
@@ -114,7 +114,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
     pinSources.push({id:'hall-'+a.id,kind:'agent',name:a.name,point});
     return {...ha,model,sprite,bubble:'',point};
    });
-   tree(base,-15,-7,1.4);tree(base,15,-7,1.4);player.position.set(0,0,8);camera.position.set(23,22,29);controls.target.set(0,0,-1);
+   tree(base,-15,-7,1.4);tree(base,15,-7,1.4);player.position.set(0,0,8);camera.position.set(25,24,32);controls.target.set(0,0,-1);
   }
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
   // 江湖氛围：花瓣、飞鸟、香烟、招幡、远山、脚步扬尘（手机端减半由下方 narrow 判定处理）
@@ -148,7 +148,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   let wasNarrow=null;
   function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;const narrow=w<550;if(narrow!==wasNarrow){camera.position.set((location==='town'?32:23),location==='town'?30:22,location==='town'?39:29);camera.position.multiplyScalar(narrow?2.05:1);controls.target.set(0,0,0);wasNarrow=narrow;}camera.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(el);resize();
-  let focusTarget=null,frame,last=performance.now(),lastPins=0;const home=()=>{camera.position.set(location==='town'?32:23,location==='town'?30:22,location==='town'?39:29);if(el.clientWidth<550)camera.position.multiplyScalar(2.05);controls.target.set(0,0,0);focusTarget=null;};  apiRef.current={reset:home,zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},focus:id=>{const p=PLACES.find(p=>p.id===id);if(p){focusTarget=new T.Vector3(p.x,1,p.z);engine.movePlayer(...p.entry);}},locate:()=>{const current=location==='town'?engine.player:hallPlayer;focusTarget=new T.Vector3(current.x,1,current.z);},
+  let focusTarget=null,frame,last=performance.now(),lastPins=0;const home=()=>{camera.position.set(location==='town'?35:25,location==='town'?33:24,location==='town'?43:32);if(el.clientWidth<550)camera.position.multiplyScalar(2.05);controls.target.set(0,0,0);focusTarget=null;};  apiRef.current={reset:home,zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},focus:id=>{const p=PLACES.find(p=>p.id===id);if(p){focusTarget=new T.Vector3(p.x,1,p.z);engine.movePlayer(...p.entry);}},locate:()=>{const current=location==='town'?engine.player:hallPlayer;focusTarget=new T.Vector3(current.x,1,current.z);},
    // 走到聚义阁某位成员的座席前：相机跟随过去，席上的人转身面向少侠。
    gotoSectSeat:(x,z)=>{
     if(location!=='sect'){return;}
@@ -206,7 +206,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    if(focusTarget){const delta=focusTarget.clone().sub(controls.target).multiplyScalar(.035);controls.target.add(delta);camera.position.add(delta);if(delta.length()<.003)focusTarget=null;}
    controls.update();renderer.render(scene,camera);
    if(now-lastPins>120){lastPins=now;const sources=[...pinSources];{const current=location==='town'?engine.player:hallPlayer;sources.push({id:'you',kind:'player',name:playerName,point:new T.Vector3(current.x,2.05+(location==='town'?terrainHeight(current.x,current.z):0),current.z)});};
-    const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});setPins(el.clientWidth<550?declutterPins(arr):arr);callbacks.current.onSnapshot(engine.snapshot());}
+    const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});setPins(el.clientWidth<900?declutterPins(arr):arr);callbacks.current.onSnapshot(engine.snapshot());}
    frame=requestAnimationFrame(render);
   }frame=requestAnimationFrame(render);
   return()=>{alive=false;cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose();m.dispose();});}});renderer.dispose();el.removeChild(renderer.domElement);};

@@ -42,13 +42,13 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneExposure=night?1.15:1.25;el.appendChild(renderer.domElement);
   const palette=THEMES[theme]||THEMES.jianghu,scene=new T.Scene();
   const nightSky=night?'#243e45':palette.sky;scene.background=new T.Color(nightSky);scene.fog=new T.Fog(nightSky,105,245);
-  const camera=new T.PerspectiveCamera(37,1,.1,260);camera.position.set(32,30,39);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=160;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
+  const camera=new T.PerspectiveCamera(41,1,.1,300);camera.position.set(35,33,43);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=190;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
   scene.add(new T.HemisphereLight(night?'#9fbfce':'#fff8e3',night?'#263b3d':'#9ba994',night?1.5:2.2));const sun=new T.DirectionalLight(night?'#b7d4f0':'#fff1ce',night?1:3.4);sun.position.set(-16,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-29,right:29,top:29,bottom:-29,near:1,far:80});sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;scene.add(sun);
   const base=new T.Group();scene.add(base);const interactive=[],pinSources=[],models=new Map();
   // 门派大殿/内景是平地观演空间；只有小镇和展示馆有地形起伏。
   const indoor=location==='sects'||location==='sect',groundY=(x,z)=>indoor?0:(terrainHeight(x,z)||0);
-  const ground=dmesh(new T.BoxGeometry(39,.8,31),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,10,.95);ground.userData.kind='ground';interactive.push(ground);
-  dmesh(new T.BoxGeometry(39.1,.22,31.1),'#c3bfa7','stone',base,0,-.95,0,10,.95);dmesh(new T.BoxGeometry(38.4,.6,30.4),'#d6cfb8','stone',base,0,-1.3,0,10,.95);
+  const ground=dmesh(new T.BoxGeometry(46,.8,36),night?'#6d8177':palette.grass,'grass',base,0,-.45,0,12,.95);ground.userData.kind='ground';interactive.push(ground);
+  dmesh(new T.BoxGeometry(46.1,.22,36.1),'#c3bfa7','stone',base,0,-.95,0,12,.95);dmesh(new T.BoxGeometry(45.4,.6,35.4),'#d6cfb8','stone',base,0,-1.3,0,12,.95);
   const backdrop=box(scene,0,-1.72,0,1000,.1,1000,night?'#263e43':palette.sky);backdrop.receiveShadow=true;
   let stars,flies,moon;
   if(night){
@@ -164,12 +164,12 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   const keyTimer=setInterval(()=>{if(keys.size)keyMove();},320);
   function resize(){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(el);resize();
-  const home=()=>{camera.position.set(32,30,39);controls.target.set(0,0,0);};
+  const home=()=>{camera.position.set(35,33,43);controls.target.set(0,0,0);};
   let focusTarget=null;
   apiRef.current={
    reset:home,
    zoom:v=>{camera.position.sub(controls.target).multiplyScalar(v).add(controls.target);},
-   locate:()=>{const self=selfRef.current;controls.target.set(self.x,1,self.z);camera.position.set(self.x+32,31,self.z+39);},
+   locate:()=>{const self=selfRef.current;controls.target.set(self.x,1,self.z);camera.position.set(self.x+35,34,self.z+43);},
    focus:id=>{const p=PLACES.find(p=>p.id===id);if(!p)return;focusTarget=new T.Vector3(p.x,1,p.z);const self=selfRef.current;self.path=findPath([self.x,self.z],p.entry);self.state='正在前往';client?.move(p.entry[0],p.entry[1]);},
    // 走到聚义阁某位成员的座席前：相机跟随，席上的人转身面向少侠。
    gotoSectSeat:(x,z)=>{
@@ -292,7 +292,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     sources.push({id:'you',kind:'player',name:selfName.current||playerName,point:new T.Vector3(self.x,2.05+groundY(self.x,self.z),self.z)});
     const projection=new T.Vector3();
     const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});
-    setPins(el.clientWidth<550?declutterPins(arr):arr);
+    setPins(el.clientWidth<900?declutterPins(arr):arr);
    }
    frame=requestAnimationFrame(render);
   }

@@ -68,30 +68,44 @@ export function building(p,color){
  const g=new T.Group();g.position.set(p.x,.05,p.z);g.userData={kind:'place',id:p.id};const w=p.w,d=p.d;
  dmesh(new T.BoxGeometry(w+.7,.4,d+.7),'#b7b8a7','stone',g,0,.2,0,Math.max(2,Math.round(w/2)));dmesh(new T.BoxGeometry(w+.25,.12,d+.25),'#e1d7bd','stone',g,0,.43,0,Math.max(2,Math.round(w/2)));
  if(p.kind==='pavilion'){
-  for(const x of [-w/2+.3,w/2-.3])for(const z of [-d/2+.3,d/2-.3])dmesh(new T.CylinderGeometry(.12,.14,2.5,10),'#826247','wood',g,x,1.6,z,1,.82);
-  roof(g,w+1.1,d+1.1,2.9,color);box(g,0,.9,0,1.4,.13,1.4,'#976f4c');cylinder(g,0,.7,0,.15,.25,.5,'#765943');return g;
+  for(const x of [-w/2+.3,w/2-.3])for(const z of [-d/2+.3,d/2-.3])dmesh(new T.CylinderGeometry(.13,.16,3.6,10),'#826247','wood',g,x,2.1,z,1,.82);
+  roof(g,w+1.2,d+1.2,4.1,color);box(g,0,1,0,1.6,.14,1.6,'#976f4c');cylinder(g,0,.78,0,.16,.26,.55,'#765943');textSign(g,p.short,0,3.1,d/2+.3,2.6,.62);return g;
  }
- const h=p.kind==='hall'?2.6:2.3;
+ const h=p.kind==='hall'?5.2:p.kind==='library'?4.6:p.kind==='workshop'?4:3.6;
  dmesh(new T.BoxGeometry(w,h,d),'#eee2c5','plaster',g,0,h/2+.4,0,Math.max(2,Math.round(w/3)),.92);
- for(const x of [-w/2+.2,0,w/2-.2])dmesh(new T.CylinderGeometry(.08,.08,h,8),'#846345','wood',g,x,h/2+.4,d/2+.08,1,.8);
+ for(const x of [-w/2+.2,0,w/2-.2])dmesh(new T.CylinderGeometry(.09,.09,h,8),'#846345','wood',g,x,h/2+.4,d/2+.08,1,.8);
  for(const z of [-d/2+.2,d/2-.2])dmesh(new T.BoxGeometry(.14,h,.17),'#826448','wood',g,-w/2-.05,h/2+.4,z,1,.8);
- dmesh(new T.BoxGeometry(1.15,1.45,.08),'#354941','wood',g,0,.9,d/2+.12,1,.7);
+ dmesh(new T.BoxGeometry(1.3,2.1,.08),'#354941','wood',g,0,1.15,d/2+.12,1,.7);
+ dmesh(new T.BoxGeometry(.35,.5,.06),'#e6b978','wood',g,.42,1.2,d/2+.17,1,.7);
  for(const x of [-w*.32,w*.32]){
-  dmesh(new T.BoxGeometry(w*.2,1.35,.08),'#8a6b45','wood',g,x,1.6,d/2+.09,1,.8);dmesh(new T.BoxGeometry(w*.17,1.18,.06),'#e6b978','wood',g,x,1.6,d/2+.14,1,.8);
-  for(let a=-1;a<=1;a++)box(g,x+a*w*.05,1.6,d/2+.2,.035,1.18,.04,'#725c41');box(g,x,1.6,d/2+.2,w*.2,.05,.04,'#725c41');
+  const wy=p.kind==='library'?2.6:1.9;
+  dmesh(new T.BoxGeometry(w*.2,1.5,.08),'#8a6b45','wood',g,x,wy,d/2+.09,1,.8);dmesh(new T.BoxGeometry(w*.17,1.3,.06),'#e6b978','wood',g,x,wy,d/2+.14,1,.8);
+  for(let a=-1;a<=1;a++)box(g,x+a*w*.05,wy,d/2+.2,.035,1.3,.04,'#725c41');box(g,x,wy,d/2+.2,w*.2,.05,.04,'#725c41');
  }
- for(let a=0;a<3;a++)dmesh(new T.BoxGeometry(1.9,.18,1.2-a*.15),'#ceccb8','stone',g,0,.12+a*.1,d/2+.9-a*.25,1,.9);
+ for(let a=0;a<4;a++)dmesh(new T.BoxGeometry(2.1+a*.25,.2,1.3-a*.18),'#ceccb8','stone',g,0,.1+a*.12,d/2+1.1-a*.26,1,.9);
  roof(g,w+1.1,d+1, h+.5,color,1.2);
  if(p.kind==='hall'||p.kind==='tea'||p.kind==='sect'){
-  const w2=w*.65,d2=d*.6;box(g,0,h+1.55,0,w2,1.35,d2,'#e8d6b5');
-  for(let x=-w2/2+.3;x<w2/2;x+=.7){box(g,x,h+1.55,d2/2+.04,.46,.7,.07,'#bda274');box(g,x,h+1.55,d2/2+.1,.05,.75,.05,'#5d604c');}
-  roof(g,w2+1.4,d2+1.2,h+2.3,color,1.1);
+  const w2=w*.68,d2=d*.62,g2=2.1;box(g,0,h+.7+.6+g2/2,0,w2,g2,d2,'#eee2c5');
+  const ry=h+.7+.6+g2;
+  for(let x=-w2/2+.3;x<w2/2;x+=.7){box(g,x,ry,d2/2+.05,.46,.78,.07,'#bda274');box(g,x,ry,d2/2+.12,.05,.82,.05,'#5d604c');}
+  for(const sx of [-1,1]){box(g,sx*(w2/2+.06),ry-.05,0,.1,1.1,d2,'#8a6b45');box(g,sx*(w2/2+.06),ry+.5,d2/2-.3,1.2,.08,.08,'#a8783f');}
+  roof(g,w2+1.5,d2+1.3,ry+.75,color,1.15);
  }
- textSign(g,p.short,0,2.4,d/2+.25,Math.min(w*.6,3.6),.6);
+ textSign(g,p.short,0,2.9,d/2+.28,Math.min(w*.68,4.2),.7);
+ if(p.kind==='library'){
+  // 书院三层塔：逐层收分，每层檐角挂灯
+  for(let t=0;t<2;t++){
+   const w3=w*(.68-t*.16),d3=d*(.72-t*.14),y3=h+1.1+t*2.05;
+   box(g,0,y3,0,w3,2,d3,'#eee2c5');
+   roof(g,w3+1.1,d3+1.1,y3+1,color,.95);
+   for(const sx of [-1,1]){ball(g,sx*(w3/2+.4),y3+1.2,0,.11,'#dd9b56',[.8,1.2,.8]);}
+  }
+ }
  if(p.kind==='sect'){
   // 门派旗幡：两杆高旗 + 旌旗布面，远处即可辨认为「门派」而非普通建筑。
-  for(const sx of [-1,1]){cylinder(g,sx*(w/2+.55),2.1,d/2+.55,.045,.05,3.4,'#6d5943',8);box(g,sx*(w/2+.55),.15,d/2+.55,.34,.3,.34,'#a89a80');}
-  box(g,-(w/2+1.05),2.55,d/2+.55,.75,1.5,.06,'#c85a4a');box(g,(w/2+1.05),2.55,d/2+.55,.75,1.5,.06,'#4a7a9e');
+  for(const sx of [-1,1]){cylinder(g,sx*(w/2+.55),2.7,d/2+.55,.045,.05,5,'#6d5943',8);box(g,sx*(w/2+.55),.15,d/2+.55,.34,.3,.34,'#a89a80');}
+  box(g,-(w/2+1.2),3.4,d/2+.55,.9,2.1,.06,'#c85a4a');box(g,(w/2+1.2),3.4,d/2+.55,.9,2.1,.06,'#4a7a9e');
+  ball(g,-(w/2+.55),5.3,d/2+.55,.13,'#d8b56a');ball(g,(w/2+.55),5.3,d/2+.55,.13,'#d8b56a');
   ball(g,-(w/2+.55),3.9,d/2+.55,.12,'#d8b56a');ball(g,(w/2+.55),3.9,d/2+.55,.12,'#d8b56a');
  }
  if(p.kind==='placeholder'){
