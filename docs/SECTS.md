@@ -10,6 +10,12 @@
 | GET | `/api/sects/:id` | 门派详情（含三角色） |
 | POST | `/api/sects` | 建派 `{name,slogan,intro,style}`，需登录 |
 | PATCH | `/api/sects/:id` | 改资料，仅创始人 |
+| POST | `/api/sects/:id/apply` | 申请加入（需登录；开放加入直接入驻，邀请制拒绝） |
+| GET | `/api/sects/:id/applications` | 入派申请列表（掌门/长老可见） |
+| POST | `/api/sects/:id/applications/:appId` | 审核申请 （仅掌门；通过自动入驻为弟子） |
+| POST | `/api/sects/:id/join-policy` | 加入方式 `{policy:open|apply|invite}`（仅掌门） |
+| POST | `/api/sects/:id/notices` | 发公告 `{text}`（掌门/长老） |
+| POST | `/api/sects/:id/notices/:noticeId` | 删公告（掌门/长老） |
 | POST | `/api/sects/:id/layout` | 发布门派小镇布局（仅创始人），按预设白名单校验 |
 | POST | `/api/sects/:id/elders` | `{name,title}` 加入长老阁，仅创始人 |
 | POST | `/api/sects/:id/disciples` | `{name,title}` 收入弟子，仅创始人 |

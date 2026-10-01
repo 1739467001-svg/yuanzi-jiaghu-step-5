@@ -288,6 +288,34 @@
 .presence-card li{font-size:11px;color:#6b7a6b;line-height:1.7}
 .follow-latest{display:block;font-size:10px;color:#8fa08a;margin-top:3px;line-height:1.6}
 
+/* ---- 门派事务（M2）---- */
+.sect-console{border:1px solid #dde3d6;border-radius:12px;background:#fbfbf0e0;padding:14px 16px;margin-bottom:14px}
+.sect-console h4{display:flex;align-items:center;gap:6px;font-size:12px;color:#3c4a40;margin-bottom:10px}
+.sect-console-block{margin-bottom:14px}
+.sect-console-label{display:flex;align-items:center;gap:5px;font-size:10px;color:#8a9784;margin-bottom:6px}
+.sect-console-row{display:flex;gap:8px}
+.sect-console-row input{flex:1;min-width:0;border:1px solid #dde3d6;border-radius:8px;padding:8px 10px;font-size:11px;background:#fff}
+.sect-console-row .secondary-button,.sect-console-row .primary-button{min-height:34px;padding:8px 12px;font-size:11px;white-space:nowrap}
+.sect-policy-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#7d8b74;border:1px solid #dde3d6;border-radius:20px;padding:6px 11px;background:#fbfbf0e0;min-height:30px}
+.chip.on{border-color:#b4432f;color:#b4432f;background:#fdf3ec}
+.sect-notice{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed #e6ebdc}
+.sect-notice p{font-size:11px;line-height:1.7;color:#55633f}
+.sect-notice small{font-size:9px;color:#a3ad98}
+.sect-notice button{color:#b0b8a7;padding:4px}
+.sect-notice button:hover{color:#b4432f}
+.sect-apply{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed #e6ebdc}
+.sect-apply b{font-size:12px;color:#3c4a40}
+.sect-apply p{font-size:10.5px;line-height:1.7;color:#75826f;margin:2px 0}
+.sect-apply small{font-size:9px;color:#a3ad98}
+.sect-apply-actions{display:flex;gap:6px;flex-shrink:0}
+.sect-apply-actions button{min-height:32px;padding:7px 10px;font-size:11px}
+.sect-apply-history{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sect-mini{font-size:9px;border-radius:20px;padding:4px 9px;background:#f0f3e6;color:#8a9784}
+.sect-mini.ok{background:#e9f2e4;color:#4a7a52}
+.sect-mini.no{background:#f6ece9;color:#a06a5c}
+.sect-join{border:1px dashed #d9c48d;border-radius:12px;background:#fdf6e3a8;padding:12px 14px;margin-bottom:12px}
+
 /* ---- 原子门派 HUD ---- */
 .sect-studio{border:1px solid #dde3d6;border-radius:12px;background:#fbfbf0e0;padding:14px 16px;margin-bottom:14px}
 .sect-studio h4{font-size:12px;color:#3c4a40;margin-bottom:6px}

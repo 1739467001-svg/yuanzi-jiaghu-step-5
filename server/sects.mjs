@@ -32,7 +32,7 @@ function writeJsonAtomic(file,value){
 function demoSects(){
  const mk=(id,name,slogan,intro,style,founder,elders,disciples)=>({
   id,name,slogan,intro,style,founderId:(typeof founder==='object'?founder.id:String(founder)),founderName:(typeof founder==='object'?founder.name:('演示成员-'+String(founder).slice(-1))),createdAt:Date.now()-86400000,
-  elders:elders.map(([n,t])=>({userId:'elder-'+id+'-'+n,name:n,title:t})),
+  elders:elders.map(([n,t])=>({userId:'elder-'+id+'-'+n,name:n,title:t})),joinPolicy:'apply',notices:[],applications:[],
   disciples:disciples.map(([n,t])=>({userId:'disciple-'+id+'-'+n,name:n,title:t})),
  });
  return [
@@ -109,7 +109,7 @@ export function createSect(input,user){
  const base=validateSect(input);
  const who={id:cleanName(user?.id)||'anon',name:cleanName(user?.name)||'无名侠客'};
  if(loadSects().some(s=>s.name===base.name))throw new Error('这个门派名已被占用，换一个吧');
- const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[],townLayout:defaultLayout()};
+ const sect={id:'sect-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,founderId:who.id,founderName:who.name,createdAt:Date.now(),elders:[],disciples:[],townLayout:defaultLayout(),joinPolicy:'apply',notices:[],applications:[]};
  persist([...loadSects(),sect]);
  return sect;
 }
@@ -158,6 +158,81 @@ export function addDisciple(id,member,user){
  if(sect.elders.some(e=>e.userId===row.userId||e.name===row.name)||sect.disciples.some(d=>d.userId===row.userId||d.name===row.name))throw new Error(`${row.name} 已在门派中`);
  sect.disciples.push(row);persist(all);return sect;
 }
+// ---- M2 社交化：加入策略 / 入派申请 / 公告 ----
+export const JOIN_POLICIES=['open','apply','invite'];
+const NOTICE_MAX=200;
+function cleanText(v,max){return String(v||'').trim().slice(0,max);}
+// 演示门派与既有数据补齐 M2 字段（老数据没有这些键也能正常读）。
+function fillSocial(sect){
+ if(!JOIN_POLICIES.includes(sect.joinPolicy))sect.joinPolicy='apply';
+ if(!Array.isArray(sect.notices))sect.notices=[];
+ if(!Array.isArray(sect.applications))sect.applications=[];
+ return sect;
+}
+// 已在本门派中（创始人/长老/弟子）？
+function isMember(sect,user){return !!user&&(sect.founderId===user.id||sect.elders.some(e=>e.userId===user.id)||sect.disciples.some(d=>d.userId===user.id));}
+// 申请加入：需要登录身份（游客点按钮会先被引导注册/登录，与私聊同一套约束）。
+export function applyToSect(id,{message}={},user){
+ if(!user)throw new Error('需要先有名帖身份才能申请加入');
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ if(isMember(sect,user))throw new Error('你已经在这座门派里了');
+ if(sect.joinPolicy==='invite')throw new Error('这座门派目前只接受邀请加入');
+ if(sect.joinPolicy==='open'){
+  // 开放加入：直接入驻为弟子
+  sect.disciples.push(memberRow(user.id,user.name,'弟子',DISCIPLE_TITLES,'弟子'));
+  persist(all);return {sect,joined:true};
+ }
+ const pending=sect.applications.find(a=>a.userId===user.id&&a.status==='pending');
+ if(pending)throw new Error('你的申请正在等掌门过目，别重复提交');
+ sect.applications.push({id:'app-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),userId:user.id,name:user.name,message:cleanText(message,200),status:'pending',createdAt:Date.now()});
+ persist(all);return {sect,joined:false};
+}
+// 申请列表：掌门与长老可见（含待处理与历史）。
+export function listApplications(id,user){
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ if(!user||(sect.founderId!==user.id&&!sect.elders.some(e=>e.userId===user.id)))throw new Error('只有掌门与长老可以查看入派申请');
+ return {applications:sect.applications.slice().sort((a,b)=>b.createdAt-a.createdAt)};
+}
+// 审核：仅掌门。通过则自动入驻为弟子（位次由称号排序，默认「弟子」）。
+export function decideApplication(id,appId,decision,user){
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ assertFounder(sect,user);
+ const app=sect.applications.find(a=>a.id===appId);
+ if(!app)throw new Error('申请不存在');
+ if(app.status!=='pending')throw new Error('这条申请已经处理过了');
+ if(decision==='approve'){
+  app.status='approved';app.decidedAt=Date.now();
+  const row=memberRow(app.userId,app.name,'弟子',DISCIPLE_TITLES,'弟子');
+  if(!sect.disciples.some(d=>d.userId===row.userId))sect.disciples.push(row);
+ }else if(decision==='reject'){
+  app.status='rejected';app.decidedAt=Date.now();
+ }else throw new Error('未知的审核结果');
+ persist(all);return sect;
+}
+// 加入策略：仅掌门（开放加入 / 申请制 / 邀请制）。
+export function setJoinPolicy(id,policy,user){
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ assertFounder(sect,user);
+ if(!JOIN_POLICIES.includes(policy))throw new Error('未知的加入方式');
+ sect.joinPolicy=policy;persist(all);return sect;
+}
+// 公告：掌门与长老可发可删（麦特哥权限表里长老「代管公告」）。
+export function addNotice(id,{text}={},user){
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ if(!user||(sect.founderId!==user.id&&!sect.elders.some(e=>e.userId===user.id)))throw new Error('只有掌门与长老可以发布公告');
+ const body=cleanText(text,NOTICE_MAX);
+ if(!body)throw new Error('公告不能为空');
+ sect.notices.unshift({id:'notice-'+Date.now().toString(36),text:body,by:user.name,byId:user.id,at:Date.now()});
+ if(sect.notices.length>20)sect.notices.length=20;
+ persist(all);return sect;
+}
+export function removeNotice(id,noticeId,user){
+ const all=loadSects();const sect=fillSocial(all.find(x=>x.id===id));if(!sect)throw new Error('门派不存在');
+ if(!user||(sect.founderId!==user.id&&!sect.elders.some(e=>e.userId===user.id)))throw new Error('只有掌门与长老可以删除公告');
+ sect.notices=sect.notices.filter(n=>n.id!==noticeId);
+ persist(all);return sect;
+}
+
 // 分页：每页 4 个（PRD 展示口径），顺序即创建顺序。
 export function pageSects(page=1,size=SECT_PAGE_SIZE){
  const all=loadSects();

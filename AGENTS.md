@@ -22,7 +22,7 @@ node scripts/git-sync.mjs "本次更新的提交信息"
 
 0. `npm run verify:repo` 通过（仓库完整性：构建所需文件都已入库——Vercel/Docker 是干净检出，漏文件只在部署时爆炸）。
 1. `npm test` 全绿（单测）。
-2. 九套 e2e 全绿：`test:e2e`、`test:e2e-mp`、`test:e2e-model`、`test:e2e-queue`、`test:e2e-rooms`、`test:e2e-glb`、`test:e2e-sect-share`、`test:e2e-sect-studio`、`test:e2e-sects`（需先 `npm run build` 并起 preview 服务；`test:e2e-glb` 要带 `TEST_BASE_URL`；`test:e2e-sect-share` 与 `test:e2e-sects` 自带临时服务，不需要外部进程；机器负载高（同时跑多个 WebGL 场景）时 `test:e2e-queue` 用 `TEST_PROD=1`，避开 dev 服务器按需编译）。
+2. 十套 e2e 全绿：`test:e2e`、`test:e2e-mp`、`test:e2e-model`、`test:e2e-queue`、`test:e2e-rooms`、`test:e2e-glb`、`test:e2e-sect-share`、`test:e2e-sect-studio`、`test:e2e-sect-social`、`test:e2e-sects`（需先 `npm run build` 并起 preview 服务；`test:e2e-glb` 要带 `TEST_BASE_URL`；`test:e2e-sect-share` 与 `test:e2e-sects` 自带临时服务，不需要外部进程；机器负载高（同时跑多个 WebGL 场景）时 `test:e2e-queue` 用 `TEST_PROD=1`，避开 dev 服务器按需编译）。
 3. `npm run validate:world`、`npm run validate:content` 与 `npm run audit:mobile`（5 档视口无重叠/溢出/过小触控目标）通过。
 4. 文档同步更新：`docs/NEXT_TASK_PLAN.md`（阶段计划 → 进展）、`README.md`、`原子江湖2-交付说明.md`（在仓库上一级目录）、必要时 `docs/VERIFICATION.md`。
 5. **最后执行第 1 节的 GitHub 同步。**
