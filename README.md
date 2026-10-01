@@ -170,6 +170,10 @@ tests/                      路径、状态机、内容、记忆、坐标、发�
 
 3D 展厅展示房间固定的共享展陈展区 1（`src/content/exhibition.js`，当前为 FunSkills 38 条、5 个展区）；阅读面板的个人筛选只改变面板列表，用“展陈中”标记与展区编号区分。接口失败时前端降级到内置快照并提示，作品阅读不中断。详见 `docs/CONTENT_SERVICE.md`。
 
+## 下一步升级
+
+融合外部需求的小镇升级方案见 [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md)（门派小镇创作工坊 M0—M3、地形与现有资产咬合、数据模型映射、待拍板问题）；小镇重构思见 [docs/TOWN-VISION.md](docs/TOWN-VISION.md)。
+
 ## 数据存储
 
 账号/会话/记忆/关注/门派/审计目前是 `data/` 下的 JSON 文件（原子写入），没有数据库服务；已知限制与选型建议（SQLite / PostgreSQL / MySQL 对比、迁移路径）见 [docs/STORAGE.md](docs/STORAGE.md)。
