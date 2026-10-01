@@ -6,10 +6,29 @@ export const DAY_PHASES=[
  {name:'清晨',from:6,to:9,prefer:['tea','workshop'],pace:1},
  {name:'上午',from:9,to:12,prefer:['tea','workshop','hall'],pace:1},
  {name:'午后',from:12,to:14,prefer:['hall','library','tea'],pace:1},
- {name:'傍晚',from:14,to:18,prefer:['pavilion','library','workshop','tea'],pace:1.15},
- {name:'入夜',from:18,to:22,prefer:['hall','pavilion','tea'],pace:1.3},
- {name:'深夜',from:22,to:6,prefer:['pavilion','tea'],pace:2},
+ {name:'傍晚',from:14,to:18,prefer:['agora','library','workshop','tea'],pace:1.15},
+ {name:'入夜',from:18,to:22,prefer:['hall','agora','tea'],pace:1.3},
+ {name:'深夜',from:22,to:6,prefer:['agora','tea'],pace:2},
 ];
+// 论剑（Agent 与 Agent 的公开辩论）：定时双侠到群侠论剑台就一个话题各执一词，
+// 议题来自社区真话题与角色见闻；玩家可到场旁观。与私聊的区别是「公开、有立场、有观众」。
+export const DEBATE_TOPICS=[
+ {topic:'想法该先做出来还是先想清楚',pro:'先做出来，跑起来才知道对不对',con:'先想清楚骨架，不然返工更贵'},
+ {topic:'分享要等作品完美再发吗',pro:'半成品也值得发，反馈就是养料',con:'至少自己这关过了再给人看'},
+ {topic:'小队里先定目标还是先定节奏',pro:'目标不清，节奏再好也白跑',con:'节奏稳了，目标自然清晰'},
+ {topic:'AI 该替人做事还是陪人想事',pro:'能接手的杂事就放心交给它',con:'关键的那步必须人来判断'},
+ {topic:'新手先深耕一个方向还是多试几个',pro:'先打透一个点，信心是攒出来的',con:'多试几个才找得到真正的兴趣'},
+];
+const AGORA_SPOTS=[{x:10.6,z:9.4},{x:13.4,z:9.4},{x:10.6,z:11.4},{x:13.4,z:11.4}];
+export function agoraSpots(){return AGORA_SPOTS;}
+// 取两个空闲且互不为伴的侠客；不足则本轮不办。
+export function pickDebatePair(agents){
+ const free=agents.filter(a=>!a.held&&!a.partner&&!a.path.length&&!a.debating);
+ if(free.length<2)return null;
+ const a=free[Math.floor(Math.random()*free.length)];
+ const b=free.find(x=>x.id!==a.id&&x.id!==a.partner);
+ return b?[a,b]:null;
+}
 export function phaseAt(hour){
  for(const p of DAY_PHASES){if(p.from<p.to){if(hour>=p.from&&hour<p.to)return p;}else if(hour>=p.from||hour<p.to)return p;}
  return DAY_PHASES[0];
@@ -44,7 +63,7 @@ export function findPath(from,to,isWalkable=walkable){
  let at=goal,result=[];while(at!==s){result.unshift(at.split(',').map(Number));at=previous.get(at);}return result;
 }
 export class WorldEngine{
- constructor(onEvent=()=>{}){this.time=0;this.onEvent=onEvent;this.paused=false;this.clock=8;this.lastPhase=phaseAt(this.clock).name;this.player={id:'you',name:'你',color:'#427ab5',x:-3,z:1,angle:0,path:[],state:'自在漫游'};this.agents=AGENTS.map((a,i)=>({...a,x:a.start[0],z:a.start[1],angle:0,path:[],state:'歇脚中',wait:2+i*1.7,step:i%2,memory:[],partner:null,task:null,views:[],viewed:new Set(),lastView:-999}));this.works=[];}
+ constructor(onEvent=()=>{}){this.time=0;this.onEvent=onEvent;this.paused=false;this.clock=8;this.lastPhase=phaseAt(this.clock).name;this.player={id:'you',name:'你',color:'#427ab5',x:-3,z:1,angle:0,path:[],state:'自在漫游'};this.agents=AGENTS.map((a,i)=>({...a,x:a.start[0],z:a.start[1],angle:0,path:[],state:'歇脚中',wait:2+i*1.7,step:i%2,memory:[],partner:null,task:null,views:[],viewed:new Set(),lastView:-999,debating:null,debateTopic:null}));this.works=[];this.debateCooldown=20;this.debateRound=0;}
  phase(){return phaseAt(this.clock);}
  // 已发布作品由内容契约注入；观展与导览只读取发布状态为“已发布”的数据。
  setWorks(works){this.works=Array.isArray(works)?works.filter(w=>w&&w.id&&w.title&&w.publicationStatus==='已发布'):[];}
@@ -62,6 +81,7 @@ export class WorldEngine{
  tick(dt){if(this.paused)return;dt=Math.min(dt,.1);this.time+=dt;this.clock=(this.clock+dt/90)%24;
   const phase=phaseAt(this.clock);
   if(phase.name!==this.lastPhase){this.lastPhase=phase.name;this.onEvent({id:`phase-${this.time}`,text:`时辰流转，江湖到了${phase.name}`,kind:'phase',time:Date.now()});}
+  this.runDebate(dt);
   this.advance(this.player,dt,3.2);
   for(const a of this.agents){if(a.held)continue;this.advance(a,dt,1.15);if(a.path.length)continue;
    // 观展闭环：到达展示馆后读取作品事实，生成不超过 60 字的角色观感并记入公开见闻。
@@ -96,6 +116,51 @@ export class WorldEngine{
   }
  }
  advance(a,dt,speed){stepActor(a,dt,speed);}
+ // 群侠论剑台：定时双侠上台就一个话题各执一词（公开、有立场、可旁观）。
+ runDebate(dt){
+  this.debateCooldown-=dt;
+  if(this.debateCooldown<=0&&!this.agents.some(a=>a.debating)){
+   this.debateCooldown=45+Math.random()*35;
+   const pair=pickDebatePair(this.agents);
+   if(!pair)return;
+   const t=DEBATE_TOPICS[this.debateRound++%DEBATE_TOPICS.length],[p0,p1]=pair;
+   for(const [a,other,spot,side] of [[p0,p1,AGORA_SPOTS[0],0],[p1,p0,AGORA_SPOTS[1],1]]){
+    a.debating={topic:t.topic,side,with:other.id};a.debateTopic=t.topic;
+    a.partner=other.id;other.partner=a.id;
+    a.state='前往论剑台';other.state='前往论剑台';
+    a.path=findPath([a.x,a.z],[spot.x,spot.z]);
+    other.path=findPath([other.x,other.z],[AGORA_SPOTS[side?0:1].x,AGORA_SPOTS[side?0:1].z]);
+    a.debateUntil=this.time+50;other.debateUntil=this.time+50;
+    a.holdAt=spot;other.holdAt=AGORA_SPOTS[side?0:1];
+   }
+   this.onEvent({id:`debate-${this.time}`,text:`${p0.name}与${p1.name}约在论剑台，就「${t.topic}」各执一词`,kind:'debate',time:Date.now()});
+  }
+  for(const a of this.agents){
+   if(!a.debating||a.path.length)continue;
+   if(a.debating.until===undefined)a.debating.until=a.debateUntil;
+   if(this.time>a.debating.until){this.endDebate(a);continue;}
+   if(a.holdAt){a.x=a.holdAt.x;a.z=a.holdAt.z;a.holdAt=null;}
+   const other=this.agents.find(b=>b.id===a.debating.with);
+   if(other)a.angle=Math.atan2(other.x-a.x,other.z-a.z);
+   a.state='论剑中';a.wait=3;
+   if(this.time-(a.lastSpeak||0)>7){
+    a.lastSpeak=this.time;
+    const t=DEBATE_TOPICS.find(x=>x.topic===a.debating.topic)||DEBATE_TOPICS[0];
+    const line=a.debating.side?t.con:t.pro;
+    a.debateSpeak=line;   // 3D 气泡读这句：让旁观的人也看见双方论点
+    this.onEvent({id:`debate-say-${a.id}-${this.time}`,text:`${a.name}：“${line}”`,kind:'debate',time:Date.now()});
+   }
+  }
+ }
+ endDebate(a){
+  const other=this.agents.find(b=>b.id===a.debating?.with);
+  for(const x of [a,other].filter(Boolean)){
+   x.debating=null;x.debateTopic=null;x.holdAt=null;
+   x.partner=null;x.state='整理见闻';x.wait=8;
+  }
+ }
+ debatePro(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.pro:'我看值得一试';}
+ debateCon(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.con:'也要留个后手';}
  snapshot(){return this.agents.map(({id,name,state,x,z,memory,views})=>({id,name,state,x,z,memory:[...memory],views:views.map(v=>({...v}))}));}
 }
 // 沿路径推进一个角色（服务端权威移动与客户端预测共用同一套规则）。

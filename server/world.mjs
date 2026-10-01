@@ -74,7 +74,8 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
   let changed=false;
   for(const a of engine.agents){
    if(a.path.length){if(a.seat){a.seat=null;changed=true;}continue;}
-   if(a.seat||a.held)continue;
+   // 正在交谈/论剑的侠客不拉来入座（引擎下一拍会结束对话并改状态，座位就名不副实）。
+   if(a.seat||a.held||a.debating||a.partner)continue;
    if(!SEATS.some(s=>Math.hypot(a.x-s.x,a.z-s.z)<6))continue;
    const taken=new Set([...actors.values()].filter(x=>x.online&&x.seat).map(x=>x.seat));
    for(const s of SEATS){

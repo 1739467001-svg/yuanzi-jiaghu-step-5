@@ -206,9 +206,11 @@ test('public activity feed carries only public AI events', () => {
  const activity=a.find('activity').at(-1);
  assert.ok(activity&&activity.events.length>0,'AI 活动进入公开流');
  for(const e of activity.events){
-  assert.ok(['walk','chat','view','phase'].includes(e.kind));
+  assert.ok(['walk','chat','view','phase','debate'].includes(e.kind));
   assert.ok(!/私聊|记忆/.test(e.text),'公开活动不得包含私人信息');
  }
+ // 论剑是公开活动：双方论点都进公开流（旁观者看得见）。
+ assert.ok(activity.events.some(e=>e.kind==='debate'&&/论剑|“/.test(e.text)),'论剑进入公开活动流');
 });
 
 test('a full room queues newcomers and admits them FIFO when a slot frees', async () => {

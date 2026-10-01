@@ -4,7 +4,7 @@ import {findPath, walkable, hallWalkable} from '../src/world/engine.js';
 import {findWork, allPublishedWorks} from '../src/content/catalog.js';
 import {SHARED_EXHIBITION, exhibitionEntries, exhibitionZoneCount} from '../src/content/exhibition.js';
 
-const placeKinds = new Set(['hall','tea','workshop','library','pavilion','sect','placeholder']);
+const placeKinds = new Set(['hall','tea','workshop','library','agora','sect','placeholder']);
 const ids = values => values.map(v => v.id);
 const unique = values => new Set(values).size === values.length;
 

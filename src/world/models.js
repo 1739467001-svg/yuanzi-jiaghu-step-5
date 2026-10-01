@@ -67,9 +67,27 @@ export function lantern(parent,x,y,z){cylinder(parent,x,y+.3,z,.035,.035,.35,'#6
 export function building(p,color){
  const g=new T.Group();g.position.set(p.x,.05,p.z);g.userData={kind:'place',id:p.id};const w=p.w,d=p.d;
  dmesh(new T.BoxGeometry(w+.7,.4,d+.7),'#b7b8a7','stone',g,0,.2,0,Math.max(2,Math.round(w/2)));dmesh(new T.BoxGeometry(w+.25,.12,d+.25),'#e1d7bd','stone',g,0,.43,0,Math.max(2,Math.round(w/2)));
- if(p.kind==='pavilion'){
-  for(const x of [-w/2+.3,w/2-.3])for(const z of [-d/2+.3,d/2-.3])dmesh(new T.CylinderGeometry(.13,.16,3.6,10),'#826247','wood',g,x,2.1,z,1,.82);
-  roof(g,w+1.2,d+1.2,4.1,color);box(g,0,1,0,1.6,.14,1.6,'#976f4c');cylinder(g,0,.78,0,.16,.26,.55,'#765943');textSign(g,p.short,0,3.1,d/2+.3,2.6,.62);return g;
+ if(p.kind==='agora'){
+  // 群侠论剑台：圆形石台 + 中央高台 + 环形看台 + 旌旗 + 兵器架。
+  dmesh(new T.CylinderGeometry(w/2+.6,w/2+.9,.5,14),'#b9b8a7','stone',g,0,.25,0,4,.95);
+  dmesh(new T.CylinderGeometry(w/2,w/2+.2,1.1,14),'#c9c8b7','stone',g,0,.8,0,4,.95);
+  for(const a of [0,1,2]){
+   dmesh(new T.CylinderGeometry(w/2-a*.85,w/2-a*.85,.42,14),'#bcb9a4','stone',g,0,1.25+a*.42,0,3,.93);
+  }
+  dmesh(new T.CylinderGeometry(2.5,2.8,.7,12),'#a9a693','stone',g,0,1.7,0,3,.95);   // 论剑高台
+  box(g,0,2.3,0,2.2,.5,2.2,'#c9c8b7');                                              // 台面
+  for(const sx of [-1,1])for(const sz of [-1,1])cylinder(g,sx*.95,2.75,sz*.95,.09,.11,.9,'#6d5943',8);
+  roof(g,4.4,4.4,3.5,color,1.25);                                                   // 华盖
+  ball(g,0,5.4,0,.28,'#d8b56a',[1,1,1]);                                            // 盖顶珠
+  // 四面旌旗
+  for(let i=0;i<4;i++){
+   const a=i*Math.PI/2+.4,r=w/2+.35;
+   cylinder(g,Math.cos(a)*r,3.2,Math.sin(a)*r,.06,.07,6.4,'#6d5943',8);
+   box(g,Math.cos(a)*r+(i%2?.8:-.8),4.6,Math.sin(a)*r,1.5,2.6,.07,i%2?'#c85a4a':'#4a7a9e');
+  }
+  textSign(g,p.short,0,2.9,w/2+.55,4.6,.75);
+  textSign(g,'论 剑 台',0,2.65,1.2,2.6,.55,'#e8dcc0','#7a3a2a');
+  return g;
  }
  const h=p.kind==='hall'?5.2:p.kind==='library'?4.6:p.kind==='workshop'?4:3.6;
  dmesh(new T.BoxGeometry(w,h,d),'#eee2c5','plaster',g,0,h/2+.4,0,Math.max(2,Math.round(w/3)),.92);
@@ -121,6 +139,24 @@ export function building(p,color){
 }
 export function tree(parent,x,z,size=1,flower=false){const g=new T.Group();g.position.set(x,0,z);parent.add(g);cylinder(g,0,1.1*size,0,.12*size,.21*size,2.2*size,'#8c7960',7);const colors=flower?['#e6b4ac','#efd0be','#dfa499']:['#819c79','#91ab83','#a6bc8d'];
  [[0,2.4,0,1.1],[-.65,2,.25,.9],[.6,2.2,.3,.85],[.1,2.2,-.6,.9]].forEach((a,i)=>{const m=mesh(new T.IcosahedronGeometry(a[3]*size,1),colors[i%3],g,a[0]*size,a[1]*size,a[2]*size);m.scale.y=.8;});return g;}
+
+// 英雄帖：论剑台旁的悬赏墙——社区话题与共创任务的张贴处（数据就绪前先贴示范条目）。
+export function heroBoard(parent,x,z,topics=[]){
+ const g=new T.Group();g.position.set(x,0,z);parent.add(g);
+ dmesh(new T.BoxGeometry(6.6,4.4,.5),'#8a6b45','wood',g,0,2.2,0,3,.9);
+ dmesh(new T.BoxGeometry(7,.5,.7),'#6d4f33','wood',g,0,4.6,0,2,.9);
+ textSign(g,'英 雄 帖',0,4.6,.42,4.4,.75);
+ const list=(topics||[]).slice(0,5);
+ list.forEach((t,i)=>{
+  const y=3.9-i*.72;
+  dmesh(new T.BoxGeometry(4.6,.56,.12),'#f0e6c8','plaster',g,0,y,.3,1,.9);
+  textSign(g,t,0,y,.4,4.2,.36,'#f0e6c8','#5a4a2a');
+ });
+ if(!list.length)textSign(g,'悬赏与共创任务将在此张贴',0,2.6,.4,5,.5,'#e9dfc4','#8a7a52');
+ for(const sx of [-1,1])cylinder(g,sx*3.4,2.2,0,.16,.2,4.4,'#7a5c3a',8);
+ return g;
+}
+
 // 人物头部（脸盘 + 黑发 + 斗笠 + 五官）：主角色与门派内景的座席人物共用，
 // 保证每一位原子侠都是同一张有眼睛、有微笑的脸。
 export function figureHead(body,color='#427ab5',hat=true){

@@ -3,7 +3,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,AGENTS,THEMES} from './config.js';
 import {findPath,hallWalkable,terrainHeight,stepActor} from './engine.js';
-import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds} from './models.js';
+import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard} from './models.js';
 import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
@@ -21,6 +21,8 @@ function bubbleTexture(text){
  x.fillStyle='#41564a';x.font='500 29px "PingFang SC","Noto Sans SC",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,128,41,214);
  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return t;
 }
+// 英雄帖示范条目：社区悬赏与共创任务，接口就绪后改为实时数据。
+const HERO_TOPICS=['征集：把一次踩坑写成新手友好教程','共创：给门派小镇补一套春天的材质','悬赏：帮茶会整理一份工具清单','讨论：AI 该替人做事还是陪人想事'];
 export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',labels=true,sectPage,sectDetail,onSectEnter}){
  const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
  useEffect(()=>{
@@ -67,6 +69,8 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
    for(let i=0;i<24;i++){const x=-18+(i*7.7)%36,z=4+(i*1.3)%2;box(base,x,.04,z,.4+(i%3)*.28,.014,.04,'#c0d8cc');}
    bridge(base,-4);bridge(base,10);
+  // 论剑台 + 英雄帖（Agent 与 Agent 的公开辩论场）
+  heroBoard(base,18.8,11.5,HERO_TOPICS);
   // 村口桃林与桃园结义碑：走近触发一次
   oathSpot=createOathSpot(base,{x:-7,z:9,night,onEnter:()=>window.__atomOath?.({})});
   // 河岸垂柳与芦苇：水边的江湖意象
@@ -170,7 +174,9 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
     for(const a of engine.agents){const b=bubbles?.get(a.id);if(!b)continue;const topic=(a.memory.at(-1)||'').split('聊起了')[1]||'';
      // 观展中的侠客头顶浮现正在看的作品；闲聊时浮现当前话题。
      const viewing=a.state==='观展中'||(a.task?.type==='observe'&&!a.task.done)?(a.views[0]?.title||a.task?.work?.title||''):'';
-     const label=viewing?'观展：《'+(viewing.length>6?viewing.slice(0,6)+'…':viewing)+'》':(a.partner&&topic?'聊起'+(topic.length>7?topic.slice(0,7)+'…':topic):'');
+     // 论剑中的侠客头顶浮出他的论点（公开辩论，谁都能看见）。
+     const debateLine=(a.debateSpeak||a.debateTopic||'论剑中');
+     const label=viewing?'观展：《'+(viewing.length>6?viewing.slice(0,6)+'…':viewing)+'》':(a.debating?'「'+(debateLine.length>8?debateLine.slice(0,8)+'…':debateLine)+'」':(a.partner&&topic?'聊起'+(topic.length>7?topic.slice(0,7)+'…':topic):''));
      const show=!!label;
      if(show&&b.last!==label){const short=label.length>9?label.slice(0,9)+'…':label;b.sprite.material.map?.dispose();b.sprite.material.map=bubbleTexture(short);b.sprite.material.needsUpdate=true;b.last=label;}
      b.sprite.visible=show;if(show)b.sprite.position.set(a.x,(terrainHeight(a.x,a.z)||0)+2.85,a.z);}for(const a of [...engine.agents,engine.player]){const m=a.id==='you'?player:agentModels.get(a.id);m.position.set(a.x,terrainHeight(a.x,a.z),a.z);const moving=a.path.length>0;

@@ -6,7 +6,7 @@ export const PLACES = [
  {id:'tea',name:'江湖茶楼',short:'江湖茶楼',subtitle:'一盏茶，遇见同路人',x:-11,z:-6,w:5.5,d:4.5,kind:'tea',entry:[-10,-2],description:'分享正在做的事，也听听别人的新想法。这里的 AI 侠客可以聊作品、聊创作，陪你寻找下一步。'},
  {id:'workshop',name:'共创工坊',short:'共创工坊',subtitle:'把一个想法，做成一个作品',x:11,z:-5,w:5,d:5,kind:'workshop',entry:[10,-1],description:'人提供经验与认知，Agent 协助整理与探索。带上一个真实问题，和伙伴一起开始。'},
  {id:'library',name:'开源书院',short:'开源书院',subtitle:'分享，是最好的学习',x:-12,z:10,w:5,d:4,kind:'library',entry:[-8,10],description:'个体至上、开放共享、务实求真、互助共赢、持续进化。这里保存原子公社的共建理念。'},
- {id:'pavilion',name:'星火亭',short:'星火亭',subtitle:'星星之火，从一次相遇开始',x:12,z:10,w:3.5,d:3.5,kind:'pavilion',entry:[12,7],description:'这里是未来活动的相聚之所。星火计划的赛事介绍已有资料，最终参赛作品与结果仍在整理中。'},
+ {id:'agora',name:'群侠论剑台',short:'论剑台',subtitle:'Agent 与 Agent 的辩论场',x:12,z:10,w:6,d:6,kind:'agora',entry:[16,7],description:'侠客们定时在此论剑：两位 AI 就一个话题各执一词，你可以到场旁观，也可以点他们加入讨论。英雄帖上贴着社区悬赏与共创任务。'},
  {id:'sect',name:'原子门派',short:'原子门派',subtitle:'社区中的小社区，聚义分立',x:6,z:10,w:4.5,d:3.5,kind:'sect',entry:[6,7],description:'每一位原子公社的成员都能在这里创立自己的门派：自定义名称、slogan、介绍与样式，设长老阁、收门下弟子，按聚义阁的位次共商共建。'},
 ];
 export const AGENTS = [
@@ -16,8 +16,8 @@ export const AGENTS = [
  {id:'moyu',name:'墨语',role:'记录者 · 内容创作',color:'#a17b9e',start:[8,1],places:['library','tea'],line:'好的经验值得被记录。来聊聊你最想分享的一个故事。'},
  {id:'xingzhou',name:'行舟',role:'匠人 · 技术实践',color:'#b68b54',start:[10,-1],places:['workshop','hall'],line:'实践见真章。我们可以从一个能跑起来的小原型开始。'},
  {id:'xiaoman',name:'小满',role:'书友 · 开源学习',color:'#be7770',start:[-7,10],places:['library','tea'],line:'分享是最好的学习。你想从哪一类作品开始看起？'},
- {id:'zhaolu',name:'朝露',role:'探索者 · 生活成长',color:'#77969e',start:[-5,2],places:['pavilion','library'],line:'进步不一定很大，每天有一点新发现就很好。'},
- {id:'xinghe',name:'星河',role:'旅人 · 社区共建',color:'#7d84aa',start:[10,7],places:['pavilion','hall'],line:'一个人可以出发，一群人能走得更远。欢迎来江湖结识伙伴。'},
+ {id:'zhaolu',name:'朝露',role:'探索者 · 生活成长',color:'#77969e',start:[-5,2],places:['agora','library'],line:'进步不一定很大，每天有一点新发现就很好。'},
+ {id:'xinghe',name:'星河',role:'旅人 · 社区共建',color:'#7d84aa',start:[10,7],places:['agora','hall'],line:'一个人可以出发，一群人能走得更远。欢迎来江湖结识伙伴。'},
 ];
 export const THEMES={jianghu:{name:'原子江湖',roof:'#42746d',grass:'#b9c8a3',sky:'#e9eee6'},startup:{name:'创业社区',roof:'#587c92',grass:'#bdcbb1',sky:'#e8eef0'},mystery:{name:'推理小镇',roof:'#625d79',grass:'#aab6af',sky:'#e7e5ee'},campus:{name:'虚拟校园',roof:'#ad7860',grass:'#b9cd9d',sky:'#eef0e1'}};
 
