@@ -76,6 +76,8 @@ export class OnlineClient{
  block(userId){this.send({t:'block',userId});}
  // 公开表情招呼（附近玩家可见 3 秒，服务端限速）。
  emote(kind='wave'){this.send({t:'emote',emote:kind});}
+ // 加入论剑（群侠论剑台）：站一边，台上两位 AI 当场回应。
+ joinDebate(side=0){this.send({t:'debate-join',side:side?1:0});}
  // 茶楼共坐：入座/起身（服务端锁定位置）。
  sit(seatId){const id=this.nextId('sit');this.send({t:'sit',seat:seatId,id});return id;}
  stand(){this.send({t:'stand'});}

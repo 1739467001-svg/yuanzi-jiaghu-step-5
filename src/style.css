@@ -324,6 +324,13 @@
 .sect-benefit button:hover{color:#b4432f}
 .sect-invite-log{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 
+.debate-join{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);width:min(430px,calc(100% - 32px));background:#fafaf1f2;border:1px solid #d9c48d;border-radius:14px;padding:14px 16px;box-shadow:0 10px 30px #3245301f;backdrop-filter:blur(10px);z-index:3}
+.debate-join-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.debate-join-head b{font-size:12px;color:#5a4a2a;font-family:var(--serif)}
+.debate-join p{font-size:10.5px;line-height:1.7;color:#75826f;margin-bottom:10px}
+.debate-join-actions{display:flex;gap:8px}
+.debate-join-actions button{flex:1;min-height:36px;font-size:11px}
+
 /* ---- 原子门派 HUD ---- */
 .sect-studio{border:1px solid #dde3d6;border-radius:12px;background:#fbfbf0e0;padding:14px 16px;margin-bottom:14px}
 .sect-studio h4{font-size:12px;color:#3c4a40;margin-bottom:6px}

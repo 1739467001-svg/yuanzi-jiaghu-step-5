@@ -92,6 +92,9 @@ export default function App(){
  const [sectCardOpen,setSectCardOpen]=useState(true);
  const [sectIntroSeen,setSectIntroSeen]=useState(()=>readStore('sectIntroSeen',false));
  const [oathSeen,setOathSeen]=useState(()=>readStore('oathSeen',false));
+ // 论剑台：走近且台上正在论剑时，弹出「选一边加入」
+ const [debateLive,setDebateLive]=useState(null);
+ const [debateNear,setDebateNear]=useState(false);
  const [showOath,setShowOath]=useState(false);
  const [sectForm,setSectForm]=useState({name:'',slogan:'',intro:'',style:'jianghu'});
  const [sectBusy,setSectBusy]=useState(false);
@@ -289,11 +292,32 @@ export default function App(){
   }catch(e){notice(e.message);}
   finally{setSectBusy(false);}
  };
+ // 论剑提示轮询：每 700ms 看一次「台上是否正在论剑」和「我离论剑台多远」。
+ useEffect(()=>{
+  const agora=PLACES.find(p=>p.id==='agora');
+  const tick=()=>{
+   const live=agents.filter(a=>a.state==='论剑中');
+   setDebateLive(live.length?live.map(a=>a.name):null);
+   const self=window.__atomOnlineSelf||engine.player;
+   setDebateNear(!!agora&&!!self&&Math.hypot(self.x-agora.x,self.z-agora.z)<12);
+  };
+  const id=setInterval(tick,700);tick();
+  return()=>clearInterval(id);
+ },[agents]);
  // 桃园结义：走近村口桃林时，弹一次说明卡（之后不再打扰）。
  useEffect(()=>{
   window.__atomOath=()=>{if(oathSeen)return;setOathSeen(true);writeStore('oathSeen',true);setShowOath(true);notice('桃园结义 · 一群人能走更远');};
   return()=>{delete window.__atomOath;};
  },[oathSeen]);
+ // 加入论剑：本地引擎直接生效；联机世界发给服务端（房间内所有人都能看到回应）。
+ const joinDebate=side=>{
+  if(world==='online'&&!staticDemo&&typeof clientRef.current?.joinDebate==='function'){
+   clientRef.current.joinDebate(side);notice('你站到了论剑台一边');return;
+  }
+  const ok=engine.joinDebate(side);
+  if(ok)notice('你站到了论剑台一边，两位侠客正在回应');
+  else notice('台上的论剑刚散场，下一场再来');
+ };
  async function sha256(text){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
   function enterLocalIdentity(user,isNew){
    const token='local-'+user.name;
@@ -590,6 +614,15 @@ export default function App(){
       {account&&sectDetail.founderId===account.id?<><SectStudio sect={sectDetail} busy={sectBusy} onPublish={publishTownLayout} onShare={shareSect}/><SectAdmin sect={sectDetail} busy={sectBusy} onApi={sectMemberApi}/><SectConsole sect={sectDetail} busy={sectBusy} meId={account?.id} onApi={sectMemberApi} onSaveBenefits={saveBenefits} onShare={shareSect}/></>:<p className="sect-hint">只有门派创始人可以管理门派。</p>}
      </div>:<button className="sect-card-toggle floating" onClick={()=>setSectCardOpen(true)} aria-label="展开门派面板">门派面板</button>}
     </div>}
+    {location==='town'&&debateNear&&debateLive&&<div className="debate-join" role="group" aria-label="加入论剑">
+     <div className="debate-join-head"><span className="eyebrow">群侠论剑台 · 正在论剑</span><b>{debateLive.join(' · ')}</b></div>
+     <p>走近台前，选一边加入——台上的侠客会就你的立场当场回应。</p>
+     <div className="debate-join-actions">
+      <button className="secondary-button" onClick={()=>joinDebate(0)}>站甲方一边</button>
+      <button className="primary-button" onClick={()=>joinDebate(1)}>站乙方一边</button>
+     </div>
+    </div>
+    }
     <div className="map-caption"><div className="compass-mark"><span>N</span><Compass size={37} strokeWidth={1}/></div><div><span className="eyebrow">{location==='hall'?'THE EXHIBITION HALL':world==='online'&&!staticDemo?'THE ONLINE WORLD':'THE ATOM VILLAGE'}</span><h2>{location==='hall'?'武林大会 · 灵感长廊':world==='online'&&!staticDemo?'原子公社 · 联机江湖':'原子公社 · 江湖初见'}</h2><p><MapPin size={13}/>{location==='hall'?'比赛展示馆':'原子广场'}<span>·</span>{location==='hall'?`${filtered.length} 份作品可供探索`:world==='online'&&!staticDemo?`${onlinePlayers.length+1} 位侠客在此相聚`:'8 位 AI 侠客在此生活'}</p></div></div>
     <div className="world-tools"><button aria-label="放大地图" onClick={()=>apiRef.current?.zoom(.85)}><Plus size={18}/></button><button aria-label="缩小地图" onClick={()=>apiRef.current?.zoom(1.15)}><Minus size={18}/></button><span/><button aria-label="回到我的角色" onClick={()=>apiRef.current?.locate()}><LocateFixed size={18}/></button><button aria-label="重置视角" onClick={()=>apiRef.current?.reset()}><RotateCcw size={17}/></button><span/><button aria-label={night?'切换日景':'切换夜景'} onClick={()=>setNight(v=>!v)}>{night?<Sun size={18}/>:<Moon size={18}/>}</button><button aria-label="小镇设置" onClick={()=>openPanel('settings')}><Settings2 size={18}/></button></div>
     <div className="controls-tip"><span className="mouse-icon"/>点击地面行走（或 WASD/方向键）<span>·</span>拖动旋转<span>·</span>滚轮缩放</div>

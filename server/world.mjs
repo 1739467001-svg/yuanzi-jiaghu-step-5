@@ -241,6 +241,13 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
     if(at>=0){waiters.splice(at,1);broadcastQueue();}
     return send(conn,{t:'queue-left'});
    }
+   case 'debate-join':{
+    // 加入论剑：仅当台上真有两位在辩，且本人不在台上占位时生效。
+    if(!actor||actor.conn!==connId)return;
+    const joined=engine.joinDebate(data.side?1:0);
+    if(joined)broadcast({t:'toast',text:'你加入了论剑，台上的侠客正在回应'});
+    break;
+   }
    case 'emote':{
     // 公开表情招呼：附近玩家可见 3 秒；仅广播动作本身，不携带任何私聊内容。
     if(!actor||actor.conn!==connId)return;

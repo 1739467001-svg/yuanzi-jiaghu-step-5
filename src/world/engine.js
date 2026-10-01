@@ -19,11 +19,12 @@ export const DEBATE_TOPICS=[
  {topic:'AI 该替人做事还是陪人想事',pro:'能接手的杂事就放心交给它',con:'关键的那步必须人来判断'},
  {topic:'新手先深耕一个方向还是多试几个',pro:'先打透一个点，信心是攒出来的',con:'多试几个才找得到真正的兴趣'},
 ];
-const AGORA_SPOTS=[{x:10.6,z:9.4},{x:13.4,z:9.4},{x:10.6,z:11.4},{x:13.4,z:11.4}];
+// 站位取论剑台外圈可走点（台体 6×6 会挡路）：南北两侧各两个，隔着高台相对而辩。
+const AGORA_SPOTS=[{x:11.2,z:6.2},{x:12.8,z:13.7},{x:12.8,z:6.2},{x:11.2,z:13.7}];
 export function agoraSpots(){return AGORA_SPOTS;}
 // 取两个空闲且互不为伴的侠客；不足则本轮不办。
 export function pickDebatePair(agents){
- const free=agents.filter(a=>!a.held&&!a.partner&&!a.path.length&&!a.debating);
+ const free=agents.filter(a=>!a.held&&!a.partner&&!a.path.length&&!a.debating&&!a.seat);
  if(free.length<2)return null;
  const a=free[Math.floor(Math.random()*free.length)];
  const b=free.find(x=>x.id!==a.id&&x.id!==a.partner);
@@ -97,7 +98,7 @@ export class WorldEngine{
    if(a.task)a.task=null;
    a.wait-=dt;if(a.wait>0)continue;
    if(a.partner){a.partner=null;a.state='整理见闻';a.wait=6;continue;}
-   const other=this.agents.find(b=>b.id!==a.id&&!b.held&&!b.path.length&&!b.partner&&b.wait>0&&Math.hypot(b.x-a.x,b.z-a.z)<3);
+   const other=this.agents.find(b=>b.id!==a.id&&!b.held&&!b.path.length&&!b.partner&&!b.seat&&b.wait>0&&Math.hypot(b.x-a.x,b.z-a.z)<3);
    if(other&&a.state!=='整理见闻'){a.partner=other.id;other.partner=a.id;a.state=`与${other.name}闲聊`;other.state=`与${a.name}闲聊`;a.wait=9;other.wait=9;a.angle=Math.atan2(other.x-a.x,other.z-a.z);other.angle=a.angle+Math.PI;
     // 话题可以来自一方最近的观展见闻，让 AI 的交流与真实作品自然相连。
     const seen=[a,other].map(x=>x.views[0]).find(Boolean);
@@ -159,6 +160,21 @@ export class WorldEngine{
    x.partner=null;x.state='整理见闻';x.wait=8;
   }
  }
+
+// 玩家加入论剑：选一边，台上两位当场就这一边回应（公开，旁观者可见）。
+ joinDebate(side){
+  const pair=this.agents.filter(a=>a.debating);
+  if(pair.length<2)return false;
+  const t=DEBATE_TOPICS.find(x=>x.topic===pair[0].debating.topic)||DEBATE_TOPICS[0];
+  const mine=side?t.con:t.pro,theirs=side?t.pro:t.con;
+  const [a,b]=pair;
+  a.debateSpeak=mine;b.debateSpeak=theirs;
+  a.lastSpeak=this.time;b.lastSpeak=this.time-.05;
+  a.respondToPlayer=side;b.respondToPlayer=side;
+  this.onEvent({id:`debate-join-${this.time}`,text:`你加入论剑，站在「${mine}」一边，${a.name}与${b.name}各自回应`,kind:'debate',time:Date.now()});
+  return true;
+ }
+ hasDebate(){return this.agents.some(a=>a.debating);}
  debatePro(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.pro:'我看值得一试';}
  debateCon(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.con:'也要留个后手';}
  snapshot(){return this.agents.map(({id,name,state,x,z,memory,views})=>({id,name,state,x,z,memory:[...memory],views:views.map(v=>({...v}))}));}
