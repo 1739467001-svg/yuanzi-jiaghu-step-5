@@ -8,6 +8,8 @@ import {createCharacter,applyFallbackMotion} from './glb.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
 import {declutterPins} from './pins.js';
 import {createClickFx} from './clickFx.js';
+import {createWater} from './water.js';
+import {createOathSpot} from './oathSpot.js';
 import {createPetals,createBirds,createSmoke,createFlags,createMountains,createDust} from './ambience.js';
 
 // 远程玩家气泡：私聊中的“交谈中”与公开表情（内容不可见，PRD 9.1 旁观规则）。
@@ -68,12 +70,16 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   createMountains(scene,palette,{night});
   const dust=createDust(scene);
   // 点击聚焦反馈：鼠标与手指触摸共用
+  let waterFx,oathSpot;
   const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
   if(!indoor){
-  const water=box(base,0,-.02,5,39,.07,3.5,night?'#376d72':'#81b8b2');water.material=new T.MeshStandardMaterial({color:night?'#376d72':'#81b8b2',metalness:.18,roughness:.28});
+  // 小河：反射水面 + 波动 + 锦鲤/青蛙/蝌蚪/蜻蜓（手机端不做平面反射）
+   waterFx=createWater(base,{night,quality:el.clientWidth<550?'low':'high'});
   for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
   for(let i=0;i<24;i++){const x=-18+(i*7.7)%36,z=4+(i*1.3)%2;box(base,x,.04,z,.4+(i%3)*.28,.014,.04,'#c0d8cc');}
   bridge(base,-4);bridge(base,10);
+  // 村口桃林与桃园结义碑：走近触发一次
+  oathSpot=createOathSpot(base,{x:-7,z:9,night,onEnter:()=>window.__atomOath?.({})});
   // 河岸垂柳与芦苇：水边的江湖意象
   for(const [x,z,s] of [[-15.5,3.6,1.1],[16.5,6.6,1.25],[-17,6.2,.95],[17.5,3.4,1.05]])willow(base,x,z,s);
   for(const [x,z] of [[-6.5,2.6],[3.5,7.4],[-14,7.2],[15,2.4],[8.5,2.2],[-10.5,7.6]])reeds(base,x,z);
@@ -236,6 +242,9 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   let frame,last=performance.now(),lastPins=0;
   function render(now){
    if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;   clickFx.update(dt);
+   waterFx?.update(dt,now);
+   oathSpot?.update(dt,player.position.x,player.position.z);
+   petals?.setBoost?.(!!oathSpot?.bursting);
    petals.update(dt,now);birds.update(dt,now);smoke.update(dt,now);flags.update(dt,now);
 
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;

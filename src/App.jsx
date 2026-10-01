@@ -91,6 +91,8 @@ export default function App(){
  const [sectDetail,setSectDetail]=useState(null);
  const [sectCardOpen,setSectCardOpen]=useState(true);
  const [sectIntroSeen,setSectIntroSeen]=useState(()=>readStore('sectIntroSeen',false));
+ const [oathSeen,setOathSeen]=useState(()=>readStore('oathSeen',false));
+ const [showOath,setShowOath]=useState(false);
  const [sectForm,setSectForm]=useState({name:'',slogan:'',intro:'',style:'jianghu'});
  const [sectBusy,setSectBusy]=useState(false);
  const [invite,setInvite]=useState(null);
@@ -274,6 +276,11 @@ export default function App(){
   }catch(e){notice(e.message);}
   finally{setSectBusy(false);}
  };
+ // 桃园结义：走近村口桃林时，弹一次说明卡（之后不再打扰）。
+ useEffect(()=>{
+  window.__atomOath=()=>{if(oathSeen)return;setOathSeen(true);writeStore('oathSeen',true);setShowOath(true);notice('桃园结义 · 一群人能走更远');};
+  return()=>{delete window.__atomOath;};
+ },[oathSeen]);
  async function sha256(text){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
   function enterLocalIdentity(user,isNew){
    const token='local-'+user.name;
@@ -573,6 +580,7 @@ export default function App(){
     <div className="world-tools"><button aria-label="放大地图" onClick={()=>apiRef.current?.zoom(.85)}><Plus size={18}/></button><button aria-label="缩小地图" onClick={()=>apiRef.current?.zoom(1.15)}><Minus size={18}/></button><span/><button aria-label="回到我的角色" onClick={()=>apiRef.current?.locate()}><LocateFixed size={18}/></button><button aria-label="重置视角" onClick={()=>apiRef.current?.reset()}><RotateCcw size={17}/></button><span/><button aria-label={night?'切换日景':'切换夜景'} onClick={()=>setNight(v=>!v)}>{night?<Sun size={18}/>:<Moon size={18}/>}</button><button aria-label="小镇设置" onClick={()=>openPanel('settings')}><Settings2 size={18}/></button></div>
     <div className="controls-tip"><span className="mouse-icon"/>点击地面行走（或 WASD/方向键）<span>·</span>拖动旋转<span>·</span>滚轮缩放</div>
     {world==='online'&&!staticDemo&&<div className="emote-bar" role="group" aria-label="表情招呼">{[['wave','打招呼','👋'],['bow','作揖','🙇'],['clap','鼓掌','👏'],['think','思考','🤔']].map(([kind,label,icon])=><button key={kind} title={label} aria-label={label} onClick={()=>{clientRef.current?.emote(kind);notice(`你向附近的侠客${label}`);}}><span aria-hidden="true">{icon}</span></button>)}</div>}
+    {location==='town'&&showOath&&<div className="sect-intro-card oath-card"><span className="eyebrow">村口桃林 · 桃园结义</span><p>「不求同年同月同日生，但求同年同月同日行。」原子公社的架桥也是这样：一个人可以出发，一群人能走得更远。走到碑前，会有一次结义的叙话。</p><button className="text-button" onClick={()=>{setShowOath(false);}}>知道了</button></div> }
     {onboard>0&&<div className="onboard-card" role="dialog" aria-label="首访引导">
      <span className="eyebrow">初入江湖 · 第 {onboard} / 3 步</span>
      <h3>{['点击地面，少侠即刻前行','走进武林大会展示馆，阅读真实赛事作品','名帖带 AI 徽标的是 AI 侠客，其余是同在联机的真人'][onboard-1]}</h3>

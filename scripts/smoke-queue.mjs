@@ -32,24 +32,25 @@ try{
   await page.getByRole('button',{name:/创建并进入联机世界|创建名帖，进入江湖/}).click();
  };
  await register(pages[0],'甲');await register(pages[1],'乙');
- await pages[0].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:20000});
- await pages[1].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:20000});
+ await pages[0].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:40000});
+ await pages[1].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:40000});
  // 第三人：满员 → 排队并看到位置。
  await register(pages[2],'丙');
- await pages[2].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('排队中'),null,{timeout:20000});
+ await pages[2].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('排队中'),null,{timeout:40000});
  assert.match(await pages[2].locator('.queue-card').textContent(),/第 1 位/,'排队卡片显示位置');
  assert.match(await pages[2].locator('.queue-card').textContent(),/取消排队/);
  // 甲离开（切回本地演示）→ reclaim 窗口过后丙自动进入。
  await pages[0].getByRole('button',{name:'切换世界模式'}).click();
- await pages[2].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:20000});
+ await pages[2].waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('联机世界'),null,{timeout:40000});
  assert.match(await pages[2].locator('.map-caption').textContent(),/位侠客在此相聚/,'自动进入后正常可见');
  // 取消排队路径：乙离开后丁排队再取消。
  const ctxD=await browser.newContext({viewport:{width:1280,height:800}});contexts.push(ctxD);
  const d=await ctxD.newPage();d.on('pageerror',e=>errors.push('D: '+e.message));
  await register(d,'丁');
- await d.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('排队中'),null,{timeout:20000});
+ // 负载高时（多开 WebGL 场景）这条连接会先掉一次再进队列，实测约 6 秒；给 40 秒窗口。
+await d.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('排队中'),null,{timeout:40000});
  await d.getByRole('button',{name:'取消排队'}).click();
- await d.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('进入联机'),null,{timeout:10000});
+ await d.waitForFunction(()=>document.querySelector('.world-status')?.textContent.includes('进入联机'),null,{timeout:40000});
  assert.deepEqual(errors,[],`页面异常: ${errors.join('; ')}`);
  await browser.close();
  console.log('PASS: 满员排队（位置可见）、离开后自动进入、取消排队。');

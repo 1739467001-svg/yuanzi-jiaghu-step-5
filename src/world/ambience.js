@@ -30,11 +30,12 @@ export function createPetals(scene,{count=140,color='#f6c3d2',night=false,spread
  }
  const geo=new T.BufferGeometry();
  geo.setAttribute('position',new T.BufferAttribute(pos,3));
- const mat=new T.PointsMaterial({size:night?.42:.5,map:tex,transparent:true,opacity:night?.55:.9,depthWrite:false,color:night?'#c9a8d8':'#ffffff'});
+ const mat=new T.PointsMaterial({size:night?.42:.5,map:tex,transparent:true,opacity:night?.55:.72,depthWrite:false,color:night?'#c9a8d8':'#ffffff'});
  const points=new T.Points(geo,mat);points.frustumCulled=false;scene.add(points);
  return {
    points,
-   update(dt,t){
+   setBoost(on){mat.opacity=on?.55:(night?.42:.72);mat.size=on?.62:(night?.42:.5);},
+  update(dt,t){
     const p=geo.attributes.position;
     for(let i=0;i<count;i++){
      const phase=seed[i*2],speed=seed[i*2+1];
@@ -118,7 +119,7 @@ export function createFlags(scene,spots=[],{night=false}={}){
  for(const s of spots){
   const pole=new T.Mesh(new T.CylinderGeometry(.07,.09,4.6,8),new T.MeshStandardMaterial({color:'#6d5943',roughness:.9}));
   pole.position.set(s.x,s.y+2.3,s.z);group.add(pole);
-  const geo=new T.PlaneGeometry(1.35,1.9,6,8);
+  const geo=new T.PlaneGeometry(1.35,1.9,4,5);
   const cloth=new T.Mesh(geo,new T.MeshStandardMaterial({color:s.color||'#c85a4a',side:T.DoubleSide,roughness:.85}));
   cloth.position.set(s.x+(s.dir||1)*.72,s.y+3.3,s.z);
   cloth.castShadow=true;group.add(cloth);
@@ -134,7 +135,6 @@ export function createFlags(scene,spots=[],{night=false}={}){
       arr[i+2]=Math.sin(t*.004+x*2.2+y*1.1)*.12*Math.min(1,Math.abs(x)*1.4+.2);
      }
      c.cloth.geometry.attributes.position.needsUpdate=true;
-     c.cloth.geometry.computeVertexNormals();
     }
    },
   };
