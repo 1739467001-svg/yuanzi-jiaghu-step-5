@@ -208,7 +208,8 @@ test('public activity feed carries only public AI events', () => {
  const allEvents=a.find('activity').flatMap(m=>m.events);
  assert.ok(allEvents.some(e=>e.kind==='debate'&&/论剑/.test(e.text)),'论剑进入公开活动流');
  for(const e of activity.events){
-  assert.ok(['walk','chat','view','phase','debate'].includes(e.kind));
+  // walk/chat/view/phase/debate 是引擎事件，rest 是茶楼入座/离座——都是公开的 AI 动态。
+  assert.ok(['walk','chat','view','phase','debate','rest'].includes(e.kind));
   assert.ok(!/私聊|记忆/.test(e.text),'公开活动不得包含私人信息');
  }
 

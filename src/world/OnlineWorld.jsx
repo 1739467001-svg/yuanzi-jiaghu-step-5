@@ -3,7 +3,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,THEMES} from './config.js';
 import {findPath,walkable,stepActor,terrainHeight} from './engine.js';
-import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds} from './models.js';
+import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,peachIsland,zigzagBridge,riverPavilion} from './models.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
 import {declutterPins} from './pins.js';
@@ -78,6 +78,10 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
   for(let i=0;i<24;i++){const x=-18+(i*7.7)%36,z=4+(i*1.3)%2;box(base,x,.04,z,.4+(i%3)*.28,.014,.04,'#c0d8cc');}
   bridge(base,-4);bridge(base,10);
+  // 河中桃花岛（黄药师意象）+ 九曲桥 + 南岸观景亭：河心的景，从亭中远眺
+  peachIsland(base,2);
+  zigzagBridge(base,2.4);
+  riverPavilion(base,4.5,10.5);
   // 村口桃林与桃园结义碑：走近触发一次
   oathSpot=createOathSpot(base,{x:-7,z:9,night,onEnter:()=>window.__atomOath?.({})});
   // 河岸垂柳与芦苇：水边的江湖意象

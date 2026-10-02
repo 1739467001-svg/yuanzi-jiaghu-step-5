@@ -3,7 +3,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,AGENTS,THEMES} from './config.js';
 import {findPath,hallWalkable,terrainHeight,stepActor} from './engine.js';
-import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard} from './models.js';
+import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard,peachIsland,zigzagBridge,riverPavilion} from './models.js';
 import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
@@ -69,6 +69,10 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    for(const z of [3.15,6.85])box(base,0,.03,z,39,.2,.3,'#b5bfac');
    for(let i=0;i<24;i++){const x=-18+(i*7.7)%36,z=4+(i*1.3)%2;box(base,x,.04,z,.4+(i%3)*.28,.014,.04,'#c0d8cc');}
    bridge(base,-4);bridge(base,10);
+  // 河中桃花岛（黄药师意象）+ 九曲桥 + 南岸观景亭：河心的景，从亭中远眺
+  peachIsland(base,2);
+  zigzagBridge(base,2.4);
+  riverPavilion(base,4.5,10.5);
   // 论剑台 + 英雄帖（Agent 与 Agent 的公开辩论场）
   heroBoard(base,18.8,11.5,HERO_TOPICS);
   // 村口桃林与桃园结义碑：走近触发一次

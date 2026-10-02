@@ -140,6 +140,71 @@ export function building(p,color){
 export function tree(parent,x,z,size=1,flower=false){const g=new T.Group();g.position.set(x,0,z);parent.add(g);cylinder(g,0,1.1*size,0,.12*size,.21*size,2.2*size,'#8c7960',7);const colors=flower?['#e6b4ac','#efd0be','#dfa499']:['#819c79','#91ab83','#a6bc8d'];
  [[0,2.4,0,1.1],[-.65,2,.25,.9],[.6,2.2,.3,.85],[.1,2.2,-.6,.9]].forEach((a,i)=>{const m=mesh(new T.IcosahedronGeometry(a[3]*size,1),colors[i%3],g,a[0]*size,a[1]*size,a[2]*size);m.scale.y=.8;});return g;}
 
+
+
+// 桃树：粉白花冠 + 树下落瓣（桃花岛与村口桃林共用）。
+export function peachTree(parent,x,z,size=1){
+ const g=new T.Group();g.position.set(x,0,z);parent.add(g);
+ cylinder(g,0,1.6*size,0,.17*size,.3*size,3.2*size,'#8a6b4a',8);
+ ball(g,0,3.9*size,.2*size,1.5*size,'#eaa9c0',[1,.9,1]);
+ ball(g,.85*size,3.5*size,-.35*size,1.15*size,'#f2c3d2',[1,.95,1]);
+ ball(g,-.8*size,3.65*size,.3*size,1.2*size,'#f6d3dd',[1,.9,1]);
+ ball(g,.1*size,4.5*size,-.1*size,.95*size,'#fbe4ea',[1,.9,1]);
+ for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,r=(.6+Math.random()*1.4)*size;ball(g,Math.cos(a)*r,.07,Math.sin(a)*r,.08*size,'#f2c3d2',[1,.35,1]);}
+ return g;
+}
+// 河中桃花岛：土石台 + 桃树 + 岩石 + 石琴台 + 竹笛，刻「桃花岛」。
+// 岛在河心不可走（行走网格仍只认两座石桥），是从南岸观景亭远观的景。
+export function peachIsland(parent,x){
+ const g=new T.Group();g.position.set(x,0,5);parent.add(g);
+ dmesh(new T.CylinderGeometry(2.9,3.6,2.6,9),'#7c6a4c','stone',g,0,-.3,0,3,.95);
+ dmesh(new T.CylinderGeometry(2.6,2.9,.5,9),'#8fa05c','grass',g,0,.65,0,4,.95);
+ // 桃树两株
+ peachTree(g,-1.1,0,1.05);peachTree(g,1.3,.6,1.15);
+ // 岩石
+ for(const [rx,rz,rr] of [[-2.2,1.1,.5],[2.3,-1.3,.62],[.2,2.1,.42]]){const m=mesh(new T.IcosahedronGeometry(rr,0),'#9a9683',g,rx,.5,rz);m.rotation.set(rx,rz,rr);}
+ // 石琴台 + 竹笛（黄药师意象）
+ dmesh(new T.BoxGeometry(1.5,.5,1.1),'#b9b8a7','stone',g,-.2,.9,-1.2,1,.92);
+ for(const sx of [-1,1])box(g,sx*.35,1.2,-1.2,.2,.9,.14,'#ded8c2');
+ cylinder(g,.6,1.05,-1.2,.05,.05,1.5,'#8a9a5a',6);
+ textSign(g,'桃花岛',0,2.6,1.4,2.6,.62,'#e8dcc0','#7a3a2a');
+ return g;
+}
+
+// 九曲桥：Z 形三段，从南岸折向桃花岛（景观桥，人不可走）。
+export function zigzagBridge(parent,x){
+ const g=new T.Group();parent.add(g);
+ const segs=[[0,4.2],[3.4,-1.1],[-3.4,-1.1],[0,.9]];
+ let px=0,pz=7.6;
+ segs.forEach(([dx,dz],i)=>{
+  const cx=px+dx/2,cz=pz+dz/2,len=Math.hypot(dx,dz);
+  const seg=box(g,cx,.55,cz,1.1,.22,len,'#c3bfa7');seg.rotation.y=Math.atan2(dx,dz)-Math.PI/2;
+  // 栏杆
+  for(const off of [-.55,.55]){
+   const rx=cx+Math.cos(seg.rotation.y)*off,rz=cz+Math.sin(seg.rotation.y)*off*-1;
+   for(const t of [-.45,.45]){
+    const bx=cx+dx*t+Math.cos(seg.rotation.y)*off,by=.55,bz=pz+dz*t+Math.sin(seg.rotation.y)*off*-1;
+    cylinder(g,bx,by+.35,bz,.05,.05,.7,'#8a6b45',6);
+   }
+   box(g,rx,1.05,rz,.08,.08,len,'#a8783f');
+  }
+  px+=dx;pz+=dz;
+ });
+ return g;
+}
+
+// 南岸观景亭：凭栏远眺桃花岛。
+export function riverPavilion(parent,x,z){
+ const g=new T.Group();g.position.set(x,0,z);parent.add(g);
+ for(const [dx,dz] of [[-1.4,-1],[1.4,-1],[-1.4,1],[1.4,1]])cylinder(g,dx,1.35,dz,.11,.13,2.7,'#6d4f33',8);
+ dmesh(new T.BoxGeometry(3.4,.35,2.6),'#a8783f','plaster',g,0,2.85,0,2,.9);
+ roof(g,4,3.4,3.1,'#42746d',1.15);
+ ball(g,0,4.5,0,.16,'#d8b56a');
+ box(g,0,.95,1.1,3.2,.14,.3,'#8a6b45');
+ textSign(g,'远眺',0,2.1,1.2,1.8,.5);
+ return g;
+}
+
 // 英雄帖：论剑台旁的悬赏墙——社区话题与共创任务的张贴处（数据就绪前先贴示范条目）。
 export function heroBoard(parent,x,z,topics=[]){
  const g=new T.Group();g.position.set(x,0,z);parent.add(g);
