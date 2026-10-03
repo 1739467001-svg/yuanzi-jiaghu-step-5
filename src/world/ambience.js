@@ -48,6 +48,26 @@ export function createMountains(scene,palette,{night=false}={}){
  return {group};
 }
 
+// ---- 群山环抱：门派院落外的一圈远山，用门派自己的主题色。
+// 门派空间不挂小镇那座公共远山（进了门还看见村口的山不合逻辑），改用这一圈自家的山。
+export function createRidge(scene,{far,near},{radius=68,count=26}={}){
+ const group=new T.Group();scene.add(group);
+ const layers=[{r:radius+16,scale:1.4,color:far,fog:false},{r:radius-6,scale:1,color:near}];
+ for(const l of layers){
+  const g=new T.Group();
+  for(let i=0;i<count;i++){
+   const a=(i/count)*Math.PI*2+l.scale*.37;
+   const h=(6+Math.abs(Math.sin(i*2.3+l.scale*5))*14)*l.scale;
+   const m=new T.Mesh(new T.ConeGeometry(9*l.scale,h,4),new T.MeshBasicMaterial({color:l.color,fog:l.fog||true}));
+   const rr=l.r+Math.sin(i*1.7)*7;
+   m.position.set(Math.cos(a)*rr,h/2-4,Math.sin(a)*rr);
+   m.rotation.y=Math.PI/4;g.add(m);
+  }
+  group.add(g);
+ }
+ return {group};
+}
+
 // ---- 微雨（稀有天气事件，非常态）：斜落雨丝 + 脚下的水洼光斑 ----
 export function createRain(scene,{count=520,night=false}={}){
  const group=new T.Group();group.visible=false;scene.add(group);

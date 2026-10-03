@@ -53,7 +53,9 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   dmesh(new T.BoxGeometry(46.1,.22,36.1),'#c3bfa7','stone',base,0,-.95,0,12,.95);dmesh(new T.BoxGeometry(45.4,.6,35.4),'#d6cfb8','stone',base,0,-1.3,0,12,.95);
   const backdrop=box(scene,0,-1.72,0,1000,.1,1000,night?'#263e43':palette.sky);backdrop.receiveShadow=true;
   let stars,flies,moon;
-  if(night){
+  // 门派空间不挂户外夜空：进了门不该看见满天星与月亮（与本地世界同一口径）。
+  const indoors=location==='sect'||location==='sects';
+  if(night&&!indoors){
    const count=200,pos=new Float32Array(count*3),col=new Float32Array(count*3);
    for(let i=0;i<count;i++){const t=Math.random()*Math.PI*2,r=45+Math.pow(Math.random(),.7)*105,y=8+Math.random()*15;pos.set([r*Math.cos(t),y,r*Math.sin(t)],i*3);const warm=Math.random()<.34;const c=warm?[1,.85,.62]:[.82,.9,1];col.set(c,i*3);}
    const sg=new T.BufferGeometry();sg.setAttribute('position',new T.BufferAttribute(pos,3));sg.setAttribute('color',new T.BufferAttribute(col,3));
@@ -65,8 +67,10 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};scene.add(player);
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
   // 江湖氛围只留「有信息量」的几样：招幡、远山、微雨（与本地世界一致）。
+  // 远山只属于室外：门派内景/门派大殿由场景自己挂一圈主题色群山。
   const flags=createFlags(scene,[{x:-6.2,y:0,z:12.3,color:'#c85a4a',dir:-1},{x:16.5,y:0,z:8.5,color:'#4a7a9e',dir:-1},{x:6.9,y:0,z:11.2,color:'#c8a24a',dir:1}],{night});
-  createMountains(scene,palette,{night});
+  const townMountains=createMountains(scene,palette,{night});
+  if(indoors)townMountains.group.visible=false;
  const rain=createRain(scene,{night});
   // 点击聚焦反馈：鼠标与手指触摸共用
   let waterFx,oathSpot;

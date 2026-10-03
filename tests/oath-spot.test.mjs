@@ -11,6 +11,8 @@ const ctxStub=()=>({fillStyle:'',strokeStyle:'',lineWidth:1,font:'',textAlign:''
 globalThis.document={createElement:()=>({width:64,height:64,getContext:ctxStub,addEventListener:noop})};
 
 const {createOathSpot}=await import('../src/world/oathSpot.js');
+const {buildSectInterior}=await import('../src/world/sectScene.js');
+
 
 test('桃园结义布点：三株桃树 + 石碑，且坐标可用',()=>{
  const parent=new T.Group();
@@ -64,4 +66,30 @@ test('门派小镇预设：五套地形的内景都能建出来',async()=>{
  }
  // 五种地形的网格数应该互不相同（说明地形装饰真的生效）
  assert.equal(new Set(Object.values(counts)).size,5,'五种地形各有差异');
+});
+
+// 门派空间不挂小镇那座公共远山，改用主题色群山：进了门看不见村口的山。
+test('门派内景自带一圈群山，远近两层都挂上',()=>{
+ const parent=new T.Group();
+ const before=parent.children.length;
+ buildSectInterior(parent,{sect:{id:'s1',name:'测试门派',slogan:'',intro:'',style:'startup',founderId:'u',founderName:'甲',elders:[],disciples:[],townLayout:{terrain:'village',theme:'indigo'}},palette:{roof:'#587c92'},night:false},[]);
+ assert.equal(parent.children.length,before+2,'院落 + 群山（两个直接子节点）');
+ const ridge=parent.children.at(-1);          // 群山是最后挂上的那一组
+ assert.equal(ridge.children.length,2,'群山分远近两层');
+ let cones=0;ridge.traverse(o=>{if(o.isMesh)cones++;});
+ assert.ok(cones>=40,'两层山脊有足够山峰（'+cones+'）');
+});
+test('群山配色按主题走，夜里整体降一档',()=>{
+ const ridgeOf=(theme,night)=>{
+  const parent=new T.Group();
+  buildSectInterior(parent,{sect:{id:'s1',name:'测试门派',slogan:'',intro:'',style:'startup',founderId:'u',founderName:'甲',elders:[],disciples:[],townLayout:{terrain:'village',theme:theme}},palette:{roof:'#587c92'},night},[]);
+  const ridge=parent.children.at(-1);
+  const hex=i=>'#'+ridge.children[i].children[0].material.color.getHexString();
+  return {far:hex(0),near:hex(1)};
+ };
+ const day=ridgeOf('indigo',false),nightR=ridgeOf('indigo',true),other=ridgeOf('cinnabar',false);
+ assert.match(day.far,/^#[0-9a-f]{6}$/,'远层颜色合法');
+ assert.notEqual(day.far,day.near,'远近两层颜色不同');
+ assert.notEqual(day.far,nightR.far,'夜里整体降一档');
+ assert.notEqual(day.far,other.far,'不同主题给不同的山色（黛蓝 ≠ 朱砂）');
 });

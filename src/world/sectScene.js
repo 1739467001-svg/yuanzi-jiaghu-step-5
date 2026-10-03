@@ -8,7 +8,16 @@ import * as T from 'three';
 import {THEMES} from './config.js';
 import {TOWN_THEMES,TOWN_BUILDINGS,defaultLayout} from './townPresets.js';
 import {benefitsStele} from './benefitsStele.js';
+import {createRidge} from './ambience.js';
 import {box,ball,cylinder,mesh,dmesh,material,textSign,roof,figureHead,lantern} from './models.js';
+
+// 门派自己的远山配色：远层淡（墙色往灰绿靠）、近层沉（主题本色压暗）；夜里整体降一档。
+const mix=(a,b,t)=>{const p=parseInt(a.slice(1),16),q=parseInt(b.slice(1),16);const ch=(x,y)=>Math.round(x*(1-t)+y*t).toString(16).padStart(2,'0');return '#'+ch(p>>16&255,q>>16&255)+ch(p>>8&255,q>>8&255)+ch(p&255,q&255);};
+function ridgeColors(base,night){
+ if(night)return {far:'#2b3a42',near:'#22323a'};
+ const roof=base.roof||'#42746d',wall=base.wall||'#eee2c5';
+ return {far:mix(wall,'#9aa79b',.55),near:mix(roof,'#4a5a48',.45)};
+}
 
 const ROLE_ORDER=['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'];
 function discipleRank(m){
@@ -110,6 +119,8 @@ function pagePillar(parent,x,z,dir,palette,interactive){
 // 门派大殿：返回 {dispose}
 export function buildSectsHall(parent,{sects,page,pages,palette,night},interactive=[]){
  const g=new T.Group();parent.add(g);
+ // 门派大殿也不挂小镇那座公共远山：改用按主题色推算的一圈群山，殿外是自家的山。
+ createRidge(parent,ridgeColors(palette,night));
  hallFloor(g,palette,night);
  const xs=[-14,-4.6,4.6,14];
  sects.forEach((s,i)=>{if(i<4)sectBanner(g,s,xs[i],-2,palette,interactive);});
@@ -203,6 +214,8 @@ export function buildSectInterior(parent,{sect,palette,night},interactive=[]){
  const g=new T.Group();parent.add(g);
  const layout={...defaultLayout(),...(sect.townLayout||{})};
  const theme=TOWN_THEMES.find(t=>t.id===layout.theme)||TOWN_THEMES[0];
+ // 门派自己的群山：按主题色推算，院墙外望见的是自家的山，不是小镇那座公共远山。
+ createRidge(parent,ridgeColors(theme,night));
  hallFloor(g,palette,night);
  terrainDecor(g,layout.terrain,theme,night);
  const style=theme.roof;

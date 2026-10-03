@@ -41,9 +41,10 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   const hallPlayer={id:'you',x:0,z:8,angle:0,path:[],state:'看展中'};
  let hallAgents=[],hallStands=[];
   const actorGroup=new T.Group();scene.add(actorGroup);
- // 繁星之夜：夜间星空。小镇稀疏、月亮与流萤；展馆密集并加穹顶，成为一片室内星河。
+ // 繁星之夜：夜间星空。小镇与展馆有星空；门派空间不挂户外夜空（进了门不该看见满天星）。
  let stars,flies,moon;
- if(night){
+ const indoors=location==='sect'||location==='sects';
+ if(night&&!indoors){
   // 星星贴近地平线分布：diormama 相机俯视约 31°，可见空域只有地平线上方一条窄带。
   const isHall=location==='hall',count=isHall?420:200,pos=new Float32Array(count*3),col=new Float32Array(count*3);
   for(let i=0;i<count;i++){const t=Math.random()*Math.PI*2,r=45+Math.pow(Math.random(),.7)*105,y=8+Math.random()*15;pos.set([r*Math.cos(t),y,r*Math.sin(t)],i*3);const warm=Math.random()<.34;const c=warm?[1,.85,.62]:[.82,.9,1];col.set(c,i*3);}
@@ -129,8 +130,10 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   }
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
   // 江湖氛围只留「有信息量」的几样：招幡（门派/建筑标识）、远山（水墨纵深）、脚步光圈与微雨。
+  // 远山只属于室外空间：门派内景/门派大殿由场景自己挂一圈主题色群山（见 sectScene.js createRidge）。
   const flags=createFlags(scene,[{x:-6.2,y:0,z:12.3,color:'#c85a4a',dir:-1},{x:16.5,y:0,z:8.5,color:'#4a7a9e',dir:-1},{x:6.9,y:0,z:11.2,color:'#c8a24a',dir:1}],{night});
-  createMountains(scene,palette,{night});
+  const townMountains=createMountains(scene,palette,{night});
+  if(indoors)townMountains.group.visible=false;
  const rain=createRain(scene,{night});
   // 点击聚焦反馈：鼠标与手指触摸共用
   const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
