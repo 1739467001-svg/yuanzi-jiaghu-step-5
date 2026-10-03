@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {JOINTS,PART_JOINT,m4,mul4,invert4,mat4Of,qx,qy,qz} from './skeleton.mjs';
 
 const SRC=process.argv[2]||path.resolve(import.meta.dirname,'..','..','原子侠_标准模型_八视图精修版.blend');
 const OUT=process.argv[3]||path.resolve(import.meta.dirname,'..','public','models','character-yuanzi.glb');
@@ -127,13 +128,18 @@ function buildGLB(groups,materials){
  let vTotal=0,iTotal=0;
  for(const g of groups){vTotal+=g.pos.length/3;iTotal+=g.idx.length;}
  const use16=groups.every(g=>g.pos.length/3<65536);
- const bin=Buffer.alloc(vTotal*24+iTotal*(use16?2:4)+1024);
+ let bin=Buffer.alloc(Math.max(4096,(vTotal*56+iTotal*(use16?2:4)+65536)|0));
  const views=[],accessors=[];
+ // 追加数据：缓冲区按需翻倍，避免蒙皮/动画把估算空间写爆（Buffer.copy 越界是静默截断）
  const push=(data,stride,target)=>{
   let off=views.length?views[views.length-1].byteOffset+views[views.length-1].byteLength:0;
   off+=(4-(off%4||4))%4;
+  while(off+data.length>bin.length){
+   const bigger=Buffer.alloc(bin.length*2);
+   bin.copy(bigger);bin=bigger;
+  }
   data.copy(bin,off);
-  views.push({buffer:0,byteOffset:off,byteLength:data.length,byteStride:target===34962?undefined:undefined,target});
+  views.push({buffer:0,byteOffset:off,byteLength:data.length,target});
   return views.length-1;
  };
  const primitives=[];
@@ -151,11 +157,117 @@ function buildGLB(groups,materials){
   accessors.push({bufferView:push(iBuf,4,34963),componentType:use16?5123:5125,count:g.idx.length,type:'SCALAR'});
   primitives.push({attributes:{POSITION:accessors.length-3,NORMAL:accessors.length-2},indices:accessors.length-1,material:gi});
  }
+
+ // 登记一个 accessor（动画采样器必须引用 accessor 下标，不是 bufferView）
+ const animAccessor=(data,type,count)=>{accessors.push({bufferView:push(data,type==='VEC4'?16:4,undefined),componentType:5126,count,type});return accessors.length-1;};
+ // ---- 蒙皮：每个顶点绑 4 个关节 ----
+ // 双通道：部件名（头/袖/腰带…）优先，未命中按身高分段（袍子这类大件只能按高度分段）。
+ const HJ=JOINTS.map(j=>({...j,m:m4(j.t[0],j.t[1],j.t[2],[0,0,0,1])}));
+ const world=mat4Of(HJ);
+ const jIdx={};JOINTS.forEach((j,i)=>jIdx[j.id]=i);
+ const band=y=>{
+  const stops=[[.25,'foot'],[.42,'shin'],[.62,'thigh'],[.78,'hips'],[.95,'spine'],[1.12,'chest'],[1.26,'neck'],[1.31,'head']];
+  let a=stops[0],b=stops[1];
+  for(let i=0;i<stops.length-1;i++){if(y>=stops[i][0]&&y<stops[i+1][0]){a=stops[i];b=stops[i+1];break;}}
+  if(y>=stops[stops.length-1][0]){a=stops[stops.length-2];b=stops[stops.length-1];}
+  const t=Math.min(1,Math.max(0,(y-a[0])/((b[0]-a[0])||1)));
+  return [[a[1],1-t],[b[1],t]];
+ };
+ const skinFor=(part,y)=>{
+  if(part)for(const [re,js] of PART_JOINT)if(re.test(part)&&js)return js.map(j=>[j,1/js.length]);
+  return band(y);
+ };
+ for(let gi=0;gi<groups.length;gi++){
+  const g=groups[gi];
+  const n=g.pos.length/3;
+  const ji=new Int16Array(n*4),wt=new Float32Array(n*4);
+  for(let i=0;i<n;i++){
+   const w=skinFor(g.part,g.pos[i*3+1]).sort((a,b)=>b[1]-a[1]).slice(0,4);
+   const sum=w.reduce((a,x)=>a+x[1],0)||1;
+   for(let k=0;k<4;k++){ji[i*4+k]=jIdx[w[k]?w[k][0]:'hips']??0;wt[i*4+k]=w[k]?w[k][1]/sum:0;}
+  }
+  // 关节索引只有 17 个，用无符号字节存（glTF 允许 UNSIGNED_BYTE）
+  const ub=Buffer.alloc(n*4);for(let k=0;k<n*4;k++)ub.writeUInt8(Math.max(0,Math.min(255,ji[k])),k);
+  accessors.push({bufferView:push(ub,4,34962),componentType:5121,count:n,type:'VEC4'});
+  primitives[gi].attributes.JOINTS_0=accessors.length-1;
+  accessors.push({bufferView:push(f32(Array.from(wt)),16,34962),componentType:5126,count:n,type:'VEC4'});
+  primitives[gi].attributes.WEIGHTS_0=accessors.length-1;
+ }
+ // inverseBindMatrices = 各关节 rest 世界矩阵的逆
+ const ibm=[];
+ for(const m2 of world)for(const v of invert4(m2))ibm.push(v);
+ accessors.push({bufferView:push(f32(ibm),64,undefined),componentType:5126,count:JOINTS.length,type:'MAT4'});
+ const SKIN_INDEX=accessors.length-1;
+
+ // ---- 骨架节点树：nodes[0] 是蒙皮网格，nodes[1..] 是关节 ----
+ const JN=[];                                  // 关节名 → 节点下标
+ JOINTS.forEach((j,i)=>JN[j.id]=i+1);
+ const jointNodes=JOINTS.map((j,i)=>({
+  name:j.id,translation:j.t,
+  ...(JOINTS.filter(k=>k.parent===j.id).length?{children:JOINTS.filter(k=>k.parent===j.id).map(k=>JN[k.id])}:{}),
+ }));
+ const ANIMS=[];
+ const qn=q=>{const l=Math.hypot(q[0],q[1],q[2],q[3])||1;return [q[0]/l,q[1]/l,q[2]/l,q[3]/l];};
+ const chan=(node,path,frames)=>({node:JN[node],path,frames});
+ const buildAnim=(name,period,joints)=>{
+  const samplers=[];const channels=[];
+  for(const j of joints){
+   const times=j.frames.map(f=>f.t*period);          // 每个关节用自己的帧（帧数可以不同）
+   const vals=j.frames.map(f=>f.v);
+   if(j.path==='rotation'){
+    for(const v of vals)qn(v);
+    samplers.push({input:f32(times),output:f32(vals.flatMap(vn=>qn(vn)))});
+   }else{
+    samplers.push({input:f32(times),output:f32(vals.flat())});
+   }
+   channels.push({sampler:samplers.length-1,target:{node:JN[j.id],path:j.path}});
+   samplers[samplers.length-1].type=j.path==='rotation'?'VEC4':'VEC3';
+  }
+  return {name,samplers,channels};
+ };
+ // 行走：一个周期两步（左右交替），下摆/躯干起伏、袖臂反摆
+ const WALK=buildAnim('walk',.92,[
+  {id:'hips',path:'translation',frames:[{t:0,v:[0,.80,0]},{t:.25,v:[0,.818,0]},{t:.5,v:[0,.80,0]},{t:.75,v:[0,.818,0]},{t:1,v:[0,.80,0]}]},
+  {id:'hips',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qz(.035)},{t:.5,v:[0,0,0,1]},{t:.75,v:qz(-.035)},{t:1,v:[0,0,0,1]}]},
+  {id:'spine',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qy(-.07)},{t:.5,v:[0,0,0,1]},{t:.75,v:qy(.07)},{t:1,v:[0,0,0,1]}]},
+  {id:'chest',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qy(.05)},{t:.5,v:[0,0,0,1]},{t:.75,v:qy(-.05)},{t:1,v:[0,0,0,1]}]},
+  {id:'thigh.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(-.42)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(.3)},{t:1,v:[0,0,0,1]}]},
+  {id:'shin.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.05)},{t:.5,v:qx(-.6)},{t:.75,v:qx(-.2)},{t:1,v:[0,0,0,1]}]},
+  {id:'thigh.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.3)},{t:.5,v:qx(-.42)},{t:.75,v:[0,0,0,1]},{t:1,v:[0,0,0,1]}]},
+  {id:'shin.R',path:'rotation',frames:[{t:0,v:qx(-.2)},{t:.25,v:[0,0,0,1]},{t:.5,v:qx(.05)},{t:.75,v:qx(-.6)},{t:1,v:qx(-.2)}]},
+  {id:'shoulder.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.34)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(-.26)},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.L',path:'rotation',frames:[{t:0,v:qx(-.24)},{t:.25,v:qx(-.5)},{t:.5,v:qx(-.24)},{t:.75,v:qx(-.16)},{t:1,v:qx(-.24)}]},
+  {id:'shoulder.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(-.26)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(.34)},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.R',path:'rotation',frames:[{t:0,v:qx(-.16)},{t:.25,v:qx(-.24)},{t:.5,v:qx(-.24)},{t:.75,v:qx(-.5)},{t:1,v:qx(-.16)}]},
+  {id:'head',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qy(.04)},{t:.5,v:[0,0,0,1]},{t:.75,v:qy(-.04)},{t:1,v:[0,0,0,1]}]},
+ ]);
+ // 待机：呼吸、轻摆、偶尔张望
+ const IDLE=buildAnim('idle',4.4,[
+  {id:'hips',path:'translation',frames:[{t:0,v:[0,.80,0]},{t:.5,v:[0,.812,0]},{t:1,v:[0,.80,0]}]},
+  {id:'chest',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.5,v:qx(-.03)},{t:1,v:[0,0,0,1]}]},
+  {id:'spine',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.5,v:qz(.015)},{t:1,v:[0,0,0,1]}]},
+  {id:'shoulder.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.5,v:qz(.05)},{t:1,v:[0,0,0,1]}]},
+  {id:'shoulder.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.5,v:qz(-.05)},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.L',path:'rotation',frames:[{t:0,v:qx(-.16)},{t:.5,v:qx(-.24)},{t:1,v:qx(-.16)}]},
+  {id:'forearm.R',path:'rotation',frames:[{t:0,v:qx(-.16)},{t:.5,v:qx(-.24)},{t:1,v:qx(-.16)}]},
+  {id:'head',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.35,v:qy(.09)},{t:.7,v:qy(-.09)},{t:1,v:[0,0,0,1]}]},
+ ]);
+ ANIMS.push(WALK,IDLE);
+ // 动画采样器的 bufferView 也要 register（buildGLB 后补）
+ for(const a of ANIMS)for(const s of a.samplers){
+  const frames=s.input.length/4;                 // 先取帧数，别等 input 被覆写成索引
+  const inIdx=animAccessor(s.input,'SCALAR',frames);
+  const outIdx=animAccessor(s.output,s.type,frames);
+  s.input=inIdx;s.output=outIdx;
+ }
  const json={
   asset:{version:'2.0',generator:'atom-jianghu/blend-to-glb'},
-  scene:0,scenes:[{nodes:[0]}],
-  nodes:[{mesh:0,name:'yuanzi'}],
+  scene:0,scenes:[{nodes:[0,1]}],
+  nodes:[{mesh:0,skin:0,name:'yuanzi'},...jointNodes],
+ scene:0,
   meshes:[{name:'yuanzi',primitives}],
+ skins:[{joints:JOINTS.map((_,i)=>i+1),inverseBindMatrices:SKIN_INDEX}],
+ animations:ANIMS,
   materials:materials.map(m=>({name:m.name,doubleSided:true,
    pbrMetallicRoughness:{baseColorFactor:[...(m.color||[.82,.82,.8]),1],metallicFactor:.05,roughnessFactor:.85}})),
   accessors,bufferViews:views,buffers:[{byteLength:bin.length}],
@@ -207,9 +319,9 @@ const main=async()=>{
  if(!materials.length)materials.push({name:'default',r:.82,g:.82,b:.8});
  console.log('材质 '+materials.length+' 个');
 
- const groups=[];const groupFor=(mat,role)=>{
+ const groups=[];const groupFor=(mat,role,part)=>{
   let g=groups.find(x=>x.mat===mat);
-  if(!g){g={mat,role:role||'other',pos:[],nrm:[],idx:[]};groups.push(g);}
+  if(!g){g={mat,role:role||'other',part:part||'',pos:[],nrm:[],idx:[]};groups.push(g);}
   return g;
  };
  let objects=0,skipped=0,totV=0,totF=0;
@@ -280,7 +392,7 @@ const main=async()=>{
   const span=Math.max(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2]);
   if(span>6){skipped++;console.log('  跳过 '+name+'（体量 '+span.toFixed(1)+'m，超出角色尺度，疑似背景板/机身）');continue;}
   if(verts.some(a=>a.some(v=>!Number.isFinite(v)))){skipped++;console.log("  跳过 "+name+"（含非有限坐标）");continue;}
-  const g=groupFor(colorKey,partRole(name));
+  const g=groupFor(colorKey,partRole(name),name);
   if(g.color===undefined)g.color=color;
   const base=g.pos.length/3;
   for(let i=0;i<totvert;i++)g.pos.push(verts[i][0],verts[i][1],verts[i][2]);
@@ -307,7 +419,7 @@ const main=async()=>{
  for(const g of groups){
   const last=merged[merged.length-1];
   if(last&&last.mat===g.mat){last.pos.push(...g.pos);last.nrm.push(...g.nrm);last.idx.push(...g.idx.map(v=>v+last.pos.length/3-g.pos.length/3));if(last.color===undefined)last.color=g.color;}
-  else merged.push({mat:g.mat,role:g.role,color:g.color,pos:[...g.pos],nrm:[...g.nrm],idx:[...g.idx]});
+  else merged.push({mat:g.mat,role:g.role,color:g.color,part:g.part,pos:[...g.pos],nrm:[...g.nrm],idx:[...g.idx]});
  }
 
  // 规整：脚底 y=0，水平居中，再按身高归一到 1.7 米（Blender 场景单位不是米）
@@ -374,3 +486,4 @@ const main=async()=>{
 };
 
 main().catch(e=>{console.error(e);process.exit(1);});
+
