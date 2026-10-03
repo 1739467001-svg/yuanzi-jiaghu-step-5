@@ -10,7 +10,7 @@ import {declutterPins} from './pins.js';
 import {createClickFx} from './clickFx.js';
 import {createWater} from './water.js';
 import {createOathSpot} from './oathSpot.js';
-import {createPetals,createBirds,createSmoke,createFlags,createMountains,createDust} from './ambience.js';
+import {createFlags,createMountains,createRain} from './ambience.js';
 
 // 远程玩家气泡：私聊中的“交谈中”与公开表情（内容不可见，PRD 9.1 旁观规则）。
 const EMOTE_LABELS={wave:'打招呼',bow:'作揖',clap:'鼓掌',think:'思考'};
@@ -25,7 +25,7 @@ function bubbleTexture(text){
 // 联机世界：服务端权威位置，客户端本地预测 + 快照插值。
 // 自己的角色立即响应点击（预测），其他人的角色按 10Hz 快照插值；
 // 与服务端偏差过大时以服务端位置纠正。模型不得直接执行坐标修改。
-export default function OnlineWorld({client,theme,night,labels=true,playerColor,playerName='少侠',onPlayers,onPlace,onActor,apiRef,location='town',sectPage,sectDetail,onSectEnter,onSectPage,onSectBack}){
+export default function OnlineWorld({client,theme,night,labels=true,playerColor,playerName='少侠',onPlayers,onPlace,onActor,apiRef,location='town',sectPage,sectDetail,onSectEnter,onSectPage,onSectBack,weather='clear'}){
  const host=useRef(),callbacks=useRef({});callbacks.current={onPlayers,onPlace,onActor};
  const [error,setError]=useState(false),[pins,setPins]=useState([]);
  const selfRef=useRef({x:-3,z:1,angle:0,path:[],id:'you',state:'自在漫游'});
@@ -34,6 +34,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
  // 自己的名字以服务端快照为准（账号名帖），拿不到时退回前端身份——和顶栏显示同一个名字。
  const selfName=useRef('');
  const remoteRef=useRef(new Map());
+ // 天气变化不该重建整个联机场景，用 ref 让渲染循环每次读到最新值。
+ const weatherRef=useRef(weather);weatherRef.current=weather;
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;
   // 场景重建（切换地点/门派分页）后，旧模型已随场景销毁，远程角色需要按下一帧快照重建。
@@ -62,13 +64,10 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   }
   const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};scene.add(player);
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
-  // 江湖氛围：花瓣、飞鸟、香烟、招幡、远山、扬尘
-  const petals=createPetals(scene,{count:el.clientWidth<550?70:140,color:night?'#d8a9cf':'#f6c3d2',night});
-  const birds=createBirds(scene,{count:el.clientWidth<550?2:3});
-  const smoke=createSmoke(scene,[{x:11.5,y:5.9,z:-5},{x:-4,y:3.6,z:12.4}],{night});
+  // 江湖氛围只留「有信息量」的几样：招幡、远山、微雨（与本地世界一致）。
   const flags=createFlags(scene,[{x:-6.2,y:0,z:12.3,color:'#c85a4a',dir:-1},{x:16.5,y:0,z:8.5,color:'#4a7a9e',dir:-1},{x:6.9,y:0,z:11.2,color:'#c8a24a',dir:1}],{night});
   createMountains(scene,palette,{night});
-  const dust=createDust(scene);
+ const rain=createRain(scene,{night});
   // 点击聚焦反馈：鼠标与手指触摸共用
   let waterFx,oathSpot;
   const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
@@ -246,10 +245,17 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
   let frame,last=performance.now(),lastPins=0;
   function render(now){
    if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;   clickFx.update(dt);
-   waterFx?.update(dt,now);
+   waterFx?.update(dt,now);waterFx?.setRain?.(weatherRef.current==='rain');
    oathSpot?.update(dt,player.position.x,player.position.z);
-   petals?.setBoost?.(!!oathSpot?.bursting);
-   petals.update(dt,now);birds.update(dt,now);smoke.update(dt,now);flags.update(dt,now);
+   flags.update(dt,now);
+   rain.update(dt);
+   // 微雨：粒子起落 + 天色、地面、雾色一起压暗（联机世界同样响应）。
+   const raining=weatherRef.current==='rain';
+   if(raining&&!rain.group.visible)rain.start();
+   if(!raining&&rain.group.visible)rain.stop();
+   const wetSky=raining?(night?'#2b3a42':'#8ea3ab'):nightSky;
+   scene.background.set(wetSky);scene.fog.color.set(wetSky);
+   ground.material.color.set(raining?(night?'#4a5a50':'#7f9078'):(night?'#6d8177':palette.grass));
 
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
@@ -260,7 +266,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
    if(player.userData.body){player.userData.body.position.y=moving?Math.abs(Math.sin(now*.009))*.055:Math.sin(now*.002+self.x)*.016;player.userData.feet.forEach((f,i)=>f.position.z=.04+(moving?Math.sin(now*.01+i*Math.PI)*.13:0));}
    else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,moving);}
    const dest=self.path.at(-1);ring.visible=!!dest;
-  if(self.path.length&&Math.random()<dt*7)dust.spawn(self.x,self.z);if(dest)ring.position.set(dest[0],groundY(dest[0],dest[1])+.18,dest[1]);
+  if(dest)ring.position.set(dest[0],groundY(dest[0],dest[1])+.18,dest[1]);
    // 聚义阁座席：被点击的人缓步转身面向走近的少侠。
    for(const seat of sectSeats){
     const want=seat.group.userData.targetRot;
@@ -286,7 +292,6 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     entry.sprite.visible=!!label;
     if(label)entry.sprite.position.set(entry.x,groundY(entry.x,entry.z)+2.85,entry.z);
    }
-   dust.update(dt);
    controls.update();renderer.render(scene,camera);
    if(focusTarget){const delta=focusTarget.clone().sub(controls.target).multiplyScalar(.035);controls.target.add(delta);camera.position.add(delta);if(delta.length()<.003)focusTarget=null;}
    if(now-lastPins>120){

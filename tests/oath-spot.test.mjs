@@ -41,6 +41,15 @@ test('走近触发：5 米内触发一次，离开后有冷却',()=>{
  for(let i=0;i<60;i++)spot.update(.016,0,2);
  assert.equal(hits,2,'走远再走近会再触发');
 });
+test('走近时扬起一小阵落瓣，几秒后自己停',()=>{
+ const parent=new T.Group();
+ const spot=createOathSpot(parent,{x:0,z:0,onEnter(){}});
+ assert.equal(spot.bursting,false,'平时不飘瓣');
+ for(let i=0;i<60;i++)spot.update(.016,0,3);
+ assert.equal(spot.bursting,true,'走近立刻扬瓣');
+ for(let i=0;i<60*3;i++)spot.update(.016,0,3);
+ assert.equal(spot.bursting,false,'2.6 秒后落瓣散尽');
+});
 test('门派小镇预设：五套地形的内景都能建出来',async()=>{
  const {buildSectInterior}=await import('../src/world/sectScene.js');
  const sect={id:'s1',name:'测试门派',slogan:'s',intro:'i',style:'startup',founderId:'u',founderName:'甲',elders:[{userId:'e',name:'青禾',title:'执法长老'}],disciples:[{userId:'d',name:'阿原',title:'大师兄'}]};

@@ -64,7 +64,7 @@ export function findPath(from,to,isWalkable=walkable){
  let at=goal,result=[];while(at!==s){result.unshift(at.split(',').map(Number));at=previous.get(at);}return result;
 }
 export class WorldEngine{
- constructor(onEvent=()=>{}){this.time=0;this.onEvent=onEvent;this.paused=false;this.clock=8;this.lastPhase=phaseAt(this.clock).name;this.player={id:'you',name:'你',color:'#427ab5',x:-3,z:1,angle:0,path:[],state:'自在漫游'};this.agents=AGENTS.map((a,i)=>({...a,x:a.start[0],z:a.start[1],angle:0,path:[],state:'歇脚中',wait:2+i*1.7,step:i%2,memory:[],partner:null,task:null,views:[],viewed:new Set(),lastView:-999,debating:null,debateTopic:null}));this.works=[];this.debateCooldown=20;this.debateRound=0;}
+ constructor(onEvent=()=>{}){this.time=0;this.onEvent=onEvent;this.paused=false;this.clock=8;this.lastPhase=phaseAt(this.clock).name;this.player={id:'you',name:'你',color:'#427ab5',x:-3,z:1,angle:0,path:[],state:'自在漫游'};this.agents=AGENTS.map((a,i)=>({...a,x:a.start[0],z:a.start[1],angle:0,path:[],state:'歇脚中',wait:2+i*1.7,step:i%2,memory:[],partner:null,task:null,views:[],viewed:new Set(),lastView:-999,debating:null,debateTopic:null}));this.works=[];this.debateCooldown=20;this.debateRound=0;this.weather='clear';}
  phase(){return phaseAt(this.clock);}
  // 已发布作品由内容契约注入；观展与导览只读取发布状态为“已发布”的数据。
  setWorks(works){this.works=Array.isArray(works)?works.filter(w=>w&&w.id&&w.title&&w.publicationStatus==='已发布'):[];}
@@ -83,8 +83,8 @@ export class WorldEngine{
   const phase=phaseAt(this.clock);
   if(phase.name!==this.lastPhase){this.lastPhase=phase.name;this.onEvent({id:`phase-${this.time}`,text:`时辰流转，江湖到了${phase.name}`,kind:'phase',time:Date.now()});}
   this.runDebate(dt);
-  this.advance(this.player,dt,3.2);
-  for(const a of this.agents){if(a.held)continue;this.advance(a,dt,1.15);if(a.path.length)continue;
+  this.advance(this.player,dt,this.raining?2:3.2);
+  for(const a of this.agents){if(a.held)continue;this.advance(a,dt,this.raining?.75:1.15);if(a.path.length)continue;
    // 观展闭环：到达展示馆后读取作品事实，生成不超过 60 字的角色观感并记入公开见闻。
    if(a.task?.type==='observe'&&!a.task.done){
     a.task.done=true;const w=a.task.work,{impression,opinion}=impressionOf(a,w);
@@ -113,7 +113,7 @@ export class WorldEngine{
    const phaseNow=phaseAt(this.clock);
    const preferred=a.places.filter(id=>{const p=PLACES.find(p=>p.id===id);return p&&phaseNow.prefer.includes(p.kind)});
    const destinationId=preferred.length?preferred[a.step++%preferred.length]:a.places[a.step++%a.places.length];
-   const dest=PLACES.find(p=>p.id===destinationId);a.path=findPath([a.x,a.z],dest.entry);a.state=`前往${dest.short}`;a.wait=(7+(a.step%5))*phaseNow.pace;this.onEvent({id:`${a.id}-${this.time}`,text:`${a.name}动身前往${dest.short}`,kind:'walk',time:Date.now()});
+   const dest=PLACES.find(p=>p.id===destinationId);a.path=findPath([a.x,a.z],dest.entry);a.state=`前往${dest.short}`;a.wait=(7+(a.step%5))*phaseNow.pace*(this.raining?1.35:1);this.onEvent({id:`${a.id}-${this.time}`,text:`${a.name}动身前往${dest.short}`,kind:'walk',time:Date.now()});
   }
  }
  advance(a,dt,speed){stepActor(a,dt,speed);}
@@ -175,6 +175,9 @@ export class WorldEngine{
   return true;
  }
  hasDebate(){return this.agents.some(a=>a.debating);}
+ // 天气只影响节奏：微雨时侠客走慢一点、行程间隔长一点（雨景是氛围，不是惩罚）。
+ setWeather(w){this.weather=w==='rain'?'rain':'clear';}
+ get raining(){return this.weather==='rain';}
  debatePro(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.pro:'我看值得一试';}
  debateCon(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.con:'也要留个后手';}
  snapshot(){return this.agents.map(({id,name,state,x,z,memory,views})=>({id,name,state,x,z,memory:[...memory],views:views.map(v=>({...v}))}));}

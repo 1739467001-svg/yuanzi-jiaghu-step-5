@@ -170,9 +170,11 @@ export function createWater(parent,{night=false,quality='high'}={}){
  const schools=[tadpoles(g,-13,2.4,5),tadpoles(g,9,2.8,5)];
  const flies=[dragonfly(g,-6,3.2,.4),dragonfly(g,11,-3.4,.8)];
  const ripple=ripples(g,8);
- let slowFrames=0,frames=0;
+ let slowFrames=0,frames=0,raining=false,rainDrops=0;
  return {
   group:g,
+  // 微雨：水面涟漪加密（雨点砸上去），停雨恢复。
+  setRain(on){raining=!!on;},
   update(dt,t){
    waveUniforms.uTime.value=t*.001;
    // 自适应画质：平面反射要额外渲染整个场景，低端机/手机上代价高。
@@ -227,6 +229,8 @@ export function createWater(parent,{night=false,quality='high'}={}){
     if(Math.random()<dt*.35)ripple.spawn(d.g.position.x,d.g.position.z);
     d.g.children[2].rotation.z=Math.sin(t*.05+d.phase*6)*.4;
    }
+   rainDrops+=dt;
+   if(raining&&rainDrops>.09){rainDrops=0;ripple.spawn((Math.random()-.5)*30,(Math.random()-.5)*7);}
    ripple.update(dt);
   },
  };

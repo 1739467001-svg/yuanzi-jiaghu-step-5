@@ -45,16 +45,37 @@ export function createOathSpot(parent,{x=0,z=0,onEnter,night=false}={}){
   ball(g,Math.cos(a)*r,.06,Math.sin(a)*r*.8,.075,'#f2c3d2',[1,.35,1]);
  }
  oathStele(g,0,0);
- let armed=true,cool=0,burst=0;
+ // 走近时扬起的一小阵落瓣：本地粒子，不做满村飘瓣那种环境噪音。
+ const bn=26,bp=new Float32Array(bn*3),bg=new T.BufferGeometry();
+ bg.setAttribute('position',new T.BufferAttribute(bp,3));
+ const burst=new T.Points(bg,new T.PointsMaterial({color:'#f2c3d2',size:.17,transparent:true,opacity:0,depthWrite:false}));
+ burst.visible=false;g.add(burst);
+ let armed=true,cool=0,burstLeft=0,age=0;
+ const arm=()=>{
+  for(let i=0;i<bn;i++){
+   const a=Math.random()*Math.PI*2,r=Math.random()*5.2;
+   bp[i*3]=Math.cos(a)*r;bp[i*3+1]=2.4+Math.random()*2.4;bp[i*3+2]=Math.sin(a)*r*.8;
+  }
+  bg.attributes.position.needsUpdate=true;burst.visible=true;burst.material.opacity=.95;age=0;
+ };
  return {
   group:g,
   // 每帧用玩家位置调用：走近 5 米内且距上次触发超过 8 秒，就再触发一次。
   update(dt,x,z){
    if(cool>0){cool-=dt;if(cool<=0)armed=true;}
-   if(burst>0)burst-=dt;
+   if(burstLeft>0){
+    burstLeft-=dt;age+=dt;
+    for(let i=0;i<bn;i++){
+     bp[i*3+1]-=dt*(1.1+((i*7)%5)*.16);
+     bp[i*3]+=Math.sin(age*2.2+i)*dt*.5;
+    }
+    bg.attributes.position.needsUpdate=true;
+    burst.material.opacity=Math.max(0,.95*burstLeft/2.6);
+    if(burstLeft<=0)burst.visible=false;
+   }
    const near=Math.hypot(x-g.position.x,z-g.position.z)<5;
-   if(near&&armed){armed=false;cool=8;burst=4;onEnter?.({x,z});}
+   if(near&&armed){armed=false;cool=8;burstLeft=2.6;arm();onEnter?.({x,z});}
   },
-  get bursting(){return burst>0;},
+  get bursting(){return burstLeft>0;},
  };
 }

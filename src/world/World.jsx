@@ -12,7 +12,7 @@ import {declutterPins} from './pins.js';
 import {createClickFx} from './clickFx.js';
 import {createWater} from './water.js';
 import {createOathSpot} from './oathSpot.js';
-import {createPetals,createBirds,createSmoke,createFlags,createMountains,createDust} from './ambience.js';
+import {createFlags,createMountains,createRain} from './ambience.js';
 import {trackColorOf} from '../content/catalog.js';
 function bubbleTexture(text){
  const c=document.createElement('canvas');c.width=256;c.height=92;const x=c.getContext('2d');
@@ -23,8 +23,11 @@ function bubbleTexture(text){
 }
 // 英雄帖示范条目：社区悬赏与共创任务，接口就绪后改为实时数据。
 const HERO_TOPICS=['征集：把一次踩坑写成新手友好教程','共创：给门派小镇补一套春天的材质','悬赏：帮茶会整理一份工具清单','讨论：AI 该替人做事还是陪人想事'];
-export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',labels=true,sectPage,sectDetail,onSectEnter}){
+export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',labels=true,sectPage,sectDetail,onSectEnter,weather='clear'}){
  const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
+ // 天气、昵称、标签开关会随时变，但重跑大 effect 会重建整个场景；用 ref 让渲染循环每次读到最新值。
+ const weatherRef=useRef(weather);weatherRef.current=weather;
+ const nameRef=useRef(playerName);nameRef.current=playerName;
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch{setError(true);return;}
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=night?1.15:1.25;el.appendChild(renderer.domElement);
@@ -125,13 +128,10 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    tree(base,-15,-7,1.4);tree(base,15,-7,1.4);player.position.set(0,0,8);camera.position.set(25,24,32);controls.target.set(0,0,-1);
   }
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
-  // 江湖氛围：花瓣、飞鸟、香烟、招幡、远山、脚步扬尘（手机端减半由下方 narrow 判定处理）
-  const petals=createPetals(scene,{count:el.clientWidth<550?70:140,color:night?'#d8a9cf':'#f6c3d2',night});
-  const birds=createBirds(scene,{count:el.clientWidth<550?2:3});
-  const smoke=createSmoke(scene,[{x:11.5,y:5.9,z:-5},{x:-4,y:3.6,z:12.4}],{night});
+  // 江湖氛围只留「有信息量」的几样：招幡（门派/建筑标识）、远山（水墨纵深）、脚步光圈与微雨。
   const flags=createFlags(scene,[{x:-6.2,y:0,z:12.3,color:'#c85a4a',dir:-1},{x:16.5,y:0,z:8.5,color:'#4a7a9e',dir:-1},{x:6.9,y:0,z:11.2,color:'#c8a24a',dir:1}],{night});
   createMountains(scene,palette,{night});
-  const dust=createDust(scene);
+ const rain=createRain(scene,{night});
   // 点击聚焦反馈：鼠标与手指触摸共用
   const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
   const raycaster=new T.Raycaster(),pointer=new T.Vector2(),projection=new T.Vector3();let pointerStart=[0,0];
@@ -168,12 +168,19 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    }};
   function render(now){if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;engine.tick(dt);   clickFx.update(dt);
    window.__atomLocalSelf={x:engine.player.x,z:engine.player.z};
-   waterFx?.update(dt,now);
+   waterFx?.update(dt,now);waterFx?.setRain?.(weatherRef.current==='rain');
    oathSpot?.update(dt,player.position.x,player.position.z);
-   petals?.setBoost?.(!!oathSpot?.bursting);
-   petals.update(dt,now);birds.update(dt,now);smoke.update(dt,now);flags.update(dt,now);
+   flags.update(dt,now);
+   rain.update(dt);
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
+  // 微雨：粒子起落之外，天色、雾色、草地基色一起压暗。
+  const raining=weatherRef.current==='rain';
+  if(raining&&!rain.group.visible)rain.start();
+  if(!raining&&rain.group.visible)rain.stop();
+  const wetSky=raining?(night?'#2b3a42':'#8ea3ab'):nightSky;
+  scene.background.set(wetSky);scene.fog.color.set(wetSky);
+  ground.material.color.set(raining?(night?'#4a5a50':'#7f9078'):(night?'#6d8177':palette.grass));
    if(location==='town'){
     for(const a of engine.agents){const b=bubbles?.get(a.id);if(!b)continue;const topic=(a.memory.at(-1)||'').split('聊起了')[1]||'';
      // 观展中的侠客头顶浮现正在看的作品；闲聊时浮现当前话题。
@@ -184,13 +191,13 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
      const show=!!label;
      if(show&&b.last!==label){const short=label.length>9?label.slice(0,9)+'…':label;b.sprite.material.map?.dispose();b.sprite.material.map=bubbleTexture(short);b.sprite.material.needsUpdate=true;b.last=label;}
      b.sprite.visible=show;if(show)b.sprite.position.set(a.x,(terrainHeight(a.x,a.z)||0)+2.85,a.z);}for(const a of [...engine.agents,engine.player]){const m=a.id==='you'?player:agentModels.get(a.id);m.position.set(a.x,terrainHeight(a.x,a.z),a.z);const moving=a.path.length>0;
-     if(a.path.length&&Math.random()<dt*7)dust.spawn(a.x,a.z);animateCharacter(m,a.angle,moving,now,a.held);
+     animateCharacter(m,a.angle,moving,now,a.held);
     
     if(m.userData.glb){const animator=m.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(m,now,moving);}}
     const dest=engine.player.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],terrainHeight(dest[0],dest[1])+.18,dest[1]);
    }else {
     engine.advance(hallPlayer,dt,3.2);player.position.set(hallPlayer.x,0,hallPlayer.z);
-    if(hallPlayer.path.length&&Math.random()<dt*7)dust.spawn(hallPlayer.x,hallPlayer.z);player.rotation.y=hallPlayer.angle;const dest=hallPlayer.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],.18,dest[1]);if(player.userData.body)player.userData.body.position.y=hallPlayer.path.length?Math.abs(Math.sin(now*.009))*.055:0;else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(hallPlayer.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,hallPlayer.path.length>0);}
+    player.rotation.y=hallPlayer.angle;const dest=hallPlayer.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],.18,dest[1]);if(player.userData.body)player.userData.body.position.y=hallPlayer.path.length?Math.abs(Math.sin(now*.009))*.055:0;else if(player.userData.glb){const animator=player.userData.glb.animator;if(animator){animator.play(hallPlayer.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(player,now,hallPlayer.path.length>0);}
     // 聚义阁座席：被点击的人缓步转身面向走近的少侠。
     for(const seat of sectSeats){
      const want=seat.group.userData.targetRot;
@@ -212,10 +219,9 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
      ha.sprite.visible=!!label;if(label)ha.sprite.position.set(ha.x,2.85,ha.z);
     }
    }
-   dust.update(dt);
    if(focusTarget){const delta=focusTarget.clone().sub(controls.target).multiplyScalar(.035);controls.target.add(delta);camera.position.add(delta);if(delta.length()<.003)focusTarget=null;}
    controls.update();renderer.render(scene,camera);
-   if(now-lastPins>120){lastPins=now;const sources=[...pinSources];{const current=location==='town'?engine.player:hallPlayer;sources.push({id:'you',kind:'player',name:playerName,point:new T.Vector3(current.x,2.05+(location==='town'?terrainHeight(current.x,current.z):0),current.z)});};
+   if(now-lastPins>120){lastPins=now;const sources=[...pinSources];{const current=location==='town'?engine.player:hallPlayer;sources.push({id:'you',kind:'player',name:nameRef.current,point:new T.Vector3(current.x,2.05+(location==='town'?terrainHeight(current.x,current.z):0),current.z)});};
     const arr=sources.map(p=>{projection.copy(p.point).project(camera);return {...p,x:(projection.x*.5+.5)*el.clientWidth,y:(-.5*projection.y+.5)*el.clientHeight,visible:projection.z<1&&Math.abs(projection.x)<.97&&Math.abs(projection.y)<.96};});setPins(el.clientWidth<900?declutterPins(arr):arr);callbacks.current.onSnapshot(engine.snapshot());}
    frame=requestAnimationFrame(render);
   }frame=requestAnimationFrame(render);

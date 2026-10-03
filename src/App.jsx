@@ -1,6 +1,6 @@
 import {useState,useMemo,useRef,useEffect} from 'react';
 import {apiUrl,worldWsUrl,missingWorldServer} from './net/endpoints.js';
-import {ArrowUpRight,ArrowRight,Compass,BookOpen,MessageCircle,Sun,Moon,Settings2,Volume2,VolumeX,Plus,Minus,LocateFixed,RotateCcw,ChevronRight,ChevronLeft,Search,Bookmark,MapPin,Users,Send,Sparkles,Leaf,Footprints,Check,Trash2,SlidersHorizontal,ExternalLink,PanelRightClose,PanelRightOpen,X,Clock,Sparkle,Landmark,Wifi,WifiOff,UserPlus,LogOut,ShieldOff,Coffee,Share2} from 'lucide-react';
+import {ArrowUpRight,ArrowRight,Compass,BookOpen,MessageCircle,Sun,Moon,Settings2,Volume2,VolumeX,Plus,Minus,LocateFixed,RotateCcw,ChevronRight,ChevronLeft,Search,Bookmark,MapPin,Users,Send,Sparkles,Leaf,Footprints,Check,Trash2,SlidersHorizontal,ExternalLink,PanelRightClose,PanelRightOpen,X,Clock,Sparkle,Landmark,Wifi,WifiOff,UserPlus,LogOut,ShieldOff,Coffee,Share2,CloudRain} from 'lucide-react';
 import World from './world/World.jsx';
 import {preloadModels} from './world/glb.js';
 import OnlineWorld from './world/OnlineWorld.jsx';
@@ -92,7 +92,8 @@ export default function App(){
  const [sectCardOpen,setSectCardOpen]=useState(true);
  const [sectIntroSeen,setSectIntroSeen]=useState(()=>readStore('sectIntroSeen',false));
  const [oathSeen,setOathSeen]=useState(()=>readStore('oathSeen',false));
- // 论剑台：走近且台上正在论剑时，弹出「选一边加入」
+ // 天气：稀有微雨事件（不做 24 小时下雨那种常态）——每 90 秒约 8% 概率起一场，约 5 分钟自停。
+ const [weather,setWeather]=useState('clear');
  const [debateLive,setDebateLive]=useState(null);
  const [debateNear,setDebateNear]=useState(false);
  const [showOath,setShowOath]=useState(false);
@@ -292,6 +293,23 @@ export default function App(){
   }catch(e){notice(e.message);}
   finally{setSectBusy(false);}
  };
+ // 微雨调度：每 90 秒掷一次（8% 起一场），一场约 5 分钟后自己停。
+ useEffect(()=>{
+  let stop=null;
+  const roll=()=>{
+   if(stop)return;
+   if(Math.random()>=.08)return;
+   setWeather('rain');
+   notice('山色空蒙，落了一场微雨');
+   stop=setTimeout(()=>{setWeather('clear');stop=null;notice('雨停了，石板路又干了');},300000);
+  };
+  const id=setInterval(roll,90000);roll();
+  return()=>{clearInterval(id);if(stop)clearTimeout(stop);};
+ },[]);
+ // 验收接缝：外部可强制一场微雨（便于实测与回归）。
+ useEffect(()=>{window.__atomWeather=w=>{setWeather(w==='rain'?'rain':'clear');};return()=>{delete window.__atomWeather;};},[]);
+ // 天气同步给本地引擎（侠客走慢一点）；联机世界的天气由各自客户端自行渲染。
+ useEffect(()=>{engine.setWeather?.(weather);},[weather,engine]);
  // 论剑提示轮询：每 700ms 看一次「台上是否正在论剑」和「我离论剑台多远」。
  useEffect(()=>{
   const agora=PLACES.find(p=>p.id==='agora');
@@ -548,10 +566,10 @@ export default function App(){
   <main className={`world-layout ${rail?'':'rail-hidden'}`}>
    <div className="world-stage">
     {world==='online'&&!staticDemo
-     ?<OnlineWorld client={clientRef.current} theme={theme} night={night} labels={showLabels} playerColor={account?.color||playerColor} playerName={playerName} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} apiRef={apiRef}/>
-     :<World engine={engine} theme={theme} night={night} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} labels={showLabels}/>}
+     ?<OnlineWorld client={clientRef.current} theme={theme} night={night} weather={weather} labels={showLabels} playerColor={account?.color||playerColor} playerName={playerName} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} apiRef={apiRef}/>
+     :<World engine={engine} theme={theme} night={night} weather={weather} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} labels={showLabels}/>}
     <div className="scene-intro"><span className="eyebrow"><span className="tiny-star">✳</span> 人与 AGENT 共建的开源学习社区</span><h1>{world==='online'&&!staticDemo?'山水有相逢，同路在联机。':location==='town'?'山水有相逢，江湖有同路。':'让每一个好想法，被看见。'}</h1><p>{world==='online'&&!staticDemo?'这是服务端权威的联机世界：点击地面行走，邀请遇到的侠客一对一私聊。':location==='town'?'在这里歇歇脚，聊聊想法，和有趣的灵魂一起创造。':'走近展台，发现来自真实赛事的作品与创作者。'}</p></div>
-    <div className="scene-weather">{night?<Moon size={17}/>:<Sun size={18}/>}<span>{phase}<small>{night?'灯火可亲 · 夜景':'草木葱茏 · 日景'}</small></span></div>
+    <div className="scene-weather">{weather==='rain'?<CloudRain size={17}/>:night?<Moon size={17}/>:<Sun size={18}/>}<span>{phase}<small>{weather==='rain'?'山色空蒙 · 微雨':night?'灯火可亲 · 夜景':'草木葱茏 · 日景'}</small></span></div>
     {location==='hall'&&<button className="back-to-town" onClick={()=>{setLocation('town');closePanel();}}><ChevronLeft size={16}/>返回小镇</button>}
     {location==='sects'&&<div className="sect-hud">
      {sectCardOpen?<div className="sect-hud-card">
