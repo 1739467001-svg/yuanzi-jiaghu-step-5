@@ -206,7 +206,8 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     let entry=remote.get(a.id);
     // 展开保留 character() 设置的 body/feet/arms，只追加交互标识。
     if(!entry){
-     const model=createCharacter('character.default',a.color,.95);model.userData={...model.userData,kind:'remote',id:a.id};scene.add(model);interactive.push(model);
+     // 远程玩家的形象以其账号登记为准（快照里带 model），没登记就用默认键。
+     const model=createCharacter(a.model||'character.default',a.color,.95);model.userData={...model.userData,kind:'remote',id:a.id};scene.add(model);interactive.push(model);
      const sprite=new T.Sprite(new T.SpriteMaterial({transparent:true,depthTest:true,depthWrite:false}));sprite.scale.set(3.1,1.12,1);sprite.visible=false;scene.add(sprite);
      entry={model,x:a.x,z:a.z,tx:a.x,tz:a.z,angle:a.angle,sprite,bubble:'',emoteUntil:0};
      remote.set(a.id,entry);
