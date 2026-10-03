@@ -25,7 +25,7 @@ function bubbleTexture(text){
 // 联机世界：服务端权威位置，客户端本地预测 + 快照插值。
 // 自己的角色立即响应点击（预测），其他人的角色按 10Hz 快照插值；
 // 与服务端偏差过大时以服务端位置纠正。模型不得直接执行坐标修改。
-export default function OnlineWorld({client,theme,night,labels=true,playerColor,playerName='少侠',onPlayers,onPlace,onActor,apiRef,location='town',sectPage,sectDetail,onSectEnter,onSectPage,onSectBack,weather='clear'}){
+export default function OnlineWorld({client,theme,night,labels=true,playerColor,playerName='少侠',modelKey='character.default',onPlayers,onPlace,onActor,apiRef,location='town',sectPage,sectDetail,onSectEnter,onSectPage,onSectBack,weather='clear'}){
  const host=useRef(),callbacks=useRef({});callbacks.current={onPlayers,onPlace,onActor};
  const [error,setError]=useState(false),[pins,setPins]=useState([]);
  const selfRef=useRef({x:-3,z:1,angle:0,path:[],id:'you',state:'自在漫游'});
@@ -64,7 +64,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
    const halo=new T.Mesh(new T.SphereGeometry(7.2,20,16),new T.MeshBasicMaterial({color:'#f2eedb',transparent:true,opacity:.12,fog:false}));halo.position.copy(moon.position);scene.add(halo);
    const fn=14,fp=new Float32Array(fn*3),fg=new T.BufferGeometry();fg.setAttribute('position',new T.BufferAttribute(fp,3));flies=new T.Points(fg,new T.PointsMaterial({color:'#ffd98a',size:.22,transparent:true,opacity:.85,fog:false}));scene.add(flies);
   }
-  const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};scene.add(player);
+  const player=createCharacter(modelKey,playerColor,1.12);player.userData={...player.userData,kind:'player'};scene.add(player);
   const ring=new T.Mesh(new T.RingGeometry(.48,.57,40),new T.MeshBasicMaterial({color:'#fdf2b7',side:T.DoubleSide,transparent:true,opacity:.9}));ring.rotation.x=-Math.PI/2;ring.position.y=.17;scene.add(ring);
   // 江湖氛围只留「有信息量」的几样：招幡、远山、微雨（与本地世界一致）。
   // 远山只属于室外：门派内景/门派大殿由场景自己挂一圈主题色群山。

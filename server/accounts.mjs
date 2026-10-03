@@ -4,6 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {MODELS} from '../src/world/config.js';
+const MODEL_KEYS=Object.keys(MODELS);
 
 const root=path.resolve(import.meta.dirname,'..');
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
@@ -72,7 +74,7 @@ export function verify(token){
  const user=store.users[session.userId];
  return user?{userId:user.id,user:publicUser(user)}:null;
 }
-export function updateProfile(token,{name,color}={}){
+export function updateProfile(token,{name,color,model}={}){
  const session=verify(token);
  if(!session)throw new Error('登录状态已失效，请重新登录');
  const store=readStore();
@@ -86,6 +88,11 @@ export function updateProfile(token,{name,color}={}){
  if(color!==undefined){
   if(!validColor(color))throw new Error('衣带颜色格式不正确');
   user.color=color;
+ }
+ if(model!==undefined){
+  // 形象只能是清单里登记过的模型键；传 null 表示用回默认形象。
+  if(model!==null&&!MODEL_KEYS.includes(model))throw new Error('角色形象不存在');
+  user.model=model||undefined;
  }
  writeStore(store);
  return publicUser(user);

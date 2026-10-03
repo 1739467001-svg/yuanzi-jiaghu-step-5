@@ -23,7 +23,7 @@ function bubbleTexture(text){
 }
 // 英雄帖示范条目：社区悬赏与共创任务，接口就绪后改为实时数据。
 const HERO_TOPICS=['征集：把一次踩坑写成新手友好教程','共创：给门派小镇补一套春天的材质','悬赏：帮茶会整理一份工具清单','讨论：AI 该替人做事还是陪人想事'];
-export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',labels=true,sectPage,sectDetail,onSectEnter,weather='clear'}){
+export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear'}){
  const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
  // 天气、昵称、标签开关会随时变，但重跑大 effect 会重建整个场景；用 ref 让渲染循环每次读到最新值。
  const weatherRef=useRef(weather);weatherRef.current=weather;
@@ -57,7 +57,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    const fn=14,fp=new Float32Array(fn*3),fg=new T.BufferGeometry();fg.setAttribute('position',new T.BufferAttribute(fp,3));flies=new T.Points(fg,new T.PointsMaterial({color:'#ffd98a',size:.22,transparent:true,opacity:.85,fog:false}));scene.add(flies);
   }
  }
-  const player=createCharacter('character.default',playerColor,1.12);player.userData={...player.userData,kind:'player'};actorGroup.add(player);
+  const player=createCharacter(modelKey,playerColor,1.12);player.userData={...player.userData,kind:'player'};actorGroup.add(player);
   let waterFx,oathSpot,water,sculpture,bubbles;
   let sectScene=null,sectSeats=[];
   if(location==='sects'&&sectPage){

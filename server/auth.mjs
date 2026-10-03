@@ -53,7 +53,7 @@ export function authPlugin(env=process.env){
     if(url.pathname==='/api/auth/profile'&&req.method==='POST'){
      const data=await readBody();
      if(!data||typeof data.token!=='string')return send(res,400,{error:'请求格式不正确'});
-     const user=updateProfile(data.token,{name:data.name,color:data.color});
+     const user=updateProfile(data.token,{name:data.name,color:data.color,model:data.model});
      return send(res,200,{user});
     }
     return send(res,404,{error:'接口不存在'});

@@ -52,7 +52,7 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
  const isHello=raw=>{try{return JSON.parse(raw)?.t==='hello';}catch{return false;}};
  const aiAgent=id=>engine.agents.find(a=>a.id===id)||null;
  const humansOnline=()=>[...actors.values()].filter(a=>a.online).length;
- const publicActor=a=>({id:a.id,name:a.name,color:a.color,x:round(a.x),z:round(a.z),angle:round(a.angle),state:a.state,chat:!!a.chatWith,seat:a.seat||null});
+ const publicActor=a=>({id:a.id,name:a.name,color:a.color,model:a.model||null,x:round(a.x),z:round(a.z),angle:round(a.angle),state:a.state,chat:!!a.chatWith,seat:a.seat||null});
  // AI 见闻：每位侠客的最近动态（memory 末 3 条）与最近观展印象（views 前 2 条）。
  // 走低频广播，不进 10Hz 位置快照。
  const aiPresence=()=>engine.agents.map(a=>({id:a.id,recent:a.memory.slice(-3),views:a.views.slice(0,2).map(v=>({workId:v.workId,title:v.title,impression:v.impression}))}));
@@ -232,7 +232,7 @@ export function createWorld({capacity=20,env={},reclaimWindowMs=RECLAIM_WINDOW_M
     if(!actor)return;
     const session=verifySession(data.token);
     if(!session||session.userId!==actor.id)return;
-    actor.name=session.user.name;actor.color=session.user.color;
+    actor.name=session.user.name;actor.color=session.user.color;if(session.user.model)actor.model=session.user.model;
     send(conn,{t:'profile',you:publicActor(actor)});
     return broadcast({t:'snapshot',actors:snapshot()});
    }

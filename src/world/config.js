@@ -28,7 +28,15 @@ export const MODELS={
  // 示例基线：由 scripts/export-sample-glb.mjs 从程序化角色导出。
  // 替换为正式模型时覆盖 public/models/ 下的文件即可；删掉这一行即回退程序化角色。
  'character.default':'/models/character-default.glb',
+ // 原子侠精修模型：由「原子侠_标准模型_八视图精修版.blend」经 scripts/blend-to-glb.mjs 转出
+ //（35 个网格对象、抽稀到 3.4 万三角形、归一化 1.7 米、按部件名上色；无骨架动画，走根节点兜底）。
+ 'character.yuanzi':'/models/character-yuanzi.glb',
 };
+// 玩家可选形象（设置面板里挑）：键 → 展示名与说明。
+export const APPEARANCES=[
+ {key:'character.default',name:'江湖少侠',note:'程序化几何 · 衣带色可调'},
+ {key:'character.yuanzi',name:'原子侠 · 精修',note:'汉服斗笠佩剑 · 3.4 万三角形'},
+];
 
 // 茶楼共坐座位（服务端权威位置）：两桌六席，angle 为面向桌心的朝向。
 export const SEATS=[
