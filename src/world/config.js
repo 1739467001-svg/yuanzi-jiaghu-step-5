@@ -38,6 +38,24 @@ export const APPEARANCES=[
  {key:'character.yuanzi',name:'原子侠 · 精修',note:'汉服斗笠佩剑 · 3.4 万三角形'},
 ];
 
+
+// 每个角色的形象：角色 id → 模型键。缺省用 character.default（程序化 + 衣带色）。
+// 同一个 GLB 模型可配不同 tint（按实例染色），于是八位侠客穿同一袍型却有不同色相。
+export const CHARACTER_MODELS={
+ you:'character.default',                 // 玩家用设置里选的那个（见 App.jsx）
+ ayuan:{key:'character.yuanzi',tint:'#427ab5'},
+ shouguan:{key:'character.yuanzi',tint:'#719783'},
+ qinghe:{key:'character.yuanzi',tint:'#94a678'},
+ moyu:{key:'character.yuanzi',tint:'#a17b9e'},
+ xingzhou:{key:'character.yuanzi',tint:'#b68b54'},
+ xiaoman:{key:'character.yuanzi',tint:'#be7770'},
+ zhaolu:{key:'character.yuanzi',tint:'#77969e'},
+ xinghe:{key:'character.yuanzi',tint:'#7d84aa'},
+};
+export function modelFor(id){
+ const e=CHARACTER_MODELS[id];
+ return e?(typeof e==='string'?{key:e,tint:null}:e):{key:'character.default',tint:null};
+}
 // 茶楼共坐座位（服务端权威位置）：两桌六席，angle 为面向桌心的朝向。
 export const SEATS=[
  {id:'tea-a1',label:'茶桌一 · 东席',x:-13.9,z:-1,angle:Math.PI/2},

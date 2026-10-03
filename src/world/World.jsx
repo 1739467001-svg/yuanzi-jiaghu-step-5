@@ -3,6 +3,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,AGENTS,THEMES} from './config.js';
 import {findPath,hallWalkable,terrainHeight,stepActor} from './engine.js';
+import {modelFor} from './config.js';
 import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard,peachIsland,zigzagBridge,riverPavilion} from './models.js';
 import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
@@ -98,7 +99,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    for(const [x,z] of [[-13,-1],[-9,1]]){cylinder(base,x,.6,z,.55,.55,.13,'#a88c61');cylinder(base,x,.32,z,.15,.22,.5,'#816c4d');for(const dx of [-.9,.9])cylinder(base,x+dx,.3,z,.3,.32,.4,'#bca87d');}
    box(base,7,.7,-8,2,.15,1,'#ac855c'); // colored below
    const stall=base.children.at(-1);stall.material=material('#ac855c');for(const x of [6.1,7.9])box(base,x,1.3,-8,.08,2,.08,'#897350');box(base,7,2.3,-8,2.4,.15,1.6,'#d6b16f');for(let i=0;i<3;i++)ball(base,6.5+i*.4,.9,-8,.15,['#d89467','#9ca57b','#debf75'][i]);
-   for(const a of engine.agents){const model=createCharacter('character.default',a.color,.95);model.userData={...model.userData,kind:'agent',id:a.id};actorGroup.add(model);agentModels.set(a.id,model);interactive.push(model);}
+   for(const a of engine.agents){const mm=modelFor(a.id);const model=createCharacter(mm.key,a.color,.95,mm.tint);model.userData={...model.userData,kind:'agent',id:a.id};actorGroup.add(model);agentModels.set(a.id,model);interactive.push(model);}
    // 社交气泡：两位 AI 侠客闲聊时，头顶浮现当前话题。
    bubbles=new Map(engine.agents.map(a=>{const s=new T.Sprite(new T.SpriteMaterial({transparent:true,depthTest:true,depthWrite:false,opacity:1}));s.scale.set(3.1,1.12,1);s.visible=false;scene.add(s);return [a.id,{sprite:s,last:''}];}));
   }else{
@@ -120,7 +121,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    const hallAgentStates=createHallAgents(hallStands,AGENTS);
    hallAgents=hallAgentStates.map((ha,i)=>{
     const a=AGENTS[i];
-    const model=createCharacter('character.default',a.color,.95);model.userData={...model.userData,kind:'agent',id:a.id};scene.add(model);interactive.push(model);
+    const mm=modelFor(a.id);const model=createCharacter(mm.key,a.color,.95,mm.tint);model.userData={...model.userData,kind:'agent',id:a.id};scene.add(model);interactive.push(model);
     const sprite=new T.Sprite(new T.SpriteMaterial({transparent:true,depthTest:true,depthWrite:false}));sprite.scale.set(3.1,1.12,1);sprite.visible=false;scene.add(sprite);
     const point=new T.Vector3(ha.x,2.05,ha.z);
     pinSources.push({id:'hall-'+a.id,kind:'agent',name:a.name,point});

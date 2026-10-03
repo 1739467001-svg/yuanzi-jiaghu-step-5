@@ -3,6 +3,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,THEMES} from './config.js';
 import {findPath,walkable,stepActor,terrainHeight} from './engine.js';
+import {modelFor} from './config.js';
 import {box,ball,cylinder,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,peachIsland,zigzagBridge,riverPavilion} from './models.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {buildSectsHall,buildSectInterior} from './sectScene.js';
@@ -207,7 +208,9 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     // 展开保留 character() 设置的 body/feet/arms，只追加交互标识。
     if(!entry){
      // 远程玩家的形象以其账号登记为准（快照里带 model），没登记就用默认键。
-     const model=createCharacter(a.model||'character.default',a.color,.95);model.userData={...model.userData,kind:'remote',id:a.id};scene.add(model);interactive.push(model);
+     // 远程玩家：优先用其账号登记的形象，否则按角色模型键（AI 侠客同款染色）。
+     const mm=modelFor(a.id);
+     const model=createCharacter(a.model||mm.key,a.color,.95,mm.tint);model.userData={...model.userData,kind:'remote',id:a.id};scene.add(model);interactive.push(model);
      const sprite=new T.Sprite(new T.SpriteMaterial({transparent:true,depthTest:true,depthWrite:false}));sprite.scale.set(3.1,1.12,1);sprite.visible=false;scene.add(sprite);
      entry={model,x:a.x,z:a.z,tx:a.x,tz:a.z,angle:a.angle,sprite,bubble:'',emoteUntil:0};
      remote.set(a.id,entry);

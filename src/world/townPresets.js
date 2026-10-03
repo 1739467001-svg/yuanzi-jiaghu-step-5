@@ -10,6 +10,11 @@ export const TERRAINS=[
  {id:'forest',name:'林间',desc:'桃林环抱、落瓣满地，清幽议事。'},
  {id:'mountain',name:'山地',desc:'石阶层叠而上，阁据高处，远山为屏。'},
  {id:'float',name:'浮岛',desc:'阁立浮岛、云气在下，最见门派气象。'},
+ {id:'snowfield',name:'雪原',desc:'半池薄冰、青松负雪，议事堂里一盏热茶。'},
+ {id:'bamboo',name:'竹林',desc:'修竹千竿、石径通幽，风过叶声如海。'},
+ {id:'lotus',name:'荷塘',desc:'田田荷叶、几点菡萏，蛙声与蝉鸣交替。'},
+ {id:'danxia',name:'丹霞',desc:'赭红岩层级叠，像把晚霞砌进了地基。'},
+ {id:'cloudsea',name:'云海',desc:'阁在云上，脚下是翻涌的云海与远山尖。'},
 ];
 // 门派建筑：内景里的主体（可多选，位置由预设给定）。
 export const TOWN_BUILDINGS=[
@@ -33,6 +38,8 @@ export const TOWN_THEMES=[
  {id:'cinnabar',name:'朱砂·赤',roof:'#b4432f',wall:'#f0e2c8',accent:'#d8a24a'},
  {id:'tea',name:'茶褐·拙',roof:'#8a6b45',wall:'#efe6cf',accent:'#a8683f'},
  {id:'indigo',name:'黛蓝·远',roof:'#4a5a7a',wall:'#e9e8dc',accent:'#9aa8c4'},
+ {id:'snow',name:'素白·雪',roof:'#5d7a86',wall:'#f2f1e6',accent:'#9fc0cc'},
+ {id:'ochre',name:'赭石·霞',roof:'#a8552f',wall:'#f0e0cc',accent:'#d8a24a'},
 ];
 const themeById=id=>TOWN_THEMES.find(t=>t.id===id)||TOWN_THEMES[0];
 
@@ -53,6 +60,21 @@ export const TOWN_PRESETS=[
  {id:'float',name:'浮岛 · 凌云',desc:'阁立浮岛、云气在脚下，最见门派气象（规模最小的一档）。',
   layout:{terrain:'float',buildings:['yishi'],theme:'jianghu',
    elements:[{type:'plaque',x:0,z:-9},{type:'flag',x:-5,z:-4},{type:'flag',x:5,z:-4},{type:'lantern',x:-3,z:4},{type:'lantern',x:3,z:4},{type:'planter',x:-6,z:7},{type:'planter',x:6,z:7}]}},
+ {id:'snowfield',name:'雪原 · 负雪',desc:'半池薄冰、青松负雪。清冷是清冷，议事一样热烈。',
+  layout:{terrain:'snowfield',buildings:['yishi','cangshu'],theme:'snow',
+   elements:[{type:'plaque',x:0,z:-9.2},{type:'flag',x:-7,z:-4},{type:'flag',x:7,z:-4},{type:'lantern',x:-4,z:4},{type:'lantern',x:4,z:4},{type:'planter',x:-9,z:9},{type:'planter',x:9,z:9},{type:'stele',x:0,z:12}]}},
+ {id:'bamboo',name:'竹林 · 听风',desc:'修竹千竿、石径通幽，风过叶声如海，最适合闭门写东西。',
+  layout:{terrain:'bamboo',buildings:['yishi','cangshu','wuchang'],theme:'tea',
+   elements:[{type:'plaque',x:0,z:-9.2},{type:'flag',x:-8,z:-2},{type:'flag',x:8,z:-2},{type:'lantern',x:-5,z:5},{type:'lantern',x:5,z:5},{type:'rack',x:-10,z:-6},{type:'rack',x:10,z:-6},{type:'stele',x:0,z:13}]}},
+ {id:'lotus',name:'荷塘 · 听雨',desc:'田田荷叶、几点菡萏，蛙声与蝉鸣交替，夏天开会也不燥。',
+  layout:{terrain:'lotus',buildings:['yishi','wuchang'],theme:'indigo',
+   elements:[{type:'plaque',x:0,z:-9.2},{type:'flag',x:-7,z:-3},{type:'flag',x:7,z:-3},{type:'lantern',x:-4,z:3},{type:'lantern',x:4,z:3},{type:'planter',x:-10,z:7},{type:'planter',x:10,z:7},{type:'stele',x:0,z:11}]}},
+ {id:'danxia',name:'丹霞 · 晚照',desc:'赭红岩层级叠，像把晚霞砌进了地基，演武场最有气势。',
+  layout:{terrain:'danxia',buildings:['yishi','wuchang','cangshu'],theme:'ochre',
+   elements:[{type:'plaque',x:0,z:-9.6},{type:'flag',x:-8,z:-5},{type:'flag',x:8,z:-5},{type:'rack',x:-10,z:1},{type:'rack',x:10,z:1},{type:'lantern',x:-4,z:5},{type:'lantern',x:4,z:5},{type:'stele',x:0,z:12}]}},
+ {id:'cloudsea',name:'云海 · 凌霄',desc:'阁在云上，脚下是翻涌的云海与远山尖，出门要小心脚下。',
+  layout:{terrain:'cloudsea',buildings:['yishi','wuchang'],theme:'jianghu',
+   elements:[{type:'plaque',x:0,z:-9},{type:'flag',x:-6,z:-4},{type:'flag',x:6,z:-4},{type:'lantern',x:-4,z:4},{type:'lantern',x:4,z:4},{type:'planter',x:-7,z:8},{type:'planter',x:7,z:8}]}},
 ];
 export const DEFAULT_TERRAIN='village';
 export function defaultLayout(){

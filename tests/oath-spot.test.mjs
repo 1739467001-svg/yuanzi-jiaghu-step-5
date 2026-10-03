@@ -52,11 +52,12 @@ test('走近时扬起一小阵落瓣，几秒后自己停',()=>{
  for(let i=0;i<60*3;i++)spot.update(.016,0,3);
  assert.equal(spot.bursting,false,'2.6 秒后落瓣散尽');
 });
-test('门派小镇预设：五套地形的内景都能建出来',async()=>{
+test('门派小镇预设：每种地形的内景都能建出来',async()=>{
  const {buildSectInterior}=await import('../src/world/sectScene.js');
+ const {TERRAINS}=await import('../src/world/townPresets.js');
  const sect={id:'s1',name:'测试门派',slogan:'s',intro:'i',style:'startup',founderId:'u',founderName:'甲',elders:[{userId:'e',name:'青禾',title:'执法长老'}],disciples:[{userId:'d',name:'阿原',title:'大师兄'}]};
  const counts={};
- for(const terrain of ['village','lakeside','forest','mountain','float']){
+ for(const terrain of TERRAINS.map(t=>t.id)){
   const parent=new T.Group();const interactive=[];
   buildSectInterior(parent,{sect:{...sect,townLayout:{terrain,theme:'cinnabar',buildings:['yishi','cangshu','wuchang'],elements:[{type:'flag',x:6,z:6},{type:'lantern',x:-6,z:-6}]}},palette:{},night:false},interactive);
   let meshes=0;parent.traverse(o=>{if(o.isMesh)meshes++;});
@@ -65,7 +66,7 @@ test('门派小镇预设：五套地形的内景都能建出来',async()=>{
   assert.equal(interactive.filter(o=>o.userData.kind==='sect-seat').length,3,'三种角色座席都在');
  }
  // 五种地形的网格数应该互不相同（说明地形装饰真的生效）
- assert.equal(new Set(Object.values(counts)).size,5,'五种地形各有差异');
+ assert.equal(new Set(Object.values(counts)).size,TERRAINS.length,'每种地形各有差异（'+TERRAINS.length+' 种）');
 });
 
 // 门派空间不挂小镇那座公共远山，改用主题色群山：进了门看不见村口的山。

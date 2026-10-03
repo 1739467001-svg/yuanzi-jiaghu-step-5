@@ -84,6 +84,72 @@ function terrainDecor(parent,terrain,theme,night){
    ball(g,x,-3.6,z,.9,'#f2ecd8',[1.6,.5,1.6]);
   }
  }
+ if(terrain==='snowfield'){
+  // 雪原：薄冰半池 + 青松负雪 + 石灯塔
+  dmesh(new T.BoxGeometry(46,.08,8),night?'#2b3f4a':'#cfe3ea','plaster',g,0,.03,-20,6,.9);
+  dmesh(new T.BoxGeometry(46,.05,8.4),night?'#9fc6d6':'#e8f2f6','plaster',g,0,.1,-20,6,.5);
+  for(const x of [-14,2,12,20])box(g,x,.07,-20,.42,.12,6.5,'#8f8578');           // 冰裂纹里的石梁
+  for(const [x,z] of [[-18,-14],[18,-14],[-16,10],[16,10]]){
+   cylinder(g,x,1.9,z,.2,.32,3.8,'#6b5f4a',7);                                     // 松干
+   for(const [dy,r,c] of [[4.4,1.5,'#3f6b52'],[5.4,1.15,'#4b7a5c'],[6.2,.8,'#57876a']])ball(g,x,dy,z,r,c,[1,.72,1]);
+   ball(g,x,5.9,z,1.3,'#f2f4f2',[1,.2,1]);ball(g,x,6.6,z,.85,'#f6f8f6',[1,.2,1]); // 冠上负雪
+  }
+  for(const [x,z] of [[-13,-8],[13,-8],[-13,4],[13,4]]){                            // 雪灯笼
+   cylinder(g,x,2.4,z,.3,.34,.5,'#8f8578',8);box(g,x,2.8,z,.62,.5,.62,'#e8ecec');
+   if(night){const l=new T.PointLight('#ffd9a0',3.4,5.5);l.position.set(x,2.9,z);g.add(l);}
+  }
+ }
+ if(terrain==='bamboo'){
+  // 竹林：修竹成丛 + 石径 + 笋
+  for(const [x,z] of [[-16,-13],[-12,-16],[-18,-6],[12,-16],[16,-13],[18,-6],[-15,9],[15,9],[-10,14],[10,14]]){
+   for(const [dx,dz,h,th] of [[0,0,7.5,.2],[.9,.6,6.2,.16],[-.7,.8,5.4,.14],[.3,-.9,5.8,.15]]){
+    cylinder(g,x+dx,0,z+dz,th*.82,th,h,'#8fa05a',7);
+    for(let s=1;s<h;s+=.85)dmesh(new T.CylinderGeometry(th*1.02,th*1.02,.07,6),night?'#4a5a3c':'#a8b878','wood',g,x+dx,s,z+dz,1,.7);
+    ball(g,x+dx+(h>.6?1.1:0),h*.92,z+dz,.5,'#7fa05a',[1.5,.4,1]);                  // 梢头叶球
+   }
+  }
+  for(let i=0;i<26;i++){const x=-9+i*.72+((i*7)%3-1)*.4,z=11+((i*5)%3-1)*.9;
+   dmesh(new T.BoxGeometry(.9,.05,.5),'#9aa08c','stone',g,x,.04,z,1,.9);}            // 青石小径
+  ball(g,-9,.3,13,.28,'#a8783f',[.7,1.5,.7]);ball(g,9,.3,13,.28,'#a8783f',[.7,1.5,.7]);// 笋
+ }
+ if(terrain==='lotus'){
+  // 荷塘：南面临水、木栈桥、荷叶菡萏、蛙鸣点位
+  dmesh(new T.BoxGeometry(40,.1,10),night?'#26403a':'#5d8a72','plaster',g,0,.03,21,6,.95);
+  for(const x of [-12,0,12])box(g,x,.07,21,.4,.14,8,'#8a6b4a');                      // 栈桥
+  for(const [x,z] of [[-11,18],[-4,22],[6,19],[13,23],[-15,22],[9,24]]){
+   ball(g,x,.14,z,.62,'#6f9e5a',[1.5,.1,1.5]);                                     // 荷叶
+   ball(g,x+.2,.16,z+.1,.5,'#85ab68',[1.4,.08,1.4]);
+  }
+  for(const [x,z] of [[-7,20],[4,23]]){                                             // 菡萏
+   for(const [dy,c] of [[.3,'#e8a0b4'],[.55,'#f0bcc8'],[.78,'#f7d4dc']])ball(g,x,dy,z,.22-dy*.08,c,[1,1.4,1]);
+  }
+  for(const [x,z] of [[-13,17],[2,24]]){                                            // 蛙
+   const f=new T.Group();f.position.set(x,.2,z);g.add(f);
+   mesh(new T.SphereGeometry(.26,8,6),'#7fa05a',f,0,0,0);f.children[0].scale.set(1.2,.8,1.5);
+   ball(f,.14,.1,.16,.1,'#f2f2ea');ball(f,-.14,.1,.16,.1,'#f2f2ea');
+  }
+ }
+ if(terrain==='danxia'){
+  // 丹霞：赭红岩层级叠 + 崖壁 + 红石阶
+  for(const [i,x,z,w,h,c] of [[0,-24,-16,14,4.6,'#a8552f'],[1,24,-16,14,4.6,'#9a4a2a'],[2,-24,14,10,5.4,'#b4603a'],[3,24,14,10,5.4,'#a04e2c']]){
+   dmesh(new T.BoxGeometry(w,h,7),c,'plaster',g,x,h/2-1,z,3,.92);
+   dmesh(new T.BoxGeometry(w,.3,7.4),'#c07a52','plaster',g,x,h-1,z,3,.85);           // 岩层线
+  }
+  for(let i=0;i<7;i++)dmesh(new T.BoxGeometry(30-i*.6,.36,.9),i%2?'#c07a52':'#b4643c','stone',g,0,.18+i*.34,-13.6+i*.75,2,.92);
+  for(const [x,z] of [[-11,-6],[11,-6]])dmesh(new T.CylinderGeometry(.35,.45,3.2,6),'#8a4a2a','stone',g,x,1.6,z,1,.9);
+ }
+ if(terrain==='cloudsea'){
+  // 云海：场地下方是翻涌的云，远山只露尖
+  dmesh(new T.BoxGeometry(52,1.2,40),night?'#2e3f4a':'#d8e2e6','plaster',g,0,-2.6,0,6,.95);
+  for(let i=0;i<22;i++){
+   const x=-24+((i*37)%48),z=-18+((i*53)%34),s=.9+(i%4)*.35;
+   ball(g,x,-1.2+((i%3)*.3),z,s,'#f2f6f8',[1.7,.5,1.3]);
+   ball(g,x+s*.8,-1.05,z-s*.3,s*.7,'#ffffff',[1.6,.45,1.2]);
+  }
+  for(const [x,z,h] of [[-40,-34,7],[-24,-42,10],[26,-40,8],[40,-28,12],[-46,10,6],[46,6,9]]){
+   dmesh(new T.ConeGeometry(9,h,4),night?'#22323c':'#8fa3ad','plaster',g,x,h/2-2.6,z,1,.9);
+  }
+ }
  return g;
 }
 

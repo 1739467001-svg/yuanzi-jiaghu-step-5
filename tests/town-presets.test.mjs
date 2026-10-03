@@ -3,8 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {TERRAINS,TOWN_BUILDINGS,ELEMENT_TYPES,TOWN_THEMES,TOWN_PRESETS,defaultLayout,presetOf,themeOf,validateLayoutShape,normalizeLayout} from '../src/world/townPresets.js';
 
-test('五套预设都合法，且覆盖五种地形',()=>{
- assert.equal(TOWN_PRESETS.length,5);
+test('每套预设都合法，且预设数与地形数一致',()=>{
+ assert.equal(TOWN_PRESETS.length,TERRAINS.length);
  assert.deepEqual(TOWN_PRESETS.map(p=>p.layout.terrain).sort(),TERRAINS.map(t=>t.id).sort());
  for(const p of TOWN_PRESETS){
   const checked=validateLayoutShape(p.layout);

@@ -63,13 +63,32 @@ export function createAnimator(object,animations){
   update(dt){mixer.update(dt);},
  };
 }
+// 按实例染色：GLB 固色不可改，这里给每个实例克隆材质并按 tint（十六进制）乘一遍基色。
+// 只染「袍子与衣带」（材质名 cloth/trim-*，由 blend-to-glb.mjs 按部件名标注）——
+// 脸、发、斗笠、金属件保持模型原色，否则一染色整张脸都变色。
+const TINTABLE=/^(cloth|trim)-/;
+function tintMaterials(object,tintHex){
+ if(!tintHex)return;
+ const t=new T.Color(tintHex);
+ object.traverse(o=>{
+  if(!o.isMesh||!o.material)return;
+  const src=Array.isArray(o.material)?o.material:[o.material];
+  o.material=src.map(m=>{
+   const c=m.clone();
+   if(c.color&&TINTABLE.test(c.name||''))c.color.multiply(t);
+   return c;
+  });
+ });
+}
 // 统一角色创建：清单命中返回 GLB 实例（附 animator），否则返回程序化角色。
+// tint 只对 GLB 生效（按实例染色）；程序化角色仍用自己的 color。
 // 返回对象的 userData.body/feet/arms 仅程序化角色有；GLB 角色用 userData.glb。
-export function createCharacter(key,color,scale=1){
+export function createCharacter(key,color,scale=1,tint=null){
  const glb=glbInstance(key);
  if(glb){
   const object=glb.object;
   object.scale.setScalar(scale);
+  tintMaterials(object,tint);
   object.userData.glb={animator:createAnimator(object,glb.animations)};
   return object;
  }

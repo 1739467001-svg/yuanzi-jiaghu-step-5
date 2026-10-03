@@ -93,6 +93,12 @@ const PART_COLORS=[[/douli|hat|cap|斗笠/i,'#c9b98f'],[/gold|金/i,'#d8a24a'],[
  [/collar|领/i,'#e8e4d8'],[/sash|带|binding|袖|sleeve/i,'#4a6f9e'],[/blue|蓝/i,'#4a6f9e'],[/bracer|grip|scabbard|sword|wood|柄|鞘|腕/i,'#8a6b45'],
  [/foot|shoe|靴|履/i,'#e8e4d8'],[/hair tie|发带/i,'#2f4f7a'],[/hair|发/i,'#2b2b2b'],[/eye|眼/i,'#f4f4f4'],
  [/cheek|腮|肤|skin/i,'#e8a89b'],[/mouth|嘴|唇/i,'#c8706a'],[/white|白/i,'#f0ece0'],[/brown|褐/i,'#8a6b45'],[/blush|red|朱/i,'#c85a4a']];
+
+// 部件角色：转换时写进材质名，运行时只对 cloth/trim 染色（脸、发、斗笠、金属保持原色）。
+const PART_ROLE=[[/robe|hanfu|cloth|袍|衣/i,'cloth'],[/sash|带|binding|袖|sleeve|collar|领|bracer|腕/i,'trim'],
+ [/douli|hat|cap|斗笠/i,'hat'],[/hair|发/i,'hair'],[/eye|眼/i,'eye'],[/cheek|腮|肤|skin|mouth|嘴|唇/i,'skin'],
+ [/gold|metal|金|grip|柄|scabbard|鞘/i,'metal'],[/wood|brown|褐|foot|靴|履/i,'leather']];
+const partRole=name=>{for(const [re,r] of PART_ROLE)if(re.test(name))return r;return 'other'};
 const partColor=name=>{for(const [re,c] of PART_COLORS)if(re.test(name))return c;return '#cfcabb';};
 const toGltf=(x,y,z)=>[x,z,-y];
 function faceNormal(p,i,j,k){
@@ -120,11 +126,11 @@ function localMatrix(loc,rot,scl){
 function buildGLB(groups,materials){
  let vTotal=0,iTotal=0;
  for(const g of groups){vTotal+=g.pos.length/3;iTotal+=g.idx.length;}
- const use16=vTotal<65536;
+ const use16=groups.every(g=>g.pos.length/3<65536);
  const bin=Buffer.alloc(vTotal*24+iTotal*(use16?2:4)+1024);
  const views=[],accessors=[];
  const push=(data,stride,target)=>{
-  let off=views.length?views[views.length-1].off+views[views.length-1].len:0;
+  let off=views.length?views[views.length-1].byteOffset+views[views.length-1].byteLength:0;
   off+=(4-(off%4||4))%4;
   data.copy(bin,off);
   views.push({buffer:0,byteOffset:off,byteLength:data.length,byteStride:target===34962?undefined:undefined,target});
@@ -134,13 +140,11 @@ function buildGLB(groups,materials){
  let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
  for(const g of groups)for(let i=0;i<g.pos.length;i+=3)for(let k=0;k<3;k++){min[k]=Math.min(min[k],g.pos[i+k]);max[k]=Math.max(max[k],g.pos[i+k]);}
  const f32=arr=>{const b=Buffer.alloc(arr.length*4);for(let i=0;i<arr.length;i++)b.writeFloatLE(arr[i],i*4);return b;};
- let vOff=0;
  for(let gi=0;gi<groups.length;gi++){
   const g=groups[gi];
   const pv=f32(g.pos),nv=f32(g.nrm);
   const iBuf=use16?Buffer.alloc(g.idx.length*2):Buffer.alloc(g.idx.length*4);
-  g.idx.forEach((v,i)=>use16?iBuf.writeUInt16LE(v+vOff,i*2):iBuf.writeUInt32LE(v+vOff,i*4));
-  vOff+=g.pos.length/3;
+  g.idx.forEach((v,i)=>use16?iBuf.writeUInt16LE(v,i*2):iBuf.writeUInt32LE(v,i*4));
   accessors.push({bufferView:push(pv,12,34962),componentType:5126,count:g.pos.length/3,type:'VEC3',min:[1e9,1e9,1e9],max:[-1e9,-1e9,-1e9]});
   accessors[accessors.length-1].min=min;accessors[accessors.length-1].max=max;
   accessors.push({bufferView:push(nv,12,34962),componentType:5126,count:g.nrm.length/3,type:'VEC3'});
@@ -203,9 +207,9 @@ const main=async()=>{
  if(!materials.length)materials.push({name:'default',r:.82,g:.82,b:.8});
  console.log('材质 '+materials.length+' 个');
 
- const groups=[];const groupFor=mat=>{
+ const groups=[];const groupFor=(mat,role)=>{
   let g=groups.find(x=>x.mat===mat);
-  if(!g){g={mat,pos:[],nrm:[],idx:[]};groups.push(g);}
+  if(!g){g={mat,role:role||'other',pos:[],nrm:[],idx:[]};groups.push(g);}
   return g;
  };
  let objects=0,skipped=0,totV=0,totF=0;
@@ -276,7 +280,7 @@ const main=async()=>{
   const span=Math.max(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2]);
   if(span>6){skipped++;console.log('  跳过 '+name+'（体量 '+span.toFixed(1)+'m，超出角色尺度，疑似背景板/机身）');continue;}
   if(verts.some(a=>a.some(v=>!Number.isFinite(v)))){skipped++;console.log("  跳过 "+name+"（含非有限坐标）");continue;}
-  const g=groupFor(colorKey);
+  const g=groupFor(colorKey,partRole(name));
   if(g.color===undefined)g.color=color;
   const base=g.pos.length/3;
   for(let i=0;i<totvert;i++)g.pos.push(verts[i][0],verts[i][1],verts[i][2]);
@@ -302,8 +306,8 @@ const main=async()=>{
  const merged=[];
  for(const g of groups){
   const last=merged[merged.length-1];
-  if(last&&last.mat===g.mat){last.pos.push(...g.pos);last.nrm.push(...g.nrm);last.idx.push(...g.idx.map(v=>v+last.pos.length/3-g.pos.length/3));}
-  else merged.push({mat:g.mat,pos:[...g.pos],nrm:[...g.nrm],idx:[...g.idx]});
+  if(last&&last.mat===g.mat){last.pos.push(...g.pos);last.nrm.push(...g.nrm);last.idx.push(...g.idx.map(v=>v+last.pos.length/3-g.pos.length/3));if(last.color===undefined)last.color=g.color;}
+  else merged.push({mat:g.mat,role:g.role,color:g.color,pos:[...g.pos],nrm:[...g.nrm],idx:[...g.idx]});
  }
 
  // 规整：脚底 y=0，水平居中，再按身高归一到 1.7 米（Blender 场景单位不是米）
@@ -356,10 +360,12 @@ const main=async()=>{
   else break;
  }
  let after=0;for(const g of merged)after+=g.idx.length;
+ merged.forEach((g,i)=>{const mx=Math.max(...g.idx);const nm=[];for(let k=0;k<Math.min(g.nrm.length,3);k++)nm.push(g.nrm.slice(k*3,k*3+3).map(v=>v.toFixed(2)).join(','));
+  console.log('  组'+i+' 顶点='+g.pos.length/3+' 索引='+g.idx.length+' 最大索引='+mx+' 法线样例=['+nm.join(' | ')+']'+(mx>=g.pos.length/3?' ✗越界':''));});
  console.log('抽稀：三角面 '+Math.round(before/3)+' → '+Math.round(after/3)+'（聚类格 '+cell.toFixed(4)+'m）');
 
  // 材质直接从分组颜色生成（blend 材质表只用来取固有色）
- const gMaterials=merged.map((g,i)=>({name:'part'+i,color:g.color||[.82,.82,.8]}));
+ const gMaterials=merged.map((g,i)=>({name:(g.role||'part')+'-'+i,color:g.color||[.82,.82,.8]}));
 
  const glb=buildGLB(merged,gMaterials);
  fs.mkdirSync(path.dirname(OUT),{recursive:true});
