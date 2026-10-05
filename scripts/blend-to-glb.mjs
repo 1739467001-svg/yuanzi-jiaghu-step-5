@@ -231,14 +231,14 @@ function buildGLB(groups,materials){
   {id:'hips',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qz(.035)},{t:.5,v:[0,0,0,1]},{t:.75,v:qz(-.035)},{t:1,v:[0,0,0,1]}]},
   {id:'spine',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qy(-.07)},{t:.5,v:[0,0,0,1]},{t:.75,v:qy(.07)},{t:1,v:[0,0,0,1]}]},
   {id:'chest',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qy(.05)},{t:.5,v:[0,0,0,1]},{t:.75,v:qy(-.05)},{t:1,v:[0,0,0,1]}]},
-  {id:'thigh.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(-.42)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(.3)},{t:1,v:[0,0,0,1]}]},
-  {id:'shin.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.05)},{t:.5,v:qx(-.6)},{t:.75,v:qx(-.2)},{t:1,v:[0,0,0,1]}]},
+  {id:'thigh.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(-.58)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(.44)},{t:1,v:[0,0,0,1]}]},
+  {id:'shin.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.05)},{t:.5,v:qx(-.78)},{t:.75,v:qx(-.3)},{t:1,v:[0,0,0,1]}]},
   {id:'thigh.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.3)},{t:.5,v:qx(-.42)},{t:.75,v:[0,0,0,1]},{t:1,v:[0,0,0,1]}]},
   {id:'shin.R',path:'rotation',frames:[{t:0,v:qx(-.2)},{t:.25,v:[0,0,0,1]},{t:.5,v:qx(.05)},{t:.75,v:qx(-.6)},{t:1,v:qx(-.2)}]},
-  {id:'shoulder.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.34)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(-.26)},{t:1,v:[0,0,0,1]}]},
-  {id:'forearm.L',path:'rotation',frames:[{t:0,v:qx(-.24)},{t:.25,v:qx(-.5)},{t:.5,v:qx(-.24)},{t:.75,v:qx(-.16)},{t:1,v:qx(-.24)}]},
-  {id:'shoulder.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(-.26)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(.34)},{t:1,v:[0,0,0,1]}]},
-  {id:'forearm.R',path:'rotation',frames:[{t:0,v:qx(-.16)},{t:.25,v:qx(-.24)},{t:.5,v:qx(-.24)},{t:.75,v:qx(-.5)},{t:1,v:qx(-.16)}]},
+  {id:'shoulder.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(.46)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(-.36)},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.L',path:'rotation',frames:[{t:0,v:qx(-.24)},{t:.25,v:qx(-.68)},{t:.5,v:qx(-.24)},{t:.75,v:qx(-.26)},{t:1,v:qx(-.24)}]},
+  {id:'shoulder.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qx(-.36)},{t:.5,v:[0,0,0,1]},{t:.75,v:qx(.46)},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.R',path:'rotation',frames:[{t:0,v:qx(-.16)},{t:.25,v:qx(-.24)},{t:.5,v:qx(-.24)},{t:.75,v:qx(-.68)},{t:1,v:qx(-.16)}]},
   {id:'head',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.25,v:qy(.04)},{t:.5,v:[0,0,0,1]},{t:.75,v:qy(-.04)},{t:1,v:[0,0,0,1]}]},
  ]);
  // 待机：呼吸、轻摆、偶尔张望
@@ -252,7 +252,17 @@ function buildGLB(groups,materials){
   {id:'forearm.R',path:'rotation',frames:[{t:0,v:qx(-.16)},{t:.5,v:qx(-.24)},{t:1,v:qx(-.16)}]},
   {id:'head',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.35,v:qy(.09)},{t:.7,v:qy(-.09)},{t:1,v:[0,0,0,1]}]},
  ]);
- ANIMS.push(WALK,IDLE);
+ // 说话：点头、抬手作手势、身体微微前倾（联机与本地交谈时播放）
+ const TALK=buildAnim('talk',1.9,[
+  {id:'chest',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.28,v:qx(.05)},{t:.55,v:[0,0,0,1]},{t:.8,v:qx(.04)},{t:1,v:[0,0,0,1]}]},
+  {id:'spine',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.5,v:qx(.03)},{t:1,v:[0,0,0,1]}]},
+  {id:'head',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.18,v:qx(-.09)},{t:.36,v:[0,0,0,1]},{t:.6,v:qx(-.07)},{t:.78,v:[0,0,0,1]},{t:1,v:[0,0,0,1]}]},
+  {id:'shoulder.R',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.3,v:qz(.3)},{t:.55,v:[0,0,0,1]},{t:.8,v:qz(.22)},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.R',path:'rotation',frames:[{t:0,v:qx(-.3)},{t:.3,v:qx(-.95)},{t:.55,v:qx(-.35)},{t:.8,v:qx(-.8)},{t:1,v:qx(-.3)}]},
+  {id:'shoulder.L',path:'rotation',frames:[{t:0,v:[0,0,0,1]},{t:.45,v:qz(-.16)},{t:.75,v:[0,0,0,1]},{t:1,v:[0,0,0,1]}]},
+  {id:'forearm.L',path:'rotation',frames:[{t:0,v:qx(-.24)},{t:.5,v:qx(-.34)},{t:1,v:qx(-.24)}]},
+ ]);
+ ANIMS.push(WALK,IDLE,TALK);
  // 动画采样器的 bufferView 也要 register（buildGLB 后补）
  for(const a of ANIMS)for(const s of a.samplers){
   const frames=s.input.length/4;                 // 先取帧数，别等 input 被覆写成索引

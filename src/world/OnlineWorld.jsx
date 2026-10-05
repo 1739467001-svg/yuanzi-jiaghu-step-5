@@ -287,7 +287,7 @@ export default function OnlineWorld({client,theme,night,labels=true,playerColor,
     entry.x+=(entry.tx-entry.x)*Math.min(1,dt*9);entry.z+=(entry.tz-entry.z)*Math.min(1,dt*9);
     entry.model.position.set(entry.x,groundY(entry.x,entry.z)-(entry.seat?.28:0),entry.z);entry.model.rotation.y=entry.angle;
     if(entry.model.userData.body)entry.model.userData.body.position.y=Math.sin(now*.002+entry.x)*.016;
-    else if(entry.model.userData.glb){const animator=entry.model.userData.glb.animator;if(animator){animator.play('idle');animator.update(dt);}else applyFallbackMotion(entry.model,now,false);}
+    else if(entry.model.userData.glb){const animator=entry.model.userData.glb.animator;if(animator){animator.play(entry.chatWith?'talk':'idle');animator.update(dt);}else applyFallbackMotion(entry.model,now,false);}
     // 气泡：私聊中显示“交谈中”（内容不可见），否则显示 3 秒内的公开表情。
     const emoteActive=now<entry.emoteUntil;
     const label=entry.chat?'交谈中':(emoteActive?(EMOTE_LABELS[entry.emote]||'打招呼'):'');

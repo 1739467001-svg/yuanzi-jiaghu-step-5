@@ -197,7 +197,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
      b.sprite.visible=show;if(show)b.sprite.position.set(a.x,(terrainHeight(a.x,a.z)||0)+2.85,a.z);}for(const a of [...engine.agents,engine.player]){const m=a.id==='you'?player:agentModels.get(a.id);m.position.set(a.x,terrainHeight(a.x,a.z),a.z);const moving=a.path.length>0;
      animateCharacter(m,a.angle,moving,now,a.held);
     
-    if(m.userData.glb){const animator=m.userData.glb.animator;if(animator){animator.play(moving?'walk':'idle');animator.update(dt);}else applyFallbackMotion(m,now,moving);}}
+    if(m.userData.glb){const animator=m.userData.glb.animator;if(animator){const talking=a.held||!!a.partner;animator.play(moving?'walk':talking?'talk':'idle');animator.update(dt);}else applyFallbackMotion(m,now,moving);}}
     const dest=engine.player.path.at(-1);ring.visible=!!dest;if(dest)ring.position.set(dest[0],terrainHeight(dest[0],dest[1])+.18,dest[1]);
    }else {
     engine.advance(hallPlayer,dt,3.2);player.position.set(hallPlayer.x,0,hallPlayer.z);
@@ -215,7 +215,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
      advanceHallAgent(ha,hallStands,dt);
      ha.model.position.set(ha.x,0,ha.z);ha.model.rotation.y=ha.angle;
      animateCharacter(ha.model,ha.angle,ha.path.length>0,now,false);
-     if(ha.model.userData.glb){const animator=ha.model.userData.glb.animator;if(animator){animator.play(ha.path.length?'walk':'idle');animator.update(dt);}else applyFallbackMotion(ha.model,now,ha.path.length>0);}
+     if(ha.model.userData.glb){const animator=ha.model.userData.glb.animator;if(animator){animator.play(ha.path.length?'walk':ha.bubble?'talk':'idle');animator.update(dt);}else applyFallbackMotion(ha.model,now,ha.path.length>0);}
      ha.point.set(ha.x,2.05,ha.z);
      // 驻足时浮现所看书名气泡。
      const label=hallAgentLabel(ha);

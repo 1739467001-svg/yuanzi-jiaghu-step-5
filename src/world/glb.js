@@ -47,6 +47,7 @@ export function createAnimator(object,animations){
  for(const clip of animations){
   const name=clip.name.toLowerCase();
   if(name.includes('walk'))clips.walk=clip;
+  else if(name.includes('talk'))clips.talk=clip;
   else if(name.includes('idle'))clips.idle=clip;
  }
  if(!clips.walk&&!clips.idle)return null;
