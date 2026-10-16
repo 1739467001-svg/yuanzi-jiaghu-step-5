@@ -9,7 +9,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 
-const PORT=5181,MOCK=4599;
+const PORT=Number(process.env.TEST_PORT)||5181,MOCK=4599;
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'atom-model-'));
 let mockCalls=0;
 const mock=http.createServer((req,res)=>{

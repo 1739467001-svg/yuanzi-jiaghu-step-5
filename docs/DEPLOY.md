@@ -111,7 +111,10 @@ WantedBy=multi-user.target
 
 ## 6. 数据、备份与回滚
 
-- **数据目录**：`data/accounts.json`、`data/memories.json`、`data/publication-overrides.json`、`data/audit-log.json`、`data/usage-ledger.json`。升级前备份整个目录即可。
+- **数据目录**（`ATOM_DATA_DIR`，容器内 `/app/data`）：
+  - JSON 后端（默认）：`accounts.json`、`memories.json`、`follows.json`、`publication-overrides.json`、`audit-log-YYYY-MM.json`、`usage-ledger.json`、`sects*.json`、`embedding-cache.json`；
+  - SQLite 后端（`ATOM_STORE=sqlite`）：`atom.db` + 伴生文件 `atom.db-wal`、`atom.db-shm`（WAL 模式）。
+- **备份**：停服后拷贝整个数据目录（最稳）；运行中备份 SQLite 用 `VACUUM INTO '/path/backup.db'`（把 WAL 里未合并的写入一起带走）。**不要只拷贝 `atom.db` 主文件**——WAL 里最近的写入还在伴生文件里，会丢。
 - **升级**：`git pull`（或替换代码）→ `npm ci` → `npm run build` → `systemctl restart`。数据不受影响。
 - **回滚**：还原上一个代码版本 + 重新 build + 重启；数据目录保持（内容发布状态继续有效）。
 - **健康检查**：`GET /api/content/health`（可用于负载均衡或监控探针）。

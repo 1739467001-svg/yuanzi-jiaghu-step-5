@@ -18,6 +18,7 @@ import {sectsApiPlugin} from './sects-api.mjs';
 import {configureSectSource} from './sects.mjs';
 import {isAdminRequest,noteAdminDenial} from './publication-store.mjs';
 import {usingSqlite} from './store.mjs';
+import {databaseFile} from './sqlite-db.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const distDir=path.join(root,'dist');
@@ -100,7 +101,7 @@ const tick=setInterval(()=>{const now=Date.now();hub.tick(Math.min(.5,(now-last)
 
 server.listen(PORT,HOST,()=>{
  console.log(`原子江湖已启动: http://${HOST}:${PORT}`);
- if(usingSqlite)console.log('存储: SQLite（ATOM_STORE=sqlite，数据在 data/atom.db）');
+ if(usingSqlite)console.log('存储: SQLite（ATOM_STORE=sqlite，数据在 '+databaseFile()+'）');
  if(embeddingsEnabled())console.log('嵌入: 已配置（记忆与作品检索使用向量余弦）');
 console.log(`世界: /ws/world?room=<id> · 房间 ${hub.list().map(r=>`${r.id}(${r.capacity})`).join('、')} · 数据目录 ${process.env.ATOM_DATA_DIR||path.join(root,'data')}`);
  if(!process.env.ATOM_LLM_API_KEY)console.log('模型: 未配置（AI 私聊使用本地资料演示；配置 ATOM_LLM_API_KEY 后启用）');

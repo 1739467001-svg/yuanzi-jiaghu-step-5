@@ -15,9 +15,24 @@ const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_D
 export const databaseFile=()=>path.join(dataDir(),'atom.db');
 
 let DatabaseSync=null,db=null;
+let warnedUnmigrated=false;
+// 启动守卫：切了 ATOM_STORE=sqlite 但数据目录里还有 JSON 数据、而 atom.db 还不存在——
+// 说明多半忘了先跑迁移。不拦截（全新部署本来就没有 JSON），但必须响提醒，
+// 否则运营会以为账号/记忆都在，其实面对的是一个空库。
+function warnUnmigrated(){
+ if(warnedUnmigrated)return;
+ warnedUnmigrated=true;
+ const dir=dataDir();
+ const hasJson=['accounts.json','memories.json','follows.json','publication-overrides.json','sects.json'].some(f=>fs.existsSync(path.join(dir,f)));
+ if(hasJson&&!fs.existsSync(databaseFile())){
+  console.warn('[存储] 检测到未迁移的 JSON 数据，但 atom.db 还不存在——当前 SQLite 库是空的。');
+  console.warn('[存储] 如要从旧数据继续：先停服务，执行 npm run migrate:sqlite（幂等，可重跑）。');
+ }
+}
 function loadSqlite(){return DatabaseSync??=require('node:sqlite').DatabaseSync;}
 export function getDb(){
  if(db)return db;
+ warnUnmigrated();
  fs.mkdirSync(path.dirname(databaseFile()),{recursive:true});
  db=new (loadSqlite())(databaseFile());
  db.exec('PRAGMA journal_mode=WAL;');

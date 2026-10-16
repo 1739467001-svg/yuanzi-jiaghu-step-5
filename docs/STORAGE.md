@@ -39,7 +39,7 @@
 
 ## 3. 已落地：SQLite（Node 内置 node:sqlite）
 
-**为什么是它**：这个世界服务端本来就是"单进程 + WebSocket 房间"的形态，SQLite 和它是同一量级的搭档——不需要额外进程、不需要连接池、不需要 DBA；`data/atom.db` 一个文件，备份就是拷贝（配合 SQLite 自带的 WAL，读不阻塞写）。它把上面 5 个问题一次解决：事务消灭竞态、索引让登录和记忆查询变成 O(log n)、会话按过期时间清理、写入只动涉及的页。
+**为什么是它**：这个世界服务端本来就是"单进程 + WebSocket 房间"的形态，SQLite 和它是同一量级的搭档——不需要额外进程、不需要连接池、不需要 DBA；`data/atom.db` 一个文件（WAL 模式下旁边有 `atom.db-wal` / `atom.db-shm` 两个伴生文件）。**备份口径**：停服后拷贝整个数据目录最稳；运行中备份用 `VACUUM INTO`——只拷 `atom.db` 主文件会丢掉还在 WAL 里的最近写入（详见 docs/DEPLOY.md 第 6 节）。它把上面 5 个问题一次解决：事务消灭竞态、索引让登录和记忆查询变成 O(log n)、会话按过期时间清理、写入只动涉及的页。
 
 **为什么用 node:sqlite 而不是 better-sqlite3**：`engines.node>=22.12` 已经挡住旧版本，Node 22.5+ 内置 `node:sqlite`（同步 API，与现在 `verify()`/`login()` 的调用形状几乎一样）——零原生编译、零新增依赖，Docker 镜像与 Vercel 检出都不受影响。代价是启动时有一条实验特性告警（仅 SQLite 模式真正开库时打印）。
 
@@ -93,3 +93,11 @@ audit_log(...);    -- 只 INSERT，不 UPDATE
 **验证**：单测 172 项全绿（新增 13 项 SQLite）；`test:e2e` 与 `test:e2e-mp` 两套完整流程在 SQLite 后端下实测通过（注册/登录/记忆保存与删除/本机旧记忆迁移/关注/联机 WS 鉴权全走 SQLite）；迁移脚本用真实数据副本（565 账号/565 会话/146 记忆/56 关注）实测，重跑不重复。
 
 **仍未迁移**：无——`data/` 下全部运行期存储（账号/会话/记忆/关注/发布覆盖层/审计/预算账本/门派库/同步缓存与覆盖层/嵌入缓存）在 `ATOM_STORE=sqlite` 下都已进 SQLite（管理域见阶段 50，2026-10-17）。内容基线 `src/data/editions.json` 跟代码走，不进任何数据库。
+
+**翻转默认值（json → sqlite）的安全清单**——默认后端仍是 json；要把默认改掉时，按这个清单逐项确认，任一不过关就别翻：
+
+1. 目标部署已用 `ATOM_STORE=sqlite` 跑过至少一轮完整 e2e（十套）与一轮 soak（建议 ≥30 分钟），证据在 `docs/VERIFICATION.md`；
+2. 目标部署执行过 `npm run migrate:sqlite` 且抽查过账号/审计/门派三类数据（登录一个旧账号、看审计列表、开门派大殿）；
+3. 备份口径已按新形态更新（WAL 伴生文件，见 docs/DEPLOY.md 第 6 节），运维知道停服备份或 `VACUUM INTO`；
+4. 回滚预案明确：去掉 `ATOM_STORE` 即回 JSON（旧文件一直在），但**回滚前新写入只存在于 SQLite**——要么回滚前把库导出回 JSON，要么接受回滚丢失切换期间的数据；
+5. 翻转本身就是一处改动：`server/store-mode.mjs` 的默认值 + 文档（DEPLOY.md 环境变量表、.env.example、README 数据存储节）+ 一次全量回归。

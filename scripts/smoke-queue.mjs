@@ -7,7 +7,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 
-const PORT=5184;
+// 端口可用 TEST_PORT 覆盖（默认 5184）——硬编码端口撞上本地 Preview/开发服务时，
+// 套件会连到错误的服务器上，表现为与代码无关的莫名失败。
+const PORT=Number(process.env.TEST_PORT)||5184;
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'atom-queue-'));
 const queueEnv={ATOM_ROOM_CAPACITY:'2',ATOM_RECLAIM_WINDOW_MS:'2500',ATOM_DATA_DIR:tmp};
 const vite=process.env.TEST_PROD==='1'

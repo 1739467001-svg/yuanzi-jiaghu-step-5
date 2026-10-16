@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 
-const PORT=5190;
+const PORT=Number(process.env.TEST_PORT)||5190;
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'atom-rooms-e2e-'));
 const roomEnv={ATOM_ROOMS:'teahouse:江湖茶楼:5',ATOM_DATA_DIR:tmp};
 const server=process.env.TEST_PROD==='1'
