@@ -8,6 +8,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {THEMES} from '../src/world/config.js';
+import {usingSqlite} from './store-mode.mjs';
+import * as sqlitePub from './store-sqlite-pub.mjs';
 
 const STYLES=Object.keys(THEMES);
 const OVERLAY='sects-overlay.json',CACHE='sects-cache.json';
@@ -120,6 +122,11 @@ export class SectSource{
  get overlayFile(){return path.join(this.dataDir,OVERLAY);}
  get cacheFile(){return path.join(this.dataDir,CACHE);}
  get configured(){return !!this.base;}
+ // 同步缓存与覆盖层的落点：SQLite 模式下进 kv 表（与 ATOM_DATA_DIR 绑定），否则照旧写文件。
+ readCacheDoc(){return usingSqlite?sqlitePub.readSectsCache():readJson(this.cacheFile,null);}
+ writeCacheDoc(doc){usingSqlite?sqlitePub.writeSectsCache(doc):writeJsonAtomic(this.cacheFile,doc);}
+ readOverlayDoc(){return usingSqlite?sqlitePub.readSectsOverlay():readJson(this.overlayFile,{created:[],patches:{}})||{created:[],patches:{}};}
+ writeOverlayDoc(doc){usingSqlite?sqlitePub.writeSectsOverlay(doc):writeJsonAtomic(this.overlayFile,doc);}
  status(){
   return {kind:'remote',url:this.base,count:this.remote.length,
    syncedAt:this.lastSync,error:this.lastError,skipped:this.lastSkipped,
@@ -127,13 +134,13 @@ export class SectSource{
  }
  // 冷启动：磁盘缓存先顶上，避免网站慢/挂时大殿空场。
  restore(){
-  const cached=readJson(this.cacheFile,null);
+  const cached=this.readCacheDoc();
   if(cached&&Array.isArray(cached.sects)&&cached.sects.length){this.remote=cached.sects;this.lastSync=cached.syncedAt||0;}
-  this.overlay=readJson(this.overlayFile,{created:[],patches:{}})||{created:[],patches:{}};
+  this.overlay=this.readOverlayDoc();
   return this.snapshot();
  }
  snapshot(){
-  const overlay=readJson(this.overlayFile,{created:[],patches:{}})||{created:[],patches:{}};
+  const overlay=this.readOverlayDoc();
   this.overlay=overlay;
   return applyOverlay(this.remote,overlay);
  }
@@ -149,7 +156,7 @@ export class SectSource{
    if(!ct.includes('json'))throw new Error('远程返回的不是 JSON（'+(ct||'无 content-type')+'）');
    const {sects,skipped}=mapRemotePayload(await r.json());
    this.remote=sects;this.lastSync=Date.now();this.lastError=null;this.lastSkipped=skipped.length;
-   writeJsonAtomic(this.cacheFile,{syncedAt:this.lastSync,sects});
+   this.writeCacheDoc({syncedAt:this.lastSync,sects});
    if(skipped.length)this.onError?.('原子公社门派网站有 '+skipped.length+' 条数据不合规已跳过');
    return this.snapshot();
   }catch(error){
@@ -170,7 +177,7 @@ export class SectSource{
  // 本地写入 → 覆盖层（远程站点暂未开放管理接口时的最小可用形态）。
  writeOverlay(merged){
   const byId=new Map(this.remote.map(s=>[s.id,s]));
-  const prev=readJson(this.overlayFile,{created:[],patches:{}})||{created:[],patches:{}};
+  const prev=this.readOverlayDoc();
   const created=[],patches={...prev.patches};
   const seen=new Set();
   for(const s of merged||[]){
@@ -181,7 +188,7 @@ export class SectSource{
    const patch=diffPatch(byId.get(s.id),s);
    if(Object.keys(patch).length)patches[s.id]={...(prev.patches?.[s.id]||{}),...patch};
   }
-  writeJsonAtomic(this.overlayFile,{created,patches});
+  this.writeOverlayDoc({created,patches});
   this.overlay={created,patches};
  }
 }

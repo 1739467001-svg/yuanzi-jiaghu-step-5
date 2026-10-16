@@ -92,4 +92,4 @@ audit_log(...);    -- 只 INSERT，不 UPDATE
 
 **验证**：单测 172 项全绿（新增 13 项 SQLite）；`test:e2e` 与 `test:e2e-mp` 两套完整流程在 SQLite 后端下实测通过（注册/登录/记忆保存与删除/本机旧记忆迁移/关注/联机 WS 鉴权全走 SQLite）；迁移脚本用真实数据副本（565 账号/565 会话/146 记忆/56 关注）实测，重跑不重复。
 
-**仍未迁移**（写入频率低，维持 JSON）：`publication-overrides.json`（发布状态）、`audit-log.json`（审计）、`usage-ledger.json`（预算账本）、`sects.json`/`sects-overlay.json`/`sects-cache.json`（门派）、`embedding-cache.json`（嵌入缓存）。内容基线 `src/data/editions.json` 跟代码走，不进任何数据库。
+**仍未迁移**：无——`data/` 下全部运行期存储（账号/会话/记忆/关注/发布覆盖层/审计/预算账本/门派库/同步缓存与覆盖层/嵌入缓存）在 `ATOM_STORE=sqlite` 下都已进 SQLite（管理域见阶段 50，2026-10-17）。内容基线 `src/data/editions.json` 跟代码走，不进任何数据库。

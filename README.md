@@ -172,7 +172,7 @@ tests/                      路径、状态机、内容、记忆、坐标、发�
 
 ## 数据存储
 
-账号/会话/记忆/关注默认是 `data/` 下的 JSON 文件（原子写入）；设 `ATOM_STORE=sqlite` 可切换为 SQLite（`data/atom.db`，用 Node 22 内置的 node:sqlite，无需额外依赖）——事务消灭读-改-写竞态、索引替代线性扫描、会话命中过期即清理。切换前先停服务跑一次 `npm run migrate:sqlite`（幂等，可重跑），旧 JSON 原样保留。发布覆盖层/审计日志/预算账本/门派库仍是 JSON。选型对比、表结构与迁移路径见 [docs/STORAGE.md](docs/STORAGE.md)。
+账号/会话/记忆/关注默认是 `data/` 下的 JSON 文件（原子写入）；设 `ATOM_STORE=sqlite` 可把**全部运行期存储**（账号/会话/记忆/关注/发布覆盖层/审计/预算账本/门派/嵌入缓存）切到 SQLite（`data/atom.db`，用 Node 22 内置的 node:sqlite，无需额外依赖）——事务消灭读-改-写竞态、索引替代线性扫描、会话命中过期即清理、审计改追加式表（不再需要按月分片）。切换前先停服务跑一次 `npm run migrate:sqlite`（幂等，可重跑），旧 JSON 原样保留。选型对比、表结构与迁移路径见 [docs/STORAGE.md](docs/STORAGE.md)。
 
 ## 尚未实现的完整 P0 能力
 

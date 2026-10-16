@@ -1,8 +1,11 @@
 // 持久预算账本（本地演示）：模型调用按 requestId 去重；并发先预留后结算；
 // 每日预算达到 80% 进入 warn（后台 AI 活动应降级），达到 100% 或超过次数/并发上限进入 stop。
-// 服务重启不清空费用：账本落盘在 data/usage-ledger.json，进程内只保存并发计数。
+// 服务重启不清空费用：JSON 后端账本落盘在 data/usage-ledger.json，进程内只保存并发计数；
+// SQLite 后端（ATOM_STORE=sqlite）落 budget_requests/budget_days 两张表，预留与结算全程一个事务。
 import fs from 'node:fs';
 import path from 'node:path';
+import {usingSqlite} from './store-mode.mjs';
+import * as sqlitePub from './store-sqlite-pub.mjs';
 
 const root=path.resolve(import.meta.dirname,'..');
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
@@ -34,6 +37,7 @@ export function estimateCost(tokens,config){
  return input/1e6*config.priceInPerMtok+output/1e6*config.priceOutPerMtok;
 }
 export function dayUsage(){
+ if(usingSqlite)return sqlitePub.budgetDayUsage(today());
  const ledger=readLedger();
  return ledger.days[today()]||{cost:0,calls:0};
 }
@@ -51,6 +55,12 @@ let active=0;
 // 预留：并发位 + 估算费用。已结算过的 requestId 不重复计费。
 export function reserve(requestId,estimatedTokens,env={}){
  const config=budgetConfig(env);
+ if(usingSqlite){
+  // 门限规则仍由本模块的 gate() 计算（只有一份）；存储与聚合走 SQLite 事务。
+  const result=sqlitePub.budgetReserve({requestId,tokens:estimatedTokens,cost:estimateCost(estimatedTokens,config),day:today(),time:new Date().toISOString(),status:gate(env),active,maxConcurrent:config.maxConcurrent});
+  if(result.ok&&!result.duplicate)active++;
+  return result;
+ }
  const ledger=readLedger();
  if(ledger.requests[requestId])return {ok:true,duplicate:true,record:ledger.requests[requestId]};
  if(active>=config.maxConcurrent)return {ok:false,reason:'concurrency'};
@@ -68,6 +78,11 @@ export function reserve(requestId,estimatedTokens,env={}){
 // 结算：按实际用量修正（含模型失败记录）；重复结算忽略。
 export function settle(requestId,{model=null,tokens={in:0,out:0},status='ok'}={},env={}){
  const config=budgetConfig(env);
+ if(usingSqlite){
+  const result=sqlitePub.budgetSettle({requestId,tokens,cost:estimateCost(tokens,config),status,model,settledAt:new Date().toISOString(),day:today()});
+  if(!result.duplicate)active=Math.max(0,active-1);
+  return result;
+ }
  const ledger=readLedger();
  const record=ledger.requests[requestId];
  if(!record||record.status!=='reserved')return {duplicate:true,record:record||null};

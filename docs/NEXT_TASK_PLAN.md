@@ -1016,6 +1016,21 @@ M3 里依赖外部系统的部分（Token 实际发放、OPC 权益核销、赠�
 
 仍待完成：生产权限系统（角色/细粒度授权/SSO）仍是后续阶段；usage-ledger 按天聚合增长慢，暂不轮转。
 
+## 阶段 50：存储层收尾——管理域全量 SQLite 化（2026-10-17 执行）
+
+阶段 47 的收尾：把 `data/` 下剩余的 JSON 存储全部收进同一个 SQLite 开关（`ATOM_STORE=sqlite`），默认仍为 JSON、回退零成本。
+
+已完成：
+
+- **共享连接与表结构** `server/sqlite-db.mjs`：账号域与管理域共用一个连接；schema 增加 kv（单文档）、audit_events（追加式）、budget_requests/budget_days、embeddings 四类表。`server/store-sqlite.mjs` 重构为复用该连接。
+- **管理域后端** `server/store-sqlite-pub.mjs`：发布覆盖层（kv 单文档，与审计同一事务落盘——不会出现「状态变了但审计丢了」）、审计（追加式表 + 时间索引，**按月的 JSON 轮转不再需要**，旧分片由迁移脚本导入）、预算账本（requests/days 两表，reserve/settle 全程一个事务，不再每次全量重写）、门派库与同步缓存/覆盖层（kv）、嵌入向量缓存（按哈希寻址，只写新增行）。
+- **模块内调度**：publication-store / budget / sects / sects-source / embeddings 各自按 `usingSqlite` 分支，纯逻辑（目录规范化、门限、字段映射）仍只有一份。标志取自叶子模块 `server/store-mode.mjs`——**被 store.mjs 依赖链引用的模块不能 import store.mjs**（它的顶层 await 会与环死锁，embeddings.mjs 就踩通过：表现为测试里 unsettled top-level await）。
+- **迁移脚本扩展**：`npm run migrate:sqlite` 现在导入全部 11 类 JSON 数据（账号/会话/记忆/关注/发布覆盖层/审计分片/预算账本/门派库/覆盖层/同步缓存/嵌入缓存），幂等；用真实数据副本实测 565 账号/565 会话/146 记忆/56 关注/300 条审计全量迁入，迁移后的库直接起服务，旧账号 scrypt 散列完整、审计与门派经 API 可读。
+- **顺手精简**：删除 7 个开发遗留的一次性脚本（`_fix_*` ×5、`tmp-*` ×2，零引用）；清掉 memories.mjs 未用的 similarity 导入、publication-store 未用的 auditLegacyFile、.gitignore 里对已入库文件 `src/content/catalog.js` 的遗留忽略行。
+- 验收：`tests/store-sqlite-pub.test.mjs` 7 项（镜像 JSON 后端核心断言：发布撤回/回滚/审计、预算去重/聚合/门限、门派建派与管理、sects-source 缓存与覆盖层落 kv、嵌入缓存落表且命中不请求、全量迁移幂等）；`npm test` 188 项全绿；`ATOM_STORE=sqlite` 下 `test:e2e-sects`（含远程门派网站同步段）、`test:e2e-model`（预算硬上限回退）、`test:e2e`、`test:e2e-mp` 四套实测通过。
+
+仍待完成：SQLite 默认翻转（待 soak 长测证据）；PostgreSQL（多机场景再说）。至此 `data/` 下全部运行期存储在 SQLite 模式下都有家。
+
 ## 下一批候选（2026-10-03 起）
 
 - **多天气**：微雨之外补「夜雨」「山雾」两种稀有事件（雾用 `scene.fog` 就近收敛，夜间雨把雨色压暗），与微雨共用同一套调度与 ref 通道，注意别再犯「依赖数组漏 ref」与「行内注释吞代码」两个坑。——2026-10-09 阶段 48 实施中。

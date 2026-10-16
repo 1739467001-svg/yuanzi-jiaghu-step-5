@@ -128,6 +128,30 @@ PRD 的 72 小时压测仍未执行（本机环境不适合连续 3 天独占）
 
 ---
 
+# 2026-10-17 存储层收尾——管理域全量 SQLite 化（阶段 50）
+
+## 做法
+
+阶段 47 只迁了账号/会话/记忆/关注；本轮把 `data/` 下剩余存储全部收进同一个开关（`ATOM_STORE=sqlite`），默认仍 JSON、回退零成本。
+
+- `server/sqlite-db.mjs`：账号域与管理域共用一个连接与一份 schema（新增 kv / audit_events / budget_requests / budget_days / embeddings 五类表）；node:sqlite 仍惰性加载。
+- `server/store-sqlite-pub.mjs`：管理域后端。发布覆盖层是 kv 单文档，与审计**同一个事务**落盘；审计从「按月分片 + 合并读」变为追加式表（轮转不再需要，旧分片由迁移脚本导入）；预算 reserve/settle 全程事务（不再每次全量重写 requests）；门派库/同步缓存/覆盖层进 kv；嵌入缓存按哈希寻址、只写新增行。
+- 五个消费模块（publication-store / budget / sects / sects-source / embeddings）按标志分支，纯逻辑仍只有一份。
+- 踩坑记录：**模块环 + 顶层 await死锁**。embeddings.mjs 被 store.mjs 的依赖链引用（memories → embeddings），又反过来 import store.mjs，与它的 TLA 形成环——整个模块图挂起，表现为测试里 `unsettled top-level await`、15 个测试文件连锁失败。修法：后端标志下沉到叶子模块 `server/store-mode.mjs`，被依赖链引用的模块一律从那里取。
+
+## 顺手精简
+
+删除 7 个开发遗留的一次性脚本（`scripts/_fix_*` ×5、`scripts/tmp-*` ×2，零引用）；清掉 memories.mjs 未用的 similarity 导入、publication-store 未用的 auditLegacyFile、.gitignore 里对已入库文件 `src/content/catalog.js` 的遗留忽略行。
+
+## 实测
+
+- 30 分钟 soak（SQLite 后端，16 玩家双房间）：零页面错误、快照 p95 118.7ms、内存 -17.6MB、座位不变量零违例（136 次入座 / 111 次起身 / 67 次同桌相邀）——新存储路径在持续负载下稳定。
+- 单测 188 项全绿（新增 `tests/store-sqlite-pub.test.mjs` 7 项，镜像 JSON 后端核心断言 + 全量迁移幂等）。
+- `ATOM_STORE=sqlite` 下四套 e2e 实测通过：`test:e2e-sects`（含远程门派网站同步段——缓存与覆盖层落 kv）、`test:e2e-model`（预算硬上限回退，账本 2 次/0.00707）、`test:e2e`（后台撤回/发布/审计 UI 流程）、`test:e2e-mp`（双账号/记忆迁移/关注）。
+- 迁移脚本用真实数据副本实测：565 账号/565 会话/146 记忆/56 关注/300 条审计/门派/覆盖层/缓存/嵌入全量迁入，幂等重跑不重复；迁移后的库直接起服务，旧账号 scrypt 散列完整（128 hex），审计与门派经 API 可读。
+
+---
+
 # 2026-10-09 多天气事件——夜雨与山雾（阶段 48）
 
 ## 做法

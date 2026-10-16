@@ -6,12 +6,13 @@ import path from 'node:path';
 import vm from 'node:vm';
 import rawEditions from '../src/data/editions.json' with {type:'json'};
 import {normalizeCatalog,PUBLICATION_STATUSES} from '../src/content/catalog.js';
+import {usingSqlite} from './store-mode.mjs';
+import * as sqlitePub from './store-sqlite-pub.mjs';
 
 const root=path.resolve(import.meta.dirname,'..');
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
 const overridesFile=()=>path.join(dataDir(),'publication-overrides.json');
 // 审计按轮转：当月写 audit-log-YYYY-MM.json，历史文件只读（旧的 audit-log.json 也认）。
-const auditLegacyFile=()=>path.join(dataDir(),'audit-log.json');
 const auditMonthFile=()=>path.join(dataDir(),`audit-log-${new Date().toISOString().slice(0,7)}.json`);
 function listAuditFiles(){
  try{return fs.readdirSync(dataDir()).filter(f=>/^audit-log.*\.json$/.test(f)).sort().map(f=>path.join(dataDir(),f));}catch{return[];}
@@ -27,6 +28,7 @@ function writeJsonAtomic(file,value){
  fs.renameSync(tmp,file);
 }
 export function getOverrides(){
+ if(usingSqlite)return sqlitePub.readOverrides();
  const stored=readJson(overridesFile(),null);
  if(!stored||typeof stored!=='object')return {stateVersion:0,editions:{},works:{},added:[]};
  return {stateVersion:Number(stored.stateVersion)||0,editions:stored.editions||{},works:stored.works||{},added:Array.isArray(stored.added)?stored.added:[]};
@@ -93,6 +95,7 @@ export function liveQueryWorks({editionId,track,q}={}){
 export function liveFindWork(id){return livePublishedWorks().find(w=>w.id===id)||null;}
 
 export function getAudit(limit=100){
+ if(usingSqlite)return sqlitePub.readAudit(limit);
  // 合并全部审计分片（含旧版单文件），按时间排序后取最近 limit 条（新的在前）。
  const events=[];
  for(const file of listAuditFiles()){
@@ -103,6 +106,7 @@ export function getAudit(limit=100){
  return events.slice(-Math.max(1,limit)).reverse();
 }
 function appendAudit(event){
+ if(usingSqlite){sqlitePub.appendAudit(event);return;}
  const file=auditMonthFile();
  const log=readJson(file,[]);
  const list=Array.isArray(log)?log:[];
@@ -129,9 +133,11 @@ function commit(mutate,event){
   ?snapshotEdition(candidate.editions.find(e=>e.id===target))
   :{works:{[target]:(()=>{const w=candidate.editions.flatMap(e=>e.works).find(w=>w.id===target);return {publicationStatus:w.publicationStatus,contentVersion:w.contentVersion};})()}};
  overrides.stateVersion=(Number(overrides.stateVersion)||0)+1;
- writeJsonAtomic(overridesFile(),overrides);
+ const auditEvent={id:`audit-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,actor:event.actor,action:event.action,targetId:target,scope:event.scope,before:beforeSnapshot,after:afterSnapshot,time:new Date().toISOString(),note:event.note||''};
+ // SQLite 模式下覆盖层与审计同一个事务落盘（不会出现「状态变了但审计丢了」）。
+ if(usingSqlite)sqlitePub.writeOverridesWithAudit(overrides,auditEvent);
+ else{writeJsonAtomic(overridesFile(),overrides);appendAudit(auditEvent);}
  cached=null;
- appendAudit({id:`audit-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,actor:event.actor,action:event.action,targetId:target,scope:event.scope,before:beforeSnapshot,after:afterSnapshot,time:new Date().toISOString(),note:event.note||''});
  return {stateVersion:overrides.stateVersion,audit:getAudit(1)[0]};
 }
 function assertStatus(status){
@@ -254,13 +260,14 @@ export function applyImport(payload,actor='local-admin',note=''){
  const candidate=normalizeCatalog(applyOverrides(rawEditions,overrides));
  if(!candidate.editions.some(e=>payload.editions.some(p=>p.id===e.id)))throw new Error('导入合并失败：赛事未出现在合并结果中');
  overrides.stateVersion=(Number(overrides.stateVersion)||0)+1;
- writeJsonAtomic(overridesFile(),overrides);
- cached=null;
  const ids=payload.editions.map(e=>e.id);
- appendAudit({id:`audit-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,actor,action:'import_editions',targetId:ids.join(','),scope:'catalog',
+ const auditEvent={id:`audit-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,actor,action:'import_editions',targetId:ids.join(','),scope:'catalog',
   before:{editions:0,works:0},
   after:{editions:ids.length,works:report.totals.new+report.totals.updated+report.totals.unchanged,newWorks:report.totals.new,updatedWorks:report.totals.updated,unchangedWorks:report.totals.unchanged,removedWorks:report.totals.missing},
-  time:new Date().toISOString(),note:note||'运营后台导入'});
+  time:new Date().toISOString(),note:note||'运营后台导入'};
+ if(usingSqlite)sqlitePub.writeOverridesWithAudit(overrides,auditEvent);
+ else{writeJsonAtomic(overridesFile(),overrides);appendAudit(auditEvent);}
+ cached=null;
  return {stateVersion:overrides.stateVersion,report,audit:getAudit(1)[0]};
 }
 // 导入检查：读取来源展示站数据，与当前基线比较，只产出候选差异，不写任何状态。

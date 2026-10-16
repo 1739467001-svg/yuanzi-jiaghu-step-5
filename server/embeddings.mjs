@@ -1,9 +1,12 @@
 // 可配置嵌入向量召回：配置 ATOM_EMBEDDING_* 后，记忆与作品检索走语义向量（余弦）；
 // 未配置或提供方不可用时返回 null，由调用方回退到二元组 TF-IDF（接口不变）。
-// 嵌入结果按文本哈希缓存在 data/embedding-cache.json，内容变更只重算新增项。
+// 嵌入结果按文本哈希缓存（JSON 后端在 data/embedding-cache.json；SQLite 后端在
+// embeddings 表，只写新增行）；内容变更只重算新增项。
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {usingSqlite} from './store-mode.mjs';
+import * as sqlitePub from './store-sqlite-pub.mjs';
 
 const root=path.resolve(import.meta.dirname,'..');
 const cacheFile=()=>path.join(process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data'),'embedding-cache.json');
@@ -20,6 +23,7 @@ export function configureEmbeddings(env={}){
 export function embeddingsEnabled(){return !!(config&&config.baseUrl&&config.apiKey);}
 
 function readCache(){
+ if(usingSqlite)return sqlitePub.readEmbeddingCache();
  try{const cache=JSON.parse(fs.readFileSync(cacheFile(),'utf8'));if(cache&&typeof cache==='object')return cache;}catch{}
  return {};
 }
@@ -29,6 +33,13 @@ function writeCache(cache){
  const tmp=file+'.tmp';
  fs.writeFileSync(tmp,JSON.stringify(cache));
  fs.renameSync(tmp,file);
+}
+// 只写新增/变化的条目：SQLite 按行 upsert（不全量重写）；JSON 合并进原文件（语义不变）。
+function writeCacheEntries(fresh){
+ if(usingSqlite){sqlitePub.writeEmbeddingEntries(fresh);return;}
+ const cache=readCache();
+ Object.assign(cache,fresh);
+ writeCache(cache);
 }
 const hash=text=>crypto.createHash('sha1').update(String(text)).digest('hex');
 
@@ -55,8 +66,10 @@ export async function embedTexts(texts,{fetchImpl=fetch}={}){
    const json=await response.json();
    const vectors=json.data||[];
    if(vectors.length!==pending.length)return null;
-   vectors.forEach((item,i)=>{if(Array.isArray(item.embedding))cache[hash(pending[i])]=item.embedding;});
-   writeCache(cache);
+   const fresh={};
+   vectors.forEach((item,i)=>{if(Array.isArray(item.embedding))fresh[hash(pending[i])]=item.embedding;});
+   writeCacheEntries(fresh);
+   Object.assign(cache,fresh);
   }catch{return null;}
  }
  const result=keys.map(key=>cache[key]||null);

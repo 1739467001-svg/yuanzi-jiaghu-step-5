@@ -3,62 +3,22 @@
 // 上层经 server/store.mjs 调度，不关心后端。选型对比与迁移路径见 docs/STORAGE.md。
 //
 // 相对 JSON 后端解决的真实问题：事务消灭读-改-写竞态、索引替代线性扫描、
-// 会话按过期时间清理（命中即删）、写入只动涉及的页、WAL 让读不阻塞写。
-// 数据库文件：data/atom.db（ATOM_DATA_DIR 可改），备份就是拷贝这个文件。
+// 会话命中过期即懒清理、写入只动涉及的页、WAL 让读不阻塞写。
+// 管理域（发布/审计/预算/门派/嵌入缓存）的同款后端在 server/store-sqlite-pub.mjs，
+// 两者共用 server/sqlite-db.mjs 的连接与表结构。
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import {createRequire} from 'node:module';
 import {MODELS} from '../src/world/config.js';
 import {validName,validColor,hashPassword,publicUser,SESSION_DAYS} from './accounts.mjs';
 import {MAX_PER_AGENT,DEFAULT_TTL_DAYS,rankMemories,recallRankedAsync} from './memories.mjs';
+import {getDb,tx,databaseFile} from './sqlite-db.mjs';
 
 const MODEL_KEYS=Object.keys(MODELS);
-// node:sqlite 惰性加载：静态 import 会被 esbuild 打进 vite 配置包并提升执行——
-// 那样即使跑 JSON 后端也会加载 sqlite（只是空转，但日志里平白多一条实验特性告警）。
-// 改成首次真正开库时才 require，模块边界与后端选择严格一致。
-const require=createRequire(import.meta.url);
-let DatabaseSync=null;
-function loadSqlite(){return DatabaseSync??=require('node:sqlite').DatabaseSync;}
-const root=path.resolve(import.meta.dirname,'..');
-const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
-export const databaseFile=()=>path.join(dataDir(),'atom.db');
-
-let db=null;
-function getDb(){
- if(db)return db;
- fs.mkdirSync(path.dirname(databaseFile()),{recursive:true});
- db=new (loadSqlite())(databaseFile());
- db.exec('PRAGMA journal_mode=WAL;');
- db.exec(`
-  CREATE TABLE IF NOT EXISTS users(
-   id TEXT PRIMARY KEY, name TEXT UNIQUE NOT NULL, color TEXT, salt TEXT, pass_hash TEXT,
-   external_id TEXT UNIQUE, model TEXT, created_at TEXT);
-  CREATE TABLE IF NOT EXISTS sessions(
-   token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
-   created_at INTEGER, expires_at INTEGER);
-  CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
-  CREATE TABLE IF NOT EXISTS memories(
-   id TEXT PRIMARY KEY, account_id TEXT NOT NULL, agent_id TEXT NOT NULL,
-   text TEXT, source TEXT, kind TEXT, created_at INTEGER, expires_at INTEGER);
-  CREATE INDEX IF NOT EXISTS idx_memories_scope ON memories(account_id, agent_id);
-  CREATE TABLE IF NOT EXISTS follows(
-   target_type TEXT NOT NULL, target_id TEXT NOT NULL, account_id TEXT NOT NULL,
-   created_at INTEGER, PRIMARY KEY(target_type, target_id, account_id));
-  CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value INTEGER);
- `);
- return db;
-}
+export {databaseFile};
 // 记忆存储版本号：每次保存/删除递增，供上层丢弃在途结果（与 JSON 后端同语义）。
 function bumpMemoryVersion(){
- const db=getDb();
- db.prepare("INSERT INTO meta(key,value) VALUES('memories_version',1) ON CONFLICT(key) DO UPDATE SET value=value+1").run();
-}
-function tx(fn){
- const db=getDb();
- db.exec('BEGIN IMMEDIATE');
- try{const result=fn(db);db.exec('COMMIT');return result;}
- catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}
+ getDb().prepare("INSERT INTO meta(key,value) VALUES('memories_version',1) ON CONFLICT(key) DO UPDATE SET value=value+1").run();
 }
 
 // ---------- 账号与会话 ----------
@@ -260,7 +220,7 @@ export function removeFollow(userId,targetType,targetId){
 // 把 data/accounts.json、memories.json、follows.json 灌进库；幂等可重跑
 // （users/sessions/memories 用 INSERT OR REPLACE，follows 用 INSERT OR IGNORE）。
 // 记忆版本号取 JSON 与库中较大值。建议在服务端停止时执行（scripts/migrate-json-to-sqlite.mjs）。
-export function migrateFromJson({dataDir:dir=dataDir()}={}){
+export function migrateFromJson({dataDir:dir=path.dirname(databaseFile())}={}){
  const readJson=(file,fallback)=>{try{return JSON.parse(fs.readFileSync(path.join(dir,file),'utf8'));}catch{return fallback;}};
  const result={users:0,sessions:0,memories:0,follows:0,memoryVersion:0};
  tx(db=>{

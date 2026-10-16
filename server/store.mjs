@@ -2,8 +2,9 @@
 // 默认（未设置或其他值）走 JSON 文件（accounts.mjs / memories.mjs / follows.mjs）。
 // 上层（auth/chat/memory-api/sects-api/world/follows-api）只依赖这里导出的函数签名，不关心后端；
 // 两个后端的行为差异只有 docs/STORAGE.md 列出的那几条（事务、索引、懒清理）。
-const backend=String(process.env.ATOM_STORE||'json').trim().toLowerCase();
-export const usingSqlite=backend==='sqlite';
+// 注意：本模块有顶层 await，被自己依赖链引用的模块不要 import 这里——用 store-mode.mjs 取标志。
+export {usingSqlite} from './store-mode.mjs';
+import {usingSqlite} from './store-mode.mjs';
 
 const accounts=usingSqlite?await import('./store-sqlite.mjs'):await import('./accounts.mjs');
 const memories=usingSqlite?await import('./store-sqlite.mjs'):await import('./memories.mjs');

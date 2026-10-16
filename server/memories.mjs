@@ -3,7 +3,7 @@
 // 支持过期时间；召回先限定作用域，再做相关性与新近度排序。
 import fs from 'node:fs';
 import path from 'node:path';
-import {similarity,tfidfCosine,bigrams} from '../src/content/similarity.js';
+import {tfidfCosine,bigrams} from '../src/content/similarity.js';
 import {rankByEmbedding} from './embeddings.mjs';
 
 const root=path.resolve(import.meta.dirname,'..');

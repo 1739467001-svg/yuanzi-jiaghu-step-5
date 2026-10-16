@@ -34,7 +34,7 @@ curl http://127.0.0.1:8080/api/content/health   # {"ok":true,...}
 | --- | --- | --- |
 | `PORT` / `HOST` | `8080` / `0.0.0.0` | 监听地址；只本机测试可设 `HOST=127.0.0.1` |
 | `ATOM_DATA_DIR` | `./data` | **账号、记忆、发布状态、审计、预算账本的存储目录**（持久化重点） |
-| `ATOM_STORE` | `json` | 账号/会话/记忆/关注的存储后端：`json`（默认）或 `sqlite`（`data/atom.db`，Node 22 内置）。切 SQLite 前先停服务跑 `npm run migrate:sqlite` 导入旧数据，详见 `docs/STORAGE.md` |
+| `ATOM_STORE` | `json` | 全部运行期存储的后端：`json`（默认）或 `sqlite`（`data/atom.db`，Node 内置）。切 SQLite 前先停服务跑 `npm run migrate:sqlite` 导入旧数据，详见 `docs/STORAGE.md` |
 | `ATOM_ADMIN_TOKEN` | `atom-local-demo` | 运营后台 `/admin.html` 的令牌，**上线前必须修改** |
 | `ATOM_ADMIN_TOKENS` | 空 | 多运营者令牌：`令牌:名称,令牌2:名称2`（名称可省略）。审计事件的 actor 取服务端从令牌解析的名称，不信任客户端提交的值 |
 | `ATOM_ROOM_CAPACITY` | `20` | 默认房间容量（满员后排队） |

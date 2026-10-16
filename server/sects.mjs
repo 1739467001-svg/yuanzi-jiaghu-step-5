@@ -10,6 +10,8 @@ import path from 'node:path';
 import {THEMES} from '../src/world/config.js';
 import {SectSource} from './sects-source.mjs';
 import {validateLayoutShape,normalizeLayout,defaultLayout} from '../src/world/townPresets.js';
+import {usingSqlite} from './store-mode.mjs';
+import * as sqlitePub from './store-sqlite-pub.mjs';
 
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(path.resolve(import.meta.dirname,'..'),'data');
 const sectsFile=()=>path.join(dataDir(),'sects.json');
@@ -76,15 +78,19 @@ export async function refreshSectSource(){
  return source.status();
 }
 export function loadSects(){
- // 远程快照（含覆盖层）优先；未配置远程时才是本地文件/演示数据。
+ // 远程快照（含覆盖层）优先；未配置远程时才是本地库（SQLite kv 或 JSON 文件/演示数据）。
  if(source){const s=source.snapshot();if(s.length||source.remote.length)return s;}
+ if(usingSqlite){const doc=sqlitePub.readSectsDoc();return doc?doc.sects:demoSects();}
  const stored=readJson(sectsFile(),null);
  if(!stored||!Array.isArray(stored.sects))return demoSects();
  return stored.sects;
 }
-// 写入落点：远程模式下记覆盖层（远程站点暂未开放管理接口），否则照旧写本地文件。
+// 写入落点：远程模式下记覆盖层（远程站点暂未开放管理接口），否则写本地库。
 function persist(sects){source?source.writeOverlay(sects):saveSects(sects);}
-function saveSects(sects){writeJsonAtomic(sectsFile(),{sects});}
+function saveSects(sects){
+ if(usingSqlite){sqlitePub.writeSectsDoc({sects});return;}
+ writeJsonAtomic(sectsFile(),{sects});
+}
 export function findSect(id){return loadSects().find(s=>s.id===id)||null;}
 function cleanName(v){return String(v||'').trim();}
 function memberRow(userId,name,title,allowed,fallback){

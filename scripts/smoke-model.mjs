@@ -59,8 +59,17 @@ try{
  assert.match(await page.locator('.chat-mode').textContent(),/AI 侠客/);
  fs.mkdirSync('artifacts',{recursive:true});
  await page.screenshot({path:'artifacts/online-ai-model.png'});
- const ledger=JSON.parse(fs.readFileSync(path.join(tmp,'usage-ledger.json'),'utf8'));
- const day=Object.values(ledger.days)[0];
+ // 账本按后端读取：JSON 模式读 usage-ledger.json；SQLite 模式读 budget_days 表。
+ let day;
+ if(process.env.ATOM_STORE==='sqlite'){
+  const {DatabaseSync}=await import('node:sqlite');
+  const db=new DatabaseSync(path.join(tmp,'atom.db'));
+  day=db.prepare('SELECT cost,calls FROM budget_days').get()||{cost:0,calls:0};
+  db.close();
+ }else{
+  const ledger=JSON.parse(fs.readFileSync(path.join(tmp,'usage-ledger.json'),'utf8'));
+  day=Object.values(ledger.days)[0];
+ }
  assert.ok(day.cost>0,'账本记录了费用');
  assert.equal(day.calls,2,'只有成功的模型调用计入次数');
  assert.ok(mockCalls>=2,'mock 模型被真实调用');
