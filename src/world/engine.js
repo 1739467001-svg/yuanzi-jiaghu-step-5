@@ -21,6 +21,8 @@ export const DEBATE_TOPICS=[
 ];
 // 站位取论剑台外圈可走点（台体 6×6 会挡路）：南北两侧各两个，隔着高台相对而辩。
 const AGORA_SPOTS=[{x:11.2,z:6.2},{x:12.8,z:13.7},{x:12.8,z:6.2},{x:11.2,z:13.7}];
+// 天气枚举：clear 晴 / rain 微雨 / nightRain 夜雨 / fog 山雾（调度与两个世界共用）。
+export const WEATHERS=['clear','rain','nightRain','fog'];
 export function agoraSpots(){return AGORA_SPOTS;}
 // 取两个空闲且互不为伴的侠客；不足则本轮不办。
 export function pickDebatePair(agents){
@@ -83,8 +85,8 @@ export class WorldEngine{
   const phase=phaseAt(this.clock);
   if(phase.name!==this.lastPhase){this.lastPhase=phase.name;this.onEvent({id:`phase-${this.time}`,text:`时辰流转，江湖到了${phase.name}`,kind:'phase',time:Date.now()});}
   this.runDebate(dt);
-  this.advance(this.player,dt,this.raining?2:3.2);
-  for(const a of this.agents){if(a.held)continue;this.advance(a,dt,this.raining?.75:1.15);if(a.path.length)continue;
+  this.advance(this.player,dt,this.raining?2:this.foggy?2.6:3.2);
+  for(const a of this.agents){if(a.held)continue;this.advance(a,dt,this.raining?.75:this.foggy?.95:1.15);if(a.path.length)continue;
    // 观展闭环：到达展示馆后读取作品事实，生成不超过 60 字的角色观感并记入公开见闻。
    if(a.task?.type==='observe'&&!a.task.done){
     a.task.done=true;const w=a.task.work,{impression,opinion}=impressionOf(a,w);
@@ -113,7 +115,7 @@ export class WorldEngine{
    const phaseNow=phaseAt(this.clock);
    const preferred=a.places.filter(id=>{const p=PLACES.find(p=>p.id===id);return p&&phaseNow.prefer.includes(p.kind)});
    const destinationId=preferred.length?preferred[a.step++%preferred.length]:a.places[a.step++%a.places.length];
-   const dest=PLACES.find(p=>p.id===destinationId);a.path=findPath([a.x,a.z],dest.entry);a.state=`前往${dest.short}`;a.wait=(7+(a.step%5))*phaseNow.pace*(this.raining?1.35:1);this.onEvent({id:`${a.id}-${this.time}`,text:`${a.name}动身前往${dest.short}`,kind:'walk',time:Date.now()});
+   const dest=PLACES.find(p=>p.id===destinationId);a.path=findPath([a.x,a.z],dest.entry);a.state=`前往${dest.short}`;a.wait=(7+(a.step%5))*phaseNow.pace*(this.raining?1.35:this.foggy?1.15:1);this.onEvent({id:`${a.id}-${this.time}`,text:`${a.name}动身前往${dest.short}`,kind:'walk',time:Date.now()});
   }
  }
  advance(a,dt,speed){stepActor(a,dt,speed);}
@@ -175,9 +177,11 @@ export class WorldEngine{
   return true;
  }
  hasDebate(){return this.agents.some(a=>a.debating);}
- // 天气只影响节奏：微雨时侠客走慢一点、行程间隔长一点（雨景是氛围，不是惩罚）。
- setWeather(w){this.weather=w==='rain'?'rain':'clear';}
- get raining(){return this.weather==='rain';}
+  // 天气只影响节奏：雨天侠客走慢一点、行程间隔长一点；山雾同理但轻一档
+  // （天气是氛围，不是惩罚）。clear / rain / nightRain / fog 四种，未知值退回晴天。
+  setWeather(w){this.weather=WEATHERS.includes(w)?w:'clear';}
+  get raining(){return this.weather==='rain'||this.weather==='nightRain';}
+  get foggy(){return this.weather==='fog';}
  debatePro(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.pro:'我看值得一试';}
  debateCon(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.con:'也要留个后手';}
  snapshot(){return this.agents.map(({id,name,state,x,z,memory,views})=>({id,name,state,x,z,memory:[...memory],views:views.map(v=>({...v}))}));}

@@ -1,8 +1,6 @@
 # 数据存储方案报备与选型建议
 
-> 结论先行：现在是**纯 JSON 文件存储**（没有数据库服务）。按当前访问量，我的推荐是
-> **先迁到 SQLite（单文件、零运维、事务安全）**；等你要跑多台世界服务端、或日活到几万级别，
-> 再升级到 **PostgreSQL**。MySQL 我不推荐用于这个世界服务端——原因见第 4 节。
+> 结论先行：**SQLite 后端已实现并可开关**（`ATOM_STORE=sqlite`，2026-10-09 阶段 47 落地，见第 6 节）。默认仍是 JSON 文件存储（无数据库服务），可随时回退。等你要跑多台世界服务端、或日活到几万级别，再升级到 **PostgreSQL**。MySQL 我不推荐用于这个世界服务端——原因见第 4 节。
 
 ## 1. 现状报备（代码里实际在用的）
 
@@ -39,9 +37,11 @@
 | MySQL | 要一台常驻服务 + 备份/监控/账号权限 | 有 | 索引、SQL | 你们已经有 MySQL 且愿意共用 |
 | PostgreSQL | 要一台常驻服务 | 有（最好） | 索引、SQL、JSONB | 多机部署 / 大规模 |
 
-## 3. 推荐：SQLite（`better-sqlite3`）
+## 3. 已落地：SQLite（Node 内置 node:sqlite）
 
-**为什么是它**：这个世界服务端本来就是"单进程 + WebSocket 房间"的形态，SQLite 和它是同一量级的搭档——不需要额外进程、不需要连接池、不需要 DBA；`data/atom.db` 一个文件，备份就是拷贝（配合 SQLite 自带的 WAL，读不阻塞写）。它把上面 5 个问题一次解决：事务消灭竞态、索引让登录和记忆查询变成 O(log n)、会话按过期时间清理、写入只动涉及的页、` better-sqlite3` 是同步 API，和现在 `verify()`/`login()` 的调用形状几乎一样，改动集中在存储层。
+**为什么是它**：这个世界服务端本来就是"单进程 + WebSocket 房间"的形态，SQLite 和它是同一量级的搭档——不需要额外进程、不需要连接池、不需要 DBA；`data/atom.db` 一个文件，备份就是拷贝（配合 SQLite 自带的 WAL，读不阻塞写）。它把上面 5 个问题一次解决：事务消灭竞态、索引让登录和记忆查询变成 O(log n)、会话按过期时间清理、写入只动涉及的页。
+
+**为什么用 node:sqlite 而不是 better-sqlite3**：`engines.node>=22.12` 已经挡住旧版本，Node 22.5+ 内置 `node:sqlite`（同步 API，与现在 `verify()`/`login()` 的调用形状几乎一样）——零原生编译、零新增依赖，Docker 镜像与 Vercel 检出都不受影响。代价是启动时有一条实验特性告警（仅 SQLite 模式真正开库时打印）。
 
 **表设计（与现有函数一一对应）**：
 
@@ -56,11 +56,11 @@ sects(...);        -- 与 server/sects.mjs 的对象同字段
 audit_log(...);    -- 只 INSERT，不 UPDATE
 ```
 
-**迁移路径（不影响现在跑着的东西）**：
+**迁移路径（已按此实施，详见第 6 节）**：
 
-1. `server/store-sqlite.mjs` 实现与 `accounts.mjs` / `memories.mjs` / `follows.mjs` 相同的导出函数（`register/login/verify/updateProfile/...`），内部换成 SQL。上层 `index.mjs`、`sects-api.mjs`、`world.mjs` 一行不用改——它们只依赖这些函数签名。
-2. 一次性导入脚本 `scripts/migrate-json-to-sqlite.mjs`：把 `data/*.json` 现有内容灌进库（幂等，可重跑）。
-3. 用环境变量切换：`ATOM_STORE=sqlite`（默认仍是 json，方便回退）。切过去跑一遍全部 e2e 与 soak，确认无回归后再把默认改掉。
+1. ~~`server/store-sqlite.mjs` 实现相同的导出函数~~ —— 已落地；上层经 `server/store.mjs` 调度，只依赖函数签名。
+2. ~~一次性导入脚本 `scripts/migrate-json-to-sqlite.mjs`~~ —— 已落地（`npm run migrate:sqlite`，幂等）。
+3. ~~用环境变量切换~~ —— 已落地：`ATOM_STORE=sqlite`（默认仍是 json，方便回退）；两套 e2e 已在 SQLite 后端实测通过。
 4. `docs/SECTS.md` 里记的那条不变：门派数据以原子公社网站为权威时，SQLite 只是本地缓存与覆盖层。
 
 **什么时候该继续升级到 PostgreSQL**：要跑第二台世界服务端（多房间分房到多机）、或者日活/记忆量让单机 IO 成为瓶颈（经验值：账号 > 10 万、记忆 > 500 万条）。那时 SQLite 换 PG 的改动仍然只在存储层，`world.mjs` 的权威逻辑不用动。
@@ -76,5 +76,20 @@ audit_log(...);    -- 只 INSERT，不 UPDATE
 
 ## 5. 现在就要做的两件事（不换库也能改善）
 
-1. **会话改成懒清理**：`verify()` 命中过期会话时直接删掉该行，别只返回 null；登录时的全量扫描改成按过期时间删（SQLite 上有索引就是一条 DELETE）。
-2. **audit-log 与 usage-ledger 做轮转**：按日期分文件（`audit-log-2026-09.json`），避免单文件无限增长——这也是迁 SQLite 之前的临时缓解。
+1. **会话改成懒清理**：`verify()` 命中过期会话时直接删掉该行，别只返回 null；登录时的全量扫描改成按过期时间删（SQLite 上有索引就是一条 DELETE）。——**已在 SQLite 后端落地**（JSON 后端维持原语义不变）。
+2. **audit-log 与 usage-ledger 做轮转**：按日期分文件（`audit-log-2026-09.json`），避免单文件无限增长——这也是迁 SQLite 之前的临时缓解。**审计轮转已落地**（阶段 49：当月写 `audit-log-YYYY-MM.json`，历史分片与旧单文件合并读取）；usage-ledger 按天聚合、增长慢，暂不轮转。
+
+## 6. 实施状态（2026-10-09 · 阶段 47）
+
+**已落地**：
+
+- `server/store.mjs`：后端调度层。`ATOM_STORE=sqlite` 时账号/会话/记忆/关注走 SQLite，默认（未设置）走 JSON；上层（auth/chat/memory-api/sects-api/world/follows-api）只依赖这里的函数签名，两个后端行为一致。
+- `server/store-sqlite.mjs`：SQLite 实现（`data/atom.db`，WAL + 事务）。用户/会话/记忆/关注四张表 + meta 版本号；校验、散列、召回排序等纯函数与 JSON 后端共用同一份实现（`accounts.mjs`/`memories.mjs` 导出），不出现两套口径。node:sqlite 惰性加载，JSON 模式下完全不碰 sqlite。
+- `scripts/migrate-json-to-sqlite.mjs`（`npm run migrate:sqlite`）：一次性把 `accounts.json`/`memories.json`/`follows.json` 灌进库，幂等可重跑；旧 JSON 原样保留，回退只需删掉 `ATOM_STORE`。
+- `tests/store-sqlite.test.mjs`：13 项，镜像 JSON 后端的核心断言（注册/登录/登出/改名/外部身份映射、记忆隔离/删除/有界/召回/迁移、关注增删查），外加会话懒清理与迁移幂等。
+
+**怎么启用**：停服务 → `npm run migrate:sqlite` → 设 `ATOM_STORE=sqlite` 启动。生产服务启动时会打印 `存储: SQLite`。回退：去掉环境变量即可（JSON 文件一直在）。
+
+**验证**：单测 172 项全绿（新增 13 项 SQLite）；`test:e2e` 与 `test:e2e-mp` 两套完整流程在 SQLite 后端下实测通过（注册/登录/记忆保存与删除/本机旧记忆迁移/关注/联机 WS 鉴权全走 SQLite）；迁移脚本用真实数据副本（565 账号/565 会话/146 记忆/56 关注）实测，重跑不重复。
+
+**仍未迁移**（写入频率低，维持 JSON）：`publication-overrides.json`（发布状态）、`audit-log.json`（审计）、`usage-ledger.json`（预算账本）、`sects.json`/`sects-overlay.json`/`sects-cache.json`（门派）、`embedding-cache.json`（嵌入缓存）。内容基线 `src/data/editions.json` 跟代码走，不进任何数据库。

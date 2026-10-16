@@ -1,6 +1,6 @@
 // 鉴权接口：注册、登录、登出、当前名帖、更新名帖。
 // 本地演示的账号体系；会话令牌同时用于联机世界的 hello 校验。
-import {register,login,logout,verify,updateProfile,findOrCreateExternal,issueSession} from './accounts.mjs';
+import {register,login,logout,verify,updateProfile,findOrCreateExternal,issueSession} from './store.mjs';
 import {verifyExternalToken,externalAuthConfig,externalAuthReady} from './external-auth.mjs';
 
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};

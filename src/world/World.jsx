@@ -13,7 +13,7 @@ import {declutterPins} from './pins.js';
 import {createClickFx} from './clickFx.js';
 import {createWater} from './water.js';
 import {createOathSpot} from './oathSpot.js';
-import {createFlags,createMountains,createRain} from './ambience.js';
+import {createFlags,createMountains,createRain,createMist} from './ambience.js';
 import {trackColorOf} from '../content/catalog.js';
 function bubbleTexture(text){
  const c=document.createElement('canvas');c.width=256;c.height=92;const x=c.getContext('2d');
@@ -32,7 +32,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch{setError(true);return;}
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=night?1.15:1.25;el.appendChild(renderer.domElement);
-  const palette=THEMES[theme]||THEMES.jianghu,scene=new T.Scene();const nightSky=night?(location==='hall'?'#0b1027':'#243e45'):palette.sky;scene.background=new T.Color(nightSky);scene.fog=new T.Fog(nightSky,125,275);
+  const palette=THEMES[theme]||THEMES.jianghu,scene=new T.Scene();const nightSky=night?(location==='hall'?'#0b1027':'#243e45'):palette.sky;scene.background=new T.Color(nightSky);scene.fog=new T.Fog(nightSky,125,275);const fogBase={near:scene.fog.near,far:scene.fog.far};
   const camera=new T.PerspectiveCamera(41,1,.1,300);camera.position.set(35,33,43);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=19;controls.maxDistance=190;controls.maxPolarAngle=Math.PI*.43;controls.minPolarAngle=.22;controls.enablePan=false;controls.mouseButtons={LEFT:T.MOUSE.ROTATE,MIDDLE:T.MOUSE.DOLLY,RIGHT:T.MOUSE.ROTATE};
   scene.add(new T.HemisphereLight(night?'#9fbfce':'#fff8e3',night?'#263b3d':'#9ba994',night?1.5:2.2));const sun=new T.DirectionalLight(night?'#b7d4f0':'#fff1ce',night?1:3.4);sun.position.set(-16,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-29,right:29,top:29,bottom:-29,near:1,far:80});sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;scene.add(sun);
   const base=new T.Group();scene.add(base);const interactive=[],pinSources=[],agentModels=new Map();
@@ -136,6 +136,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   const townMountains=createMountains(scene,palette,{night});
   if(indoors)townMountains.group.visible=false;
  const rain=createRain(scene,{night});
+ const mist=createMist(scene);
   // 点击聚焦反馈：鼠标与手指触摸共用
   const clickFx=createClickFx(scene,{color:night?'#8fd0e8':'#f2d79b',spark:night?'#bfe8ff':'#ffe9b0',glow:night?'#dff2ff':'#fff6dd'});
   const raycaster=new T.Raycaster(),pointer=new T.Vector2(),projection=new T.Vector3();let pointerStart=[0,0];
@@ -172,19 +173,29 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
    }};
   function render(now){if(!alive)return;const dt=Math.min((now-last)/1000,.05);last=now;engine.tick(dt);   clickFx.update(dt);
    window.__atomLocalSelf={x:engine.player.x,z:engine.player.z};
-   waterFx?.update(dt,now);waterFx?.setRain?.(weatherRef.current==='rain');
+   waterFx?.update(dt,now);waterFx?.setRain?.(weatherRef.current==='rain'||weatherRef.current==='nightRain');
    oathSpot?.update(dt,player.position.x,player.position.z);
    flags.update(dt,now);
    rain.update(dt);
    if(stars)stars.material.opacity=.72+Math.sin(now*.0007)*.18;
    if(flies){const p=flies.geometry.attributes.position;for(let i=0;i<p.count;i++){const t=now*.00035+i*1.7;p.setXYZ(i,Math.sin(t)*6+((i*7)%13)-6,1.1+Math.sin(now*.0013+i*2.1)*.5,Math.cos(t*1.3)*5+((i*5)%11)-5);}p.needsUpdate=true;}
-  // 微雨：粒子起落之外，天色、雾色、草地基色一起压暗。
-  const raining=weatherRef.current==='rain';
-  if(raining&&!rain.group.visible)rain.start();
-  if(!raining&&rain.group.visible)rain.stop();
-  const wetSky=raining?(night?'#2b3a42':'#8ea3ab'):nightSky;
-  scene.background.set(wetSky);scene.fog.color.set(wetSky);
-  ground.material.color.set(raining?(night?'#4a5a50':'#7f9078'):(night?'#6d8177':palette.grass));
+  // 天气：微雨 / 夜雨 / 山雾。粒子起落之外，天色、雾色、草地基色一起变；
+  // 山雾还会把 scene.fog 就近收敛（平滑过渡，雾散后回到基础雾距）。
+ const wx=weatherRef.current;
+ const raining=wx==='rain'||wx==='nightRain';
+ const foggy=wx==='fog';
+ if(wx==='nightRain')rain.setTone?.(true);
+ if(raining&&!rain.group.visible)rain.start();
+ if(!raining&&rain.group.visible)rain.stop();
+ if(foggy&&!mist.group.visible)mist.start();
+ if(!foggy&&mist.group.visible)mist.stop();
+ mist.update(dt);
+ const wetSky=raining?(night?'#2b3a42':'#8ea3ab'):foggy?(night?'#31424a':'#b9c4c0'):nightSky;
+ scene.background.set(wetSky);scene.fog.color.set(wetSky);
+ ground.material.color.set(raining?(night?'#4a5a50':'#7f9078'):(night?'#6d8177':palette.grass));
+ const fogTarget=foggy?{near:30,far:100}:fogBase;
+ scene.fog.near+=(fogTarget.near-scene.fog.near)*Math.min(1,dt*1.2);
+ scene.fog.far+=(fogTarget.far-scene.fog.far)*Math.min(1,dt*1.2);
    if(location==='town'){
     for(const a of engine.agents){const b=bubbles?.get(a.id);if(!b)continue;const topic=(a.memory.at(-1)||'').split('聊起了')[1]||'';
      // 观展中的侠客头顶浮现正在看的作品；闲聊时浮现当前话题。

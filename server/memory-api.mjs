@@ -1,7 +1,7 @@
 // 私人记忆接口：列表 / 保存 / 删除单条 / 全部删除 / 本机旧记忆迁移。
 // 全部按会话令牌归属到账号；跨账号访问一律拒绝。
-import {verify} from './accounts.mjs';
-import {listMemories,saveMemory,deleteMemory,deleteAllMemories,importMemories,recallMemories,storeVersion} from './memories.mjs';
+import {verify} from './store.mjs';
+import {listMemories,saveMemory,deleteMemory,deleteAllMemories,importMemories,recallMemories,storeVersion} from './store.mjs';
 
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
 

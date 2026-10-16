@@ -13,10 +13,11 @@ import {chatPlugin} from './chat.mjs';
 import {createRoomHub,roomsApiPlugin} from './rooms.mjs';
 import {originAllowed} from './world.mjs';
 import {configureEmbeddings,embeddingsEnabled} from './embeddings.mjs';
-import {followsApiPlugin} from './follows.mjs';
+import {followsApiPlugin} from './follows-api.mjs';
 import {sectsApiPlugin} from './sects-api.mjs';
 import {configureSectSource} from './sects.mjs';
-import {isAdminRequest} from './publication-store.mjs';
+import {isAdminRequest,noteAdminDenial} from './publication-store.mjs';
+import {usingSqlite} from './store.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const distDir=path.join(root,'dist');
@@ -61,7 +62,7 @@ contentPlugin(process.env).configureServer(shim);
 authPlugin().configureServer(shim);
 memoryApiPlugin().configureServer(shim);
 followsApiPlugin().configureServer(shim);sectsApiPlugin().configureServer(shim);
-roomsApiPlugin(hub,{env:process.env,isAdminRequest}).configureServer(shim);
+roomsApiPlugin(hub,{env:process.env,isAdminRequest,noteAdminDenial}).configureServer(shim);
 chatPlugin(process.env).configureServer(shim);
 // 门派数据：配置 ATOM_SECTS_SOURCE 时从原子公社门派网站拉数据（TTL 同步 + 本地覆盖层）。
 const sectSync=configureSectSource(process.env);
@@ -99,6 +100,7 @@ const tick=setInterval(()=>{const now=Date.now();hub.tick(Math.min(.5,(now-last)
 
 server.listen(PORT,HOST,()=>{
  console.log(`原子江湖已启动: http://${HOST}:${PORT}`);
+ if(usingSqlite)console.log('存储: SQLite（ATOM_STORE=sqlite，数据在 data/atom.db）');
  if(embeddingsEnabled())console.log('嵌入: 已配置（记忆与作品检索使用向量余弦）');
 console.log(`世界: /ws/world?room=<id> · 房间 ${hub.list().map(r=>`${r.id}(${r.capacity})`).join('、')} · 数据目录 ${process.env.ATOM_DATA_DIR||path.join(root,'data')}`);
  if(!process.env.ATOM_LLM_API_KEY)console.log('模型: 未配置（AI 私聊使用本地资料演示；配置 ATOM_LLM_API_KEY 后启用）');

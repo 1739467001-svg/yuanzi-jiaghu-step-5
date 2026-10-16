@@ -34,7 +34,9 @@ curl http://127.0.0.1:8080/api/content/health   # {"ok":true,...}
 | --- | --- | --- |
 | `PORT` / `HOST` | `8080` / `0.0.0.0` | 监听地址；只本机测试可设 `HOST=127.0.0.1` |
 | `ATOM_DATA_DIR` | `./data` | **账号、记忆、发布状态、审计、预算账本的存储目录**（持久化重点） |
+| `ATOM_STORE` | `json` | 账号/会话/记忆/关注的存储后端：`json`（默认）或 `sqlite`（`data/atom.db`，Node 22 内置）。切 SQLite 前先停服务跑 `npm run migrate:sqlite` 导入旧数据，详见 `docs/STORAGE.md` |
 | `ATOM_ADMIN_TOKEN` | `atom-local-demo` | 运营后台 `/admin.html` 的令牌，**上线前必须修改** |
+| `ATOM_ADMIN_TOKENS` | 空 | 多运营者令牌：`令牌:名称,令牌2:名称2`（名称可省略）。审计事件的 actor 取服务端从令牌解析的名称，不信任客户端提交的值 |
 | `ATOM_ROOM_CAPACITY` | `20` | 默认房间容量（满员后排队） |
 | `ATOM_ROOMS` | 空 | 增加房间：`id:名称:容量,...`（如 `teahouse:江湖茶楼:5`）；每房独立世界 |
 | `ATOM_RECLAIM_WINDOW_MS` | `15000` | 断线名额保留窗口 |
@@ -50,7 +52,7 @@ curl http://127.0.0.1:8080/api/content/health   # {"ok":true,...}
 | `ATOM_AUTH_JWKS_URL` / `ATOM_AUTH_ISSUER` / `ATOM_AUTH_AUDIENCE` | 空 | JWKS 模式：验证社区签发的 JWT（RS/ES） |
 | `ATOM_AUTH_INTROSPECT_URL` / `ATOM_AUTH_CLIENT_ID` / `ATOM_AUTH_CLIENT_SECRET` | 空 | 内省模式（RFC 7662）：由社区账号服务校验令牌 |
 
-安全底线：`ATOM_ADMIN_TOKEN` 与模型密钥不要提交到 Git；`data/` 已列入 `.gitignore`。
+安全底线：`ATOM_ADMIN_TOKEN`、`ATOM_ADMIN_TOKENS` 与模型密钥不要提交到 Git；`data/` 已列入 `.gitignore`。
 
 ### 接入社区账号体系（生产鉴权）
 
@@ -116,7 +118,7 @@ WantedBy=multi-user.target
 
 ## 7. 上线前检查清单
 
-- [ ] `ATOM_ADMIN_TOKEN` 已修改为强令牌
+- [ ] `ATOM_ADMIN_TOKEN` 已修改为强令牌（多运营用 `ATOM_ADMIN_TOKENS=令牌:名称,...`，审计按令牌归属到人）
 - [ ] `ATOM_DATA_DIR` 指向持久化磁盘（容器场景挂载卷）
 - [ ] HTTPS 已配置（Caddy/Nginx），`wss://` 连通
 - [ ] 模型密钥与预算已配置（或确认使用本地资料演示并在界面标注）

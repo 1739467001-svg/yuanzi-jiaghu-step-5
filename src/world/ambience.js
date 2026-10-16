@@ -87,6 +87,8 @@ export function createRain(scene,{count=520,night=false}={}){
  return {
   group,
   get raining(){return fade>.5;},
+  // 夜雨：雨丝与湿斑换成更暗的色调（夜雨只在夜里起；白天强制播放时也按夜色算）。
+  setTone(night){mat.color.set(night?'#8fb0c8':'#cfe0e8');wet.material.color.set(night?'#16232b':'#7f9099');},
   start(){group.visible=true;fade=1;wet.material.opacity=.16;mat.opacity=.55;},
   stop(){fade=0;},
   update(dt){
@@ -105,6 +107,43 @@ export function createRain(scene,{count=520,night=false}={}){
     mat.opacity=Math.max(0,mat.opacity-dt*.25);
     if(wet.material.opacity<=0&&mat.opacity<=0)group.visible=false;
    }
+  },
+ };
+}
+
+// ---- 山雾（稀有天气事件）：贴地的一层流动雾带，与微雨同一套起停/淡入淡出节奏 ----
+// 视觉主体是雾带；配合两个世界渲染循环里把 scene.fog 就近收敛，能见度真的降下来。
+export function createMist(scene,{count=9}={}){
+ const group=new T.Group();group.visible=false;scene.add(group);
+ const bands=[];
+ for(let i=0;i<count;i++){
+  const mesh=new T.Mesh(new T.PlaneGeometry(26+Math.random()*22,9+Math.random()*7),
+   new T.MeshBasicMaterial({color:'#e8efec',transparent:true,opacity:0,depthWrite:false}));
+  mesh.rotation.x=-Math.PI/2;
+  const baseY=.35+Math.random()*.9;
+  mesh.position.set((Math.random()-.5)*30,baseY,(Math.random()-.5)*24);
+  mesh.userData={dir:Math.random()<.5?-1:1,speed:.5+Math.random()*.7,sway:Math.random()*Math.PI*2,peak:.13+Math.random()*.09,baseY};
+  group.add(mesh);bands.push(mesh);
+ }
+ let fade=0;
+ return {
+  group,
+  get foggy(){return fade>.5;},
+  start(){group.visible=true;fade=1;},
+  stop(){fade=0;},
+  update(dt){
+   if(!group.visible)return;
+   const t=performance.now()*.0003;
+   for(const band of bands){
+    const u=band.userData;
+    band.position.x+=u.speed*dt*u.dir;
+    if(band.position.x>18)band.position.x=-18;
+    if(band.position.x<-18)band.position.x=18;
+    band.position.y=u.baseY+Math.sin(t+u.sway)*.18;
+    const target=fade>0?u.peak:0;
+    band.material.opacity+=(target-band.material.opacity)*Math.min(1,dt*1.5);
+   }
+   if(fade===0&&bands.every(b=>b.material.opacity<.005))group.visible=false;
   },
  };
 }

@@ -973,8 +973,52 @@ M3 里依赖外部系统的部分（Token 实际发放、OPC 权益核销、赠�
 
 - 验收：`npm test` 154 项；十套 e2e、`audit:mobile` 5 档视口、`verify:repo`、`validate:content` 全绿。
 
+## 阶段 47：SQLite 存储后端（2026-10-09 执行）
+
+目标（对应 docs/STORAGE.md 的报备与选型）：把账号/会话/记忆/关注四个域从 JSON 文件迁到可开关的 SQLite 后端——事务消灭读-改-写竞态、索引替代线性扫描、会话命中过期即懒清理；默认仍是 JSON，回退零成本。
+
+已完成：
+
+- `server/store.mjs` 后端调度层：`ATOM_STORE=sqlite` 时走 `server/store-sqlite.mjs`，默认走 JSON；上层（auth/chat/memory-api/sects-api/world）只依赖函数签名。`followsApiPlugin` 从 follows.mjs 拆到 `server/follows-api.mjs`（与 memories.mjs/memory-api.mjs 的分工一致，同时避免调度层与插件互相导入）。
+- `server/store-sqlite.mjs`：`data/atom.db`（WAL + BEGIN IMMEDIATE 事务）。users/sessions/memories/follows 四表 + meta 版本号；校验、scrypt 散列、publicUser、召回排序（rankMemories/recallRankedAsync）与 JSON 后端共用同一份纯函数（从 accounts.mjs/memories.mjs 导出），不出现两套口径；记忆 60 条有界、删除递增版本号等语义逐条对齐。node:sqlite 用 createRequire 惰性加载——静态 import 会被 esbuild 打进 vite 配置包并提升执行，那样 JSON 模式下也会加载 sqlite（空转还多条告警）。
+- `scripts/migrate-json-to-sqlite.mjs`（`npm run migrate:sqlite`）：一次性导入 accounts/memories/follows 三个 JSON，幂等（REPLACE/IGNORE），旧文件保留；真实数据副本实测 565 账号/565 会话/146 记忆/56 关注，重跑不重复。
+- 顺带修了两个后端共有的小洞：`importMemories` 对空 agentId 的坏行不再计入迁移条数。
+- 验收：`tests/store-sqlite.test.mjs` 13 项（镜像 JSON 后端核心断言 + 会话懒清理 + 迁移幂等）；`npm test` 172 项全绿；`test:e2e` 与 `test:e2e-mp` 两套完整流程在 SQLite 后端下实测通过（注册/登录/记忆/迁移/关注/WS 鉴权全走 SQLite）。
+- 文档：STORAGE.md 改写为"已落地"口径（第 6 节实施状态、启用与回退步骤、未迁移清单）；DEPLOY.md 环境变量表、.env.example、README 数据存储节同步。
+
+仍待完成：发布覆盖层/审计/预算账本/门派的 SQLite 化（写入频率低，维持 JSON；audit-log 与 usage-ledger 的按日轮转仍未做）；默认后端保持 json，待 soak 长测后再决定是否翻转。
+
+## 阶段 48：多天气事件——夜雨与山雾（2026-10-09 执行）
+
+对应「下一批候选」的第一条。微雨之外补两种稀有天气，共用同一套调度、ref 通道与起停节奏；避开历史上两个坑（effect 依赖数组漏 ref 导致天气传不进场景、行内注释吞代码）。
+
+已完成：
+
+- 引擎（`engine.js`）：天气枚举扩为 clear / rain / nightRain / fog（未知值仍退回晴天）；`raining` 覆盖两种雨，新增 `foggy`。行走与驻足：雨 2 / 雾 2.6 / 晴 3.2（侠客 0.75 / 0.95 / 1.15），行程驻足雨 ×1.35、雾 ×1.15——雾是氛围不是惩罚，比雨轻一档。
+- 氛围（`ambience.js`）：`createRain` 新增 `setTone(night)`（夜雨的雨丝与湿斑压暗）；新增 `createMist`——9 条贴地流动雾带（漂移 + 缓慢起伏 + 淡入淡出），与微雨同一套 start/stop/update 节奏。
+- 两个世界（`World.jsx` / `OnlineWorld.jsx`）：渲染循环里 nightRain 强制暗色调、山雾起停雾带，并把 `scene.fog` 就近收敛（晴 125/275、雾 30/100，平滑过渡后回基础值）；水面涟漪对两种雨都加密；天色/草地基色随天气变。
+- 调度（`App.jsx`）：每 90 秒 8% 起一场；夜里不起白天的微雨（改起夜雨），山雾昼夜均可能；夜雨约 5 分钟、山雾约 4 分钟自停。昼夜用 ref 读取（调度器不随昼夜重排，避免闭包过期）；验收接缝 `window.__atomWeather` 支持三种天气强制；HUD 增加雾图标与对应文案。
+- 验收：`tests/weather.test.mjs` 8 项（天气枚举与回落、两种雨的通道、雾比雨慢但比晴快、雾天驻足更久、夜雨色调切换、雾带漂移与雾散隐藏）；`npm test` 176 项全绿；`test:e2e` 主流程新增三种天气的强制验收段（HUD 文案 + 截图 + 无页面异常）；白天/夜间两种模式实测截图确认雾效可见且不影响操作。
+- 仍待完成：无（候选清单里的「多天气」已做完；「真实时间基线」与「审计轮转」仍在清单上）。
+
+## 阶段 49：运营后台加固——多管理员与审计轮转（2026-10-09 执行）
+
+把「本地演示写入层」往可追责再推一步（生产权限系统仍待后续接入，见能力边界）。
+
+已完成：
+
+- **多运营者令牌**：`ATOM_ADMIN_TOKENS=令牌:名称,令牌2:名称2`（名称可省略，回落 local-admin），与旧 `ATOM_ADMIN_TOKEN` 兼容；`adminTokens/adminActor/isAdminRequest` 替代原单令牌判断。
+- **actor 服务端归属**：审计事件的 actor 一律取服务端从令牌解析出的运营者名称——content.mjs 四个写接口（作品/赛事状态、回滚、导入）不再读客户端提交的 `actor`，伪造署名路径关闭（实测：客户端传 `actor:"伪造者"`，审计记的是令牌名）。
+- **审计按月轮转**：当月写 `data/audit-log-YYYY-MM.json`，`getAudit` 合并全部分片与旧版 `audit-log.json` 后按时间排序取最近 N 条；回滚、后台列表、导入闭环的口径不变。
+- **拒绝留痕**：运营令牌校验失败记一条 `auth_denied` 审计（actor `(未通过)`，含路径），进程内同路径 60 秒限流防刷爆；`/api/admin/*` 与 `/api/ops` 两条入口都记。
+- 验收：`tests/admin-auth.test.mjs` 5 项（令牌解析/身份解析与拒绝/actor 归属/轮转与旧文件兼容/拒绝限流）；`npm test` 181 项全绿；curl 实测错误令牌 401 且留痕、多令牌写操作 actor 正确；`test:e2e` 后台撤回/发布/审计流程不回归。
+- 文档：DEPLOY.md 环境变量表与上线清单、.env.example、README 后台段、STORAGE.md 第 5 节同步。
+
+仍待完成：生产权限系统（角色/细粒度授权/SSO）仍是后续阶段；usage-ledger 按天聚合增长慢，暂不轮转。
+
 ## 下一批候选（2026-10-03 起）
 
-- **多天气**：微雨之外补「夜雨」「山雾」两种稀有事件（雾用 `scene.fog` 就近收敛，夜间雨把雨色压暗），与微雨共用同一套调度与 ref 通道，注意别再犯「依赖数组漏 ref」与「行内注释吞代码」两个坑。
-- **门派小镇预设扩充**：地形预设 5 套 → 8—10 套（雪原、竹林、荷塘、丹霞），沿用 `townPresets.js` 的白名单校验与「预览→发布→分享」闭环。
+- **多天气**：微雨之外补「夜雨」「山雾」两种稀有事件（雾用 `scene.fog` 就近收敛，夜间雨把雨色压暗），与微雨共用同一套调度与 ref 通道，注意别再犯「依赖数组漏 ref」与「行内注释吞代码」两个坑。——2026-10-09 阶段 48 实施中。
+- ~~**门派小镇预设扩充**：地形预设 5 套 → 8—10 套~~ —— 已于 2026-10-03 完成（雪原、竹林、荷塘、丹霞、云海 + 两套新主题）。
 - **真实时间基线**：PRD 15.1 的固定设备（M1/16GB Mac + 中端 Windows 独显机）帧率与首屏复测仍未做，无头环境证据不构成该口径。
+- **审计与账本轮转**：audit-log 与 usage-ledger 按日分文件，避免单文件无限增长（见 docs/STORAGE.md 第 5 节）。

@@ -2,14 +2,10 @@
 
 原子公社的可运行 3D 社区原型。白蓝斗笠侠客、青瓦茶楼、共创工坊、开源书院、石桥与比赛展示馆共同构成第一张地图。
 
-## 在线演示与 GitHub
+## 仓库与静态演示
 
-- 仓库：https://github.com/1739467001-svg/Atomic-Jianghu
-- 在线 3D 演示：https://1739467001-svg.github.io/Atomic-Jianghu/
-
-推送 main 后，GitHub Actions 自动测试、构建并部署 GitHub Pages。线上使用浏览器内的资料检索与演示对话，不提供模型代理或云端数据存储。作品、3D 小镇、收藏与授权记忆均可使用。
-
-手动构建同样的静态版：`VITE_BASE_PATH=/Atomic-Jianghu/ VITE_STATIC_DEMO=true npm run build`。部署产物是 dist；本地开发不设这两个变量即可继续使用 Vite 提供的 API。
+- 仓库：https://github.com/1739467001-svg/yuanzi-jiaghu-step-5 （main 分支，全部源码、文档与素材；本机到 github.com 的 git 协议连接常被网络干扰，同步走 `node scripts/git-sync.mjs "提交信息"`，见 docs/GITHUB.md）
+- 静态演示版：`VITE_BASE_PATH=/Atomic-Jianghu/ VITE_STATIC_DEMO=true npm run build` 可构建一份纯静态站点（不配世界服务端时的形态）——注册降级为本机演示身份、与 AI 侠客对话走浏览器内本地资料检索、作品/3D 小镇/收藏/授权记忆均可使用，不提供模型代理或云端数据存储。产物是 dist，可部署到任意静态托管（Vercel 等，步骤见 docs/DEPLOY.md 第 10 节）。本地开发不设这两个变量，继续使用 Vite 提供的 API。
 
 ## 启动
 
@@ -154,7 +150,7 @@ tests/                      路径、状态机、内容、记忆、坐标、发�
 
 ## 运营后台（本地演示）
 
-打开 http://127.0.0.1:5173/admin.html ，输入本地运营令牌（未配置 `ATOM_ADMIN_TOKEN` 时默认为 `atom-local-demo`）。
+打开 http://127.0.0.1:5173/admin.html ，输入本地运营令牌（未配置 `ATOM_ADMIN_TOKEN` 时默认为 `atom-local-demo`；多运营者用 `ATOM_ADMIN_TOKENS=令牌:名称,令牌2:名称2`，审计按令牌归属到人，客户端提交的 actor 一律不被采信）。
 
 - **赛事管理**：发布检查（必填字段、唯一标识、媒体可读、私人字段）、发布/撤回一届赛事、按审计事件回滚。
 - **作品管理**：搜索与筛选后发布/撤回单件作品；后台看到全部状态（含草稿与已撤回），公开目录只返回已发布。
@@ -162,7 +158,7 @@ tests/                      路径、状态机、内容、记忆、坐标、发�
 - **审计日志**：每次发布、撤回、回滚、导入都留下不可删除的记录（操作者、前后状态、时间）。
 - **导入检查**：读取来源展示站数据，dry-run 报告新增/更新/缺失差异，不写任何状态。
 
-发布状态写在覆盖层 `data/publication-overrides.json`，`src/data/editions.json` 保持不可变基线。撤回后公开详情返回 410，目录、3D 展位、AI 观展目标与检索一致更新（前端 15 秒内自动刷新）。这是本地演示的写入层，不是生产权限系统；接口请求需带 `x-atom-admin` 头。详见 `docs/NEXT_TASK_PLAN.md` 阶段 3。
+发布状态写在覆盖层 `data/publication-overrides.json`，`src/data/editions.json` 保持不可变基线。撤回后公开详情返回 410，目录、3D 展位、AI 观展目标与检索一致更新（前端 15 秒内自动刷新）。这是本地演示的写入层，不是生产权限系统；接口请求需带 `x-atom-admin` 头。审计日志按轮转（`data/audit-log-YYYY-MM.json`，旧的单文件仍读），令牌校验失败也会留痕。详见 `docs/NEXT_TASK_PLAN.md` 阶段 3。
 
 ## 内容与共享展陈
 
@@ -176,7 +172,7 @@ tests/                      路径、状态机、内容、记忆、坐标、发�
 
 ## 数据存储
 
-账号/会话/记忆/关注/门派/审计目前是 `data/` 下的 JSON 文件（原子写入），没有数据库服务；已知限制与选型建议（SQLite / PostgreSQL / MySQL 对比、迁移路径）见 [docs/STORAGE.md](docs/STORAGE.md)。
+账号/会话/记忆/关注默认是 `data/` 下的 JSON 文件（原子写入）；设 `ATOM_STORE=sqlite` 可切换为 SQLite（`data/atom.db`，用 Node 22 内置的 node:sqlite，无需额外依赖）——事务消灭读-改-写竞态、索引替代线性扫描、会话命中过期即清理。切换前先停服务跑一次 `npm run migrate:sqlite`（幂等，可重跑），旧 JSON 原样保留。发布覆盖层/审计日志/预算账本/门派库仍是 JSON。选型对比、表结构与迁移路径见 [docs/STORAGE.md](docs/STORAGE.md)。
 
 ## 尚未实现的完整 P0 能力
 

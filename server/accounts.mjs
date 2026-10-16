@@ -10,7 +10,11 @@ const MODEL_KEYS=Object.keys(MODELS);
 const root=path.resolve(import.meta.dirname,'..');
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
 const storeFile=()=>path.join(dataDir(),'accounts.json');
-const SESSION_DAYS=30;
+export const SESSION_DAYS=30;
+// 以下纯函数同时供 SQLite 后端（server/store-sqlite.mjs）复用，保持两个后端的校验口径一致。
+export const validName=v=>typeof v==='string'&&[...v.trim()].length>=1&&[...v.trim()].length<=20;
+export const validColor=v=>typeof v==='string'&&/^#[0-9a-fA-F]{6}$/.test(v);
+export const hashPassword=(password,salt)=>crypto.scryptSync(String(password),salt,64).toString('hex');
 
 function readStore(){
  try{const store=JSON.parse(fs.readFileSync(storeFile(),'utf8'));if(store&&typeof store==='object')return {users:store.users||{},sessions:store.sessions||{}};}catch{}
@@ -23,10 +27,6 @@ function writeStore(store){
  fs.writeFileSync(tmp,JSON.stringify(store,null,2));
  fs.renameSync(tmp,file);
 }
-const validName=v=>typeof v==='string'&&[...v.trim()].length>=1&&[...v.trim()].length<=20;
-const validColor=v=>typeof v==='string'&&/^#[0-9a-fA-F]{6}$/.test(v);
-const hashPassword=(password,salt)=>crypto.scryptSync(String(password),salt,64).toString('hex');
-
 export function register(name,password,color='#427ab5'){
  const display=String(name||'').trim();
  if(!validName(display))throw new Error('名帖昵称需要 1—20 个字符');

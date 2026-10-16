@@ -7,7 +7,7 @@
 // POST /api/sects/:id/disciples    {name,title} 收入弟子（仅创始人）
 // POST /api/sects/:id/members/remove {userId} 移出成员（仅创始人）
 import {createSect,updateSect,updateLayout,addElder,addDisciple,removeMember,applyToSect,listApplications,decideApplication,setJoinPolicy,setBenefits,addNotice,removeNotice,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
-import {verify} from './accounts.mjs';
+import {verify} from './store.mjs';
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
 const readBody=async(req,limit=8000)=>{let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)throw new Error('请求过大');body+=chunk;}return JSON.parse(body||'{}');};
 function sessionOf(req){

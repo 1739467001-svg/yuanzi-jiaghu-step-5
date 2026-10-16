@@ -55,7 +55,7 @@ export function createRoomHub({env={},reclaimWindowMs}={}){
 }
 // GET /api/rooms：房间占用（在线/等待/容量），不含任何私人信息。
 // GET /api/ops（管理令牌）：房间占用 + 模型与预算 + 进程状态，供运营后台“运行状态”页签。
-export function roomsApiPlugin(hub,{env={},isAdminRequest=()=>false}={}){
+export function roomsApiPlugin(hub,{env={},isAdminRequest=()=>false,noteAdminDenial=()=>{}}={}){
  const plugin={name:'atom-rooms',configureServer(server){
   server.middlewares.use((req,res,next)=>{
    const url=new URL(req.url,'http://localhost');
@@ -64,7 +64,7 @@ export function roomsApiPlugin(hub,{env={},isAdminRequest=()=>false}={}){
     return res.end(JSON.stringify({rooms:hub.list()}));
    }
    if(url.pathname==='/api/ops'&&req.method==='GET'){
-    if(!isAdminRequest(req,env)){res.statusCode=401;res.setHeader('Content-Type','application/json; charset=utf-8');return res.end(JSON.stringify({error:'需要本地运营令牌'}));}
+    if(!isAdminRequest(req,env)){noteAdminDenial(req);res.statusCode=401;res.setHeader('Content-Type','application/json; charset=utf-8');return res.end(JSON.stringify({error:'需要本地运营令牌'}));}
     const memory=process.memoryUsage();
     res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');
     return res.end(JSON.stringify({

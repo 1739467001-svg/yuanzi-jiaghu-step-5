@@ -102,6 +102,17 @@ try{
  assert.equal(await degraded.locator('.work-card').count(),38);
  assert.match(await degraded.locator('.version-line').textContent(),/本地快照降级/);
  }
+ // 天气：验收接缝强制三种稀有天气，HUD 文案与场景都要响应，然后回到晴天。
+ for(const [kind,label] of [['rain','山色空蒙 · 微雨'],['nightRain','夜色如墨 · 夜雨'],['fog','云雾缭绕 · 山雾']]){
+  await page.bringToFront();
+  await page.evaluate(w=>window.__atomWeather(w),kind);
+  await page.waitForFunction(w=>document.querySelector('.scene-weather')?.textContent.includes(w),label,{timeout:5000});
+  await page.waitForTimeout(800);
+  await page.screenshot({path:`artifacts/weather-${kind}.png`});
+ }
+ await page.bringToFront();
+ await page.evaluate(()=>window.__atomWeather('clear'));
+ await page.waitForFunction(()=>/日景|夜景/.test(document.querySelector('.scene-weather')?.textContent||''),null,{timeout:5000});
  // 运营后台：撤回一件作品 → 公开详情 410、目录减少 → 重新发布后恢复。
  if(process.env.TEST_STATIC_DEMO!=='true'){
   const admin=await browser.newPage();admin.on('pageerror',e=>errors.push(e.message));

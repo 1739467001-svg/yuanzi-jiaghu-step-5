@@ -27,7 +27,8 @@
     "audit:mobile": "node scripts/mobile-audit.mjs",
     "test:e2e-sect-share": "node scripts/smoke-sect-share.mjs",
     "test:e2e-sect-studio": "node scripts/smoke-sect-studio.mjs",
-    "test:e2e-sect-social": "node scripts/smoke-sect-social.mjs"
+    "test:e2e-sect-social": "node scripts/smoke-sect-social.mjs",
+    "migrate:sqlite": "node scripts/migrate-json-to-sqlite.mjs"
   },
   "dependencies": {
     "jose": "^6.2.12",

@@ -8,7 +8,7 @@ import {walkable,nearestWalkable,findPath,stepActor,WorldEngine} from '../src/wo
 import {SEATS} from '../src/world/config.js';
 import {livePublishedWorks,getStateVersion} from './publication-store.mjs';
 import {generateAgentReply} from './agent-brain.mjs';
-import {verify as verifySession} from './accounts.mjs';
+import {verify as verifySession} from './store.mjs';
 
 const TICK_MS=100,RECONNECT_GRACE_MS=60000,INVITE_TIMEOUT_MS=30000,MOVE_RATE=6,MAX_TEXT=500,SEEN_LIMIT=500;
 // 断线后的名额保留窗口：窗口内重连直接 reclaim，窗口过后名额才释放给排队者。

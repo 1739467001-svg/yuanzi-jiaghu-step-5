@@ -10,7 +10,12 @@ import {normalizeCatalog,PUBLICATION_STATUSES} from '../src/content/catalog.js';
 const root=path.resolve(import.meta.dirname,'..');
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
 const overridesFile=()=>path.join(dataDir(),'publication-overrides.json');
-const auditFile=()=>path.join(dataDir(),'audit-log.json');
+// 审计按轮转：当月写 audit-log-YYYY-MM.json，历史文件只读（旧的 audit-log.json 也认）。
+const auditLegacyFile=()=>path.join(dataDir(),'audit-log.json');
+const auditMonthFile=()=>path.join(dataDir(),`audit-log-${new Date().toISOString().slice(0,7)}.json`);
+function listAuditFiles(){
+ try{return fs.readdirSync(dataDir()).filter(f=>/^audit-log.*\.json$/.test(f)).sort().map(f=>path.join(dataDir(),f));}catch{return[];}
+}
 
 function readJson(file,fallback){
  try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return fallback;}
@@ -88,14 +93,21 @@ export function liveQueryWorks({editionId,track,q}={}){
 export function liveFindWork(id){return livePublishedWorks().find(w=>w.id===id)||null;}
 
 export function getAudit(limit=100){
- const log=readJson(auditFile(),[]);
- return Array.isArray(log)?log.slice(-limit).reverse():[];
+ // 合并全部审计分片（含旧版单文件），按时间排序后取最近 limit 条（新的在前）。
+ const events=[];
+ for(const file of listAuditFiles()){
+  const log=readJson(file,[]);
+  if(Array.isArray(log))events.push(...log);
+ }
+ events.sort((a,b)=>String(a.time||'').localeCompare(String(b.time||''))||String(a.id||'').localeCompare(String(b.id||'')));
+ return events.slice(-Math.max(1,limit)).reverse();
 }
 function appendAudit(event){
- const log=readJson(auditFile(),[]);
+ const file=auditMonthFile();
+ const log=readJson(file,[]);
  const list=Array.isArray(log)?log:[];
  list.push(event);
- writeJsonAtomic(auditFile(),list);
+ writeJsonAtomic(file,list);
 }
 function snapshotEdition(edition){
  return {
@@ -289,8 +301,33 @@ export function stablePage(items,{limit=50,offset=0}={}){
  const start=Math.max(0,Number(offset)||0);
  return {items:items.slice(start,start+size),total:items.length,limit:size,offset:start};
 }
-export function adminToken(env){return env.ATOM_ADMIN_TOKEN||'atom-local-demo';}
-export function isAdminRequest(req,env){
- const header=req.headers['x-atom-admin'];
- return typeof header==='string'&&header===adminToken(env);
+// 运营令牌：支持多管理员。ATOM_ADMIN_TOKEN 保留（单人，名字 local-admin）；
+// ATOM_ADMIN_TOKENS 追加多人，格式 `令牌:名称,令牌2:名称2`（名称可省略，回落 local-admin）。
+// 审计里的 actor 一律取服务端从令牌解析出的名称——不信任客户端提交的值。
+export function adminTokens(env={}){
+ const map=new Map();
+ const add=(token,name)=>{const t=String(token||'').trim();if(t&&!map.has(t))map.set(t,String(name||'').trim()||'local-admin');};
+ add(env.ATOM_ADMIN_TOKEN,'local-admin');
+ for(const part of String(env.ATOM_ADMIN_TOKENS||'').split(',')){
+  const [token,...rest]=part.split(':');
+  add(token,rest.join(':'));
+ }
+ if(!map.size)map.set('atom-local-demo','local-admin');
+ return map;
+}
+// 从请求头解析运营者身份；null 表示未通过（调用方记拒绝并返回 401）。
+export function adminActor(req,env){
+ const header=req.headers?.['x-atom-admin'];
+ if(typeof header!=='string'||!header.trim())return null;
+ return adminTokens(env).get(header.trim())||null;
+}
+export function isAdminRequest(req,env){return adminActor(req,env)!==null;}
+// 运营令牌校验失败：记一条不可删除的审计（进程内同路径 60 秒限流，防刷爆）。
+const denialCooldown=new Map();
+export function noteAdminDenial(req,reason='运营令牌校验失败'){
+ const path=new URL(req.url,'http://localhost').pathname;
+ const now=Date.now();
+ if(now-(denialCooldown.get(path)||0)<60000)return;
+ denialCooldown.set(path,now);
+ appendAudit({id:`audit-${now}-${Math.random().toString(36).slice(2,7)}`,actor:'(未通过)',action:'auth_denied',targetId:path,scope:'admin',before:null,after:null,time:new Date(now).toISOString(),note:reason});
 }

@@ -14,7 +14,7 @@
 // GET  /api/admin/import-check        来源数据导入检查（dry-run，不写状态）
 // POST /api/admin/import-check        {editions:[...]} 载荷预检（dry-run，不写状态）
 // POST /api/admin/import              {editions:[...]} 执行导入（校验→合并→审计→版本递增）
-import {getLiveCatalog,getStateVersion,getAudit,setEditionStatus,setWorkStatus,rollbackEdition,importDryRun,importCheck,applyImport,liveQueryWorks,liveFindWork,stablePage,isAdminRequest} from './publication-store.mjs';
+import {getLiveCatalog,getStateVersion,getAudit,setEditionStatus,setWorkStatus,rollbackEdition,importDryRun,importCheck,applyImport,liveQueryWorks,liveFindWork,stablePage,adminActor,noteAdminDenial} from './publication-store.mjs';
 import {SHARED_EXHIBITION} from '../src/content/exhibition.js';
 
 const anyEdition=id=>getLiveCatalog().editions.find(e=>e.id===id);
@@ -30,7 +30,9 @@ export function contentPlugin(env={}){
    const url=new URL(req.url,'http://localhost');
    if(!url.pathname.startsWith('/api/content')&&!url.pathname.startsWith('/api/exhibitions')&&!url.pathname.startsWith('/api/works')&&!url.pathname.startsWith('/api/admin'))return next();
    if(url.pathname.startsWith('/api/admin')){
-    if(!isAdminRequest(req,env))return send(res,401,{error:'需要本地运营令牌',code:'unauthorized'});
+    // 运营者身份从令牌服务端解析（不信任客户端提交的 actor）；失败记一条审计再 401。
+    const actor=adminActor(req,env);
+    if(!actor){noteAdminDenial(req);return send(res,401,{error:'需要本地运营令牌',code:'unauthorized'});}
     // 后台需要看到全部状态的赛事与作品（含草稿与已撤回），否则无法重新发布。
     if(url.pathname==='/api/admin/catalog'&&req.method==='GET'){const catalog=getLiveCatalog();return send(res,200,{snapshotId:catalog.snapshotId,stateVersion:getStateVersion(),editions:catalog.editions});}
     if(url.pathname==='/api/admin/audit'&&req.method==='GET')return send(res,200,{items:getAudit(200)});
@@ -47,10 +49,10 @@ export function contentPlugin(env={}){
     let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>maxBytes)return send(res,413,{error:'请求过大'});body+=chunk;}
     let data;try{data=JSON.parse(body);}catch{return send(res,400,{error:'请求格式不正确'});}
     try{
-     if(url.pathname==='/api/admin/edition/status')return send(res,200,setEditionStatus(String(data.id),String(data.status),String(data.actor||'local-admin'),String(data.note||'')));
-     if(url.pathname==='/api/admin/work/status')return send(res,200,setWorkStatus(String(data.id),String(data.status),String(data.actor||'local-admin'),String(data.note||'')));
-     if(url.pathname==='/api/admin/edition/rollback')return send(res,200,rollbackEdition(String(data.id),String(data.auditEventId),String(data.actor||'local-admin')));
-     if(isImport)return send(res,200,applyImport(data,String(data.actor||'local-admin'),String(data.note||'')));
+     if(url.pathname==='/api/admin/edition/status')return send(res,200,setEditionStatus(String(data.id),String(data.status),actor,String(data.note||'')));
+     if(url.pathname==='/api/admin/work/status')return send(res,200,setWorkStatus(String(data.id),String(data.status),actor,String(data.note||'')));
+     if(url.pathname==='/api/admin/edition/rollback')return send(res,200,rollbackEdition(String(data.id),String(data.auditEventId),actor));
+     if(isImport)return send(res,200,applyImport(data,actor,String(data.note||'')));
     }catch(error){return send(res,400,{error:error.message||'操作失败'});}
     return send(res,404,{error:'管理路径不存在'});
    }

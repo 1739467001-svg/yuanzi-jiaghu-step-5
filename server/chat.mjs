@@ -5,8 +5,8 @@
 import {AGENTS} from '../src/world/config.js';
 import {retrieve,demoReply} from '../src/demo.mjs';
 import {generateAgentReply} from './agent-brain.mjs';
-import {verify} from './accounts.mjs';
-import {recallMemories,listMemories,recallMemoriesAsync} from './memories.mjs';
+import {verify} from './store.mjs';
+import {recallMemories,listMemories,recallMemoriesAsync} from './store.mjs';
 import {originAllowed} from './world.mjs';
 export {allWorks,retrieve,demoReply} from '../src/demo.mjs';
 export function chatPlugin(env){

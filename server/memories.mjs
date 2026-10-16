@@ -9,8 +9,8 @@ import {rankByEmbedding} from './embeddings.mjs';
 const root=path.resolve(import.meta.dirname,'..');
 const dataDir=()=>process.env.ATOM_DATA_DIR?path.resolve(process.env.ATOM_DATA_DIR):path.join(root,'data');
 const storeFile=()=>path.join(dataDir(),'memories.json');
-const MAX_PER_AGENT=60;
-const DEFAULT_TTL_DAYS=90;
+export const MAX_PER_AGENT=60;
+export const DEFAULT_TTL_DAYS=90;
 
 function readStore(){
  try{const store=JSON.parse(fs.readFileSync(storeFile(),'utf8'));if(store&&typeof store==='object')return {entries:Array.isArray(store.entries)?store.entries:[],version:Number(store.version)||0};}catch{}
@@ -24,6 +24,9 @@ function writeStore(store){
  fs.renameSync(tmp,file);
 }
 const alive=entry=>!entry.expiresAt||entry.expiresAt>Date.now();
+// alive 与上面的常量同时供 SQLite 后端（server/store-sqlite.mjs）复用：存储后端只负责
+// 取出作用域条目，排序与有界策略在本文件里只有一份。
+export {alive};
 
 export function listMemories(userId,agentId){
  const all=readStore().entries.filter(e=>e.userId===userId&&alive(e));
@@ -63,11 +66,10 @@ export function deleteAllMemories(userId,agentId){
  return before-store.entries.length;
 }
 export function storeVersion(){return readStore().version;}
-// 召回：先限定作用域（绝不先全库召回再靠提示词约束）；有查询词时只返回相似度达标的条目，
-// 按相似度为主、新近度为微调排序；无相关记录时返回空（不伪造经历）。
+// 召回排序（纯函数）：scope 是已按作用域限定、按时间倒序的条目；后端只负责取出 scope。
+// 有查询词时只返回相似度达标的条目，按相似度为主、新近度为微调排序；无相关记录返回空（不伪造经历）。
 // 相似度用作用域内 IDF 加权：跨条目常见的普通词（喜欢、我在）自动降权。
-export function recallMemories(userId,agentId,query='',limit=8){
- const scope=listMemories(userId,agentId);
+export function rankMemories(scope,query='',limit=8){
  const needle=String(query||'').trim();
  if(!needle)return scope.slice(0,limit);
  const df=new Map();
@@ -82,22 +84,27 @@ export function recallMemories(userId,agentId,query='',limit=8){
  }).filter(x=>x.sim>.18)
   .sort((a,b)=>b.score-a.score).slice(0,limit).map(x=>x.entry);
 }
+export function recallMemories(userId,agentId,query='',limit=8){
+ return rankMemories(listMemories(userId,agentId),query,limit);
+}
 // 迁移：把本机旧记忆写入账号（用户选择后调用），返回迁移条数。
 export function importMemories(userId,items){
  if(!Array.isArray(items)||!items.length)return 0;
  let count=0;
  for(const item of items){
-  if(!item||typeof item.text!=='string'||!item.text.trim()||typeof item.agentId!=='string')continue;
+  if(!item||typeof item.text!=='string'||!item.text.trim()||typeof item.agentId!=='string'||!item.agentId.trim())continue;
   try{saveMemory(userId,item.agentId,[...item.text].slice(0,300).join(''),{source:String(item.source||'从本机迁移').slice(0,60),kind:String(item.kind||'interest').slice(0,20)});count++;}catch{}
  }
  return count;
 }
 
-// 异步召回：配置嵌入提供方时走向量余弦（作用域限定不变），否则回退上面的 TF-IDF。
-export async function recallMemoriesAsync(userId,agentId,query='',limit=8){
- const scope=listMemories(userId,agentId);
+// 异步召回排序（纯函数）：配置嵌入提供方时走向量余弦（作用域限定不变），否则回退 TF-IDF。
+export async function recallRankedAsync(scope,query='',limit=8){
  const needle=String(query||'').trim();
  if(!needle)return scope.slice(0,limit);
  const ranked=await rankByEmbedding(needle,scope,e=>e.text,{limit});
- return ranked||recallMemories(userId,agentId,query,limit);
+ return ranked||rankMemories(scope,query,limit);
+}
+export async function recallMemoriesAsync(userId,agentId,query='',limit=8){
+ return recallRankedAsync(listMemories(userId,agentId),query,limit);
 }
