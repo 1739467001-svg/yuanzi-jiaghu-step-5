@@ -57,6 +57,7 @@
 
 - 读取：远程站点为权威，按 TTL 周期刷新（`server/sects-source.mjs`）。拉取失败**保留上一次快照**（网站抖动时大殿照常开门），并把错误写进 `GET /api/sects/status` 与启动日志；冷启动先用 `data/sects-cache.json` 兜底。每条数据单独映射，坏行只跳过不计整批失败（跳过数量在 status 里可见）。
 - 映射：远程字段名可以是 `sectId/sectName/tagline/description/theme/leader/council/members`，也可以是本文上面那套字段（`id/name/slogan/intro/style/founder/elders/disciples`）。响应形态认 `{sects:[…]}`、`{items/data/list:[…]}` 与裸数组。`members` 按称号分堆进弟子/长老，并与显式的 `elders`/`disciples` 去重；称号不在预设内按身份兜底；`style` 非法退回 `jianghu`。
+- 官网实测口径（2026-10-17，见 [OFFICIAL-SITE.md](OFFICIAL-SITE.md)）：原子公社社区站 `/api/sects` 用的正是本文那套字段（`id/name/slogan/intro`…），**加入方式字段名是 `joinType`**（值 open/apply/invite，与我们的 `joinPolicy` 同值域，已加别名映射）；官网独有的 `memberCount/activity/score/hue/coverUrl/logo/tags` 我们暂不收录（要显示官网封面的话再扩契约）。远程模式下本地对 `joinPolicy/notices/applications/benefits/townLayout` 的改动也进覆盖层补丁（官网不同步这些字段，补丁是唯一来源）。
 - 写入：网站暂未开放管理接口，因此本地建派/改资料/加减成员**记录进覆盖层** `data/sects-overlay.json`（本机新建的门派 + 按 id 的字段补丁），每次远程刷新后重新贴回远程数据上——远程站点改了别的字段不会被本地旧值顶掉；远程删除的门派随之消失（远程权威）。等网站开放管理接口后，把 `persist()` 改成转发即可，3D 与前端不动。
 - 运维：`GET /api/sects/status` 返回同步状态（来源/条数/上次同步时间/错误/跳过数/本地改动数）；`POST /api/sects/refresh`（需登录）手动触发一次同步。分页响应里也带 `source` 字段，前端能看出当前是不是远程数据。
 

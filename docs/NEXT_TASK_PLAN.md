@@ -1044,6 +1044,23 @@ M3 里依赖外部系统的部分（Token 实际发放、OPC 权益核销、赠�
 
 仍待完成：SQLite 默认翻转（清单见 STORAGE.md，待真实部署流量证据）；真实设备帧率基线（PRD 15.1 口径）；72 小时压测。
 
+## 阶段 52：原子公社官网调研与对接改进（2026-10-17 执行）
+
+应用户要求浏览 atomclub.cn 并蒸馏对接文档。浏览器自动化（AutoGLM）因本机扩展被禁用走不通，改用「前端包源码分析 + 线上 API 实测」——对对接目标反而更实（拿到契约而非截图）。成果 `docs/OFFICIAL-SITE.md`。
+
+**调研结论**：官网是三个域两个系统——社区站 atomclub.cn（React SPA：活动/门派/茶楼/任务/风云榜/原子币经济/勋章商店，手机验证码 + 微信 OA 登录，31 条路由、约 45 个免登录 API 端点）、原子引擎 atengin.atomclub.cn + api.atomclub.cn（New API 网关，OpenAI 兼容 /v1 四线 37 个端点，53 个模型：通义千问 21/DeepSeek 10/智谱 6/百度 6/MiniMax 5/Moonshot 4/StepFun 1）。
+
+**落地改进**：
+
+- **门派 joinType 别名映射**：官网加入方式字段叫 `joinType`（值 open/apply/invite 与我们的 joinPolicy 同值域），不映射的话远程门派的加入方式全落默认「申请制」。已加映射 + 测试。
+- **覆盖层补丁字段扩充**：PATCH_FIELDS 从 6 个字段扩到 11 个（加 joinPolicy/notices/applications/benefits/townLayout）——远程模式下本地对 M2/M3 状态的改动以前不进补丁、一次刷新就丢；官网不同步这些字段，补丁是唯一来源。
+- **去掉外网字体依赖**：排查 e2e 间歇失败时发现 `src/style.css` 顶部 `@import` 还在加载 Google Fonts（DM Sans 是阶段 46 换字体栈时的遗留，Noto Serif SC 同样外网依赖）——国内网络下 fonts.googleapis.com 不可达，页面 console 报错、e2e 零异常断言间歇挂。已整条移除，字体全走系统栈（PingFang SC/微软雅黑/宋体回退），admin.css 的 DM Sans 一并清理。视觉上衬线回退 Songti SC，与 Noto Serif SC 观感一致。
+- 文档：SECTS.md 补官网实测口径（joinType、可扩契约字段）；UPGRADE-PLAN 待拍板清单新增两条（身份打通缺 JWT/OIDC 签发方式、原子币账本对账接口）。
+
+**验收**：`npm test` 190 项（sects-source 新增 joinType 映射与补丁字段测试）；`test:e2e-sects`、`test:e2e`（远程同步段 + 主流程）重跑通过；`audit:mobile` 5 档、两个校验器、verify:repo 全绿。
+
+**待确认**（已并入 UPGRADE-PLAN 待拍板）：社区站登录无 JWT/OIDC，联机世界外部身份接入需官方给签发方式；原子币账本对账接口决定 M3 赠金结算；官网活动 API（/api/events）可作为运营后台赛事导入的新来源（字段可映射，待排期）。
+
 ## 下一批候选（2026-10-03 起）
 
 - **多天气**：微雨之外补「夜雨」「山雾」两种稀有事件（雾用 `scene.fog` 就近收敛，夜间雨把雨色压暗），与微雨共用同一套调度与 ref 通道，注意别再犯「依赖数组漏 ref」与「行内注释吞代码」两个坑。——2026-10-09 阶段 48 实施中。

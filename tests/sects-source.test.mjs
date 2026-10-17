@@ -113,3 +113,15 @@ test('diffPatch：只记改动字段',()=>{
  const changed={...base,elders:[{userId:'u',name:'青禾',title:'长老'}]};
  assert.deepEqual(Object.keys(diffPatch(base,changed)),['elders']);
 });
+
+test('远程 joinType 映射为 joinPolicy；M2/M3 本地状态进补丁',()=>{
+ // 原子公社官网字段（docs/OFFICIAL-SITE.md 实测）：joinType 与我们的 joinPolicy 同值域。
+ for(const [remote,expected] of [['open','open'],['apply','apply'],['invite','invite'],[undefined,undefined],['weird',undefined]]){
+  const sect=mapRemoteSect({sectId:'s-join',sectName:'加入方式派',joinType:remote});
+  assert.equal(sect.joinPolicy,expected,`joinType=${remote} → ${expected}`);
+ }
+ // 覆盖层必须跟踪 M2/M3 字段：远程站点不同步它们，补丁是唯一来源。
+ const base={name:'甲',slogan:'旧',intro:'介绍',style:'jianghu',elders:[],disciples:[],joinPolicy:'apply'};
+ const keys=Object.keys(diffPatch(base,{...base,joinPolicy:'open',notices:[{id:'n1',text:'公告'}],benefits:[{id:'b1',title:'权益'}],townLayout:{terrain:'lakeside'}}));
+ assert.deepEqual(keys.sort(),['benefits','joinPolicy','notices','townLayout'],'本地状态全部记入补丁');
+});

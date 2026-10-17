@@ -170,7 +170,7 @@ tests/                      路径、状态机、内容、记忆、坐标、发�
 
 ## 下一步升级
 
-融合外部需求的小镇升级方案见 [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md)（门派小镇创作工坊 M0—M3、地形与现有资产咬合、数据模型映射、待拍板问题）；小镇重构思见 [docs/TOWN-VISION.md](docs/TOWN-VISION.md)。
+融合外部需求的小镇升级方案见 [docs/UPGRADE-PLAN.md](docs/UPGRADE-PLAN.md)；原子公社官网（atomclub.cn 社区站 + 原子引擎 MaaS）的栏目/功能/API 调研与对接评估见 [docs/OFFICIAL-SITE.md](docs/OFFICIAL-SITE.md)（门派小镇创作工坊 M0—M3、地形与现有资产咬合、数据模型映射、待拍板问题）；小镇重构思见 [docs/TOWN-VISION.md](docs/TOWN-VISION.md)。
 
 ## 数据存储
 

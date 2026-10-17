@@ -13,7 +13,9 @@ import * as sqlitePub from './store-sqlite-pub.mjs';
 
 const STYLES=Object.keys(THEMES);
 const OVERLAY='sects-overlay.json',CACHE='sects-cache.json';
-const PATCH_FIELDS=['name','slogan','intro','style','elders','disciples'];
+// 覆盖层要跟踪的字段：远程站点不同步的本地状态（M2/M3 的加入方式/公告/申请/权益/小镇布局）
+// 也必须进补丁，否则远程模式下一次刷新就把本地改动冲掉（官网无这些字段，补丁即唯一来源）。
+const PATCH_FIELDS=['name','slogan','intro','style','elders','disciples','joinPolicy','notices','applications','benefits','townLayout'];
 // 称号预设与 server/sects.mjs 保持一致（远端给错称号时按身份兜底）。
 const ELDERS=['长老','执法长老','传功长老','护法长老'];
 const DISCIPLES=['大师兄','二师兄','大师姐','二师姐','师弟','师妹','弟子'];
@@ -55,6 +57,9 @@ export function mapRemoteSect(raw){
   }
  }
  elders=elders.filter(Boolean);disciples=disciples.filter(Boolean);
+ // 加入方式：原子公社官网用 joinType，我们用 joinPolicy（值同为 open/apply/invite，见 docs/OFFICIAL-SITE.md）。
+ // 不映射的话远程门派的加入方式会全部落成默认「申请制」。
+ const joinPolicy=cleanName(pick(raw,['joinType','joinPolicy','join_policy']));
  return {
   id,name,
   slogan:cleanName(pick(raw,['slogan','tagline','motto']))||'',
@@ -64,6 +69,7 @@ export function mapRemoteSect(raw){
   founderName:founderName||name,
   createdAt,
   elders,disciples,
+  joinPolicy:['open','apply','invite'].includes(joinPolicy)?joinPolicy:undefined,
  };
 }
 // 响应形态：{sects:[…]} / {items:[…]} / {data:[…]} / 裸数组都认。

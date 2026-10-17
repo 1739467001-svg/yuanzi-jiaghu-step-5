@@ -1,4 +1,4 @@
-*{box-sizing:border-box}body{margin:0;background:#eef1e9;color:#33413a;font:14px/1.6 "DM Sans","PingFang SC","Noto Sans SC",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#eef1e9;color:#33413a;font:14px/1.6 "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif}
 button,input,select{font:inherit}button{cursor:pointer;color:inherit;border:0;background:none}button:disabled{cursor:wait;opacity:.45}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #b3894e;outline-offset:2px}
 h1,h2,h3,p{margin:0}svg{flex-shrink:0;vertical-align:-2px}
