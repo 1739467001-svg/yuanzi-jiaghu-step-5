@@ -8,14 +8,17 @@
 // POST /api/sects/:id/members/remove {userId} 移出成员（仅创始人）
 import {createSect,updateSect,updateLayout,addElder,addDisciple,removeMember,applyToSect,listApplications,decideApplication,setJoinPolicy,setBenefits,addNotice,removeNotice,findSect,pageSects,SECT_PAGE_SIZE,ELDER_TITLES,DISCIPLE_TITLES,sectSourceStatus,sectSource,refreshSectSource} from './sects.mjs';
 import {verify} from './store.mjs';
+import {coverHostAllowed,createCoverCache,fetchCover} from './cover-proxy.mjs';
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
 const readBody=async(req,limit=8000)=>{let bytes=0,body='';for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)throw new Error('请求过大');body+=chunk;}return JSON.parse(body||'{}');};
+// 封面代理的内存缓存（URL → 字节 + 内容类型，TTL 与容量上限在 cover-proxy.mjs）。
+const coverCache=createCoverCache();
 function sessionOf(req){
  const token=String(req.headers['x-atom-token']||'');
  if(!token)return null;
  try{const s=verify(token);return s?{id:s.user.id,name:s.user.name}:null;}catch{return null;}
 }
-export function sectsApiPlugin(){
+export function sectsApiPlugin(env=process.env){
  const plugin={name:'atom-sects-api',configureServer(server){
   server.middlewares.use(async(req,res,next)=>{
    const url=new URL(req.url,'http://localhost');
@@ -26,6 +29,23 @@ export function sectsApiPlugin(){
      return send(res,200,{...pageSects(url.searchParams.get('page')||1,url.searchParams.get('size')||SECT_PAGE_SIZE),source:sectSourceStatus()});
     }
     if(url.pathname==='/api/sects/status'&&req.method==='GET')return send(res,200,sectSourceStatus());
+    // 封面/Logo 同源代理：OSS 不回 CORS 头，3D 牌坊的封面布走这里拿图（白名单 + 缓存，失败 404）。
+    if(url.pathname==='/api/sects/cover'&&req.method==='GET'){
+     const target=url.searchParams.get('url')||'';
+     const source=sectSource();
+     if(!coverHostAllowed(target,source?source.remote:[],String(env.ATOM_SECTS_SOURCE||''))){
+      return send(res,403,{error:'封面地址不在放行列表'});
+     }
+     const cached=coverCache.get(target);
+     if(cached){res.statusCode=200;res.setHeader('Content-Type',cached.contentType);res.setHeader('Cache-Control','public, max-age=600');return res.end(cached.buffer);}
+     try{
+      const cover=await fetchCover(target);
+      if(!cover)return send(res,404,{error:'封面抓取失败'});
+      coverCache.set(target,cover);
+      res.statusCode=200;res.setHeader('Content-Type',cover.contentType);res.setHeader('Cache-Control','public, max-age=600');
+      return res.end(cover.buffer);
+     }catch{return send(res,404,{error:'封面抓取失败'});}
+    }
     const idMatch=/^\/api\/sects\/([^/]+)$/.exec(url.pathname);
     if(idMatch&&req.method==='GET'){const sect=findSect(decodeURIComponent(idMatch[1]));return sect?send(res,200,sect):send(res,404,{error:'门派不存在'});}
     // 入派申请列表用 GET（其余写操作仍是 POST/PATCH）。

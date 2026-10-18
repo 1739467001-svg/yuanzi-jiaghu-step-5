@@ -153,6 +153,10 @@ function terrainDecor(parent,terrain,theme,night){
  return g;
 }
 
+// 官网封面走同源代理：OSS 不回 CORS 头，浏览器直接加载远程图会被拒（封面全灭）。
+// 代理端点 /api/sects/cover 只放行远程快照里出现过的图片主机；静态部署没有该端点，
+// 请求 404 走 onError 回调撤掉封面布——牌坊/内景保持完整，封面是增量不是依赖。
+function coverProxyUrl(url){return '/api/sects/cover?url='+encodeURIComponent(url);}
 function sectBanner(parent,sect,x,z,palette,interactive){
  const g=new T.Group();g.position.set(x,0,z);parent.add(g);
  g.userData={kind:'sect',id:sect.id};if(interactive)interactive.push(g);
@@ -168,6 +172,15 @@ function sectBanner(parent,sect,x,z,palette,interactive){
  // 名称匾额 + slogan
  textSign(g,sect.name,0,3.05,d/2+.26,Math.min(w*.7,3.4),.62);
  textSign(g,sect.slogan||'—',0,2.2,d/2+.32,Math.min(w*.62,3),.4,'#f2ecd8','#6b6152');
+ // 官网封面（remote 门派带 coverUrl，见 docs/OFFICIAL-SITE.md）：挂在牌坊正面。
+ // 加载失败（跨域被拒/图裂）就撤掉这层布，牌坊还是完整的——封面是增量不是依赖。
+ if(sect.coverUrl&&typeof document!=='undefined'){
+  const cover=new T.Mesh(new T.PlaneGeometry(w-1.3,1.55),new T.MeshBasicMaterial({color:'#e3ebdd',transparent:true,opacity:.97}));
+  cover.position.set(0,1.42,d/2+.04);g.add(cover);
+  new T.TextureLoader().setCrossOrigin('anonymous').load(coverProxyUrl(sect.coverUrl),
+   tex=>{tex.colorSpace=T.SRGBColorSpace;cover.material.map=tex;cover.material.color.set('#ffffff');cover.material.needsUpdate=true;},
+   undefined,()=>{g.remove(cover);});
+ }
  // 灯笼
  lantern2(g,-(w/2-.4),2.6,d/2+.7);lantern2(g,(w/2-.4),2.6,d/2+.7);
  return g;
@@ -290,6 +303,14 @@ export function buildSectInterior(parent,{sect,palette,night},interactive=[]){
  roof(g,31,5,4.2,style,1.2);
  textSign(g,sect.name+' · 聚义阁',0,4.6,-12.4,6,.9);
  textSign(g,sect.slogan||'—',0,3.6,-12.5,4.4,.45,'#f2ecd8','#6b6152');
+ // 官网封面幔：主位后墙上方（加载失败就撤，不挡匾额）
+ if(sect.coverUrl&&typeof document!=='undefined'){
+  const mural=new T.Mesh(new T.PlaneGeometry(9,3),new T.MeshBasicMaterial({color:'#e3ebdd',transparent:true,opacity:.95}));
+  mural.position.set(0,7.1,-12.6);g.add(mural);
+  new T.TextureLoader().setCrossOrigin('anonymous').load(coverProxyUrl(sect.coverUrl),
+   tex=>{tex.colorSpace=T.SRGBColorSpace;mural.material.map=tex;mural.material.color.set('#ffffff');mural.material.needsUpdate=true;},
+   undefined,()=>{g.remove(mural);});
+ }
  hallDecor(g,palette,night);
  const seats=[];
  // 位次：创始人（主位居中抬高，面向大殿）

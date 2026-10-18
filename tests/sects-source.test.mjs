@@ -120,6 +120,15 @@ test('远程 joinType 映射为 joinPolicy；M2/M3 本地状态进补丁',()=>{
   const sect=mapRemoteSect({sectId:'s-join',sectName:'加入方式派',joinType:remote});
   assert.equal(sect.joinPolicy,expected,`joinType=${remote} → ${expected}`);
  }
+ // 官网富字段透传（3D 牌坊挂封面、面板显示标签与成员数）
+ const rich=mapRemoteSect({sectId:'s-rich',sectName:'富字段派',coverUrl:'https://oss.example.com/cover.png',logo:'https://oss.example.com/logo.png',tags:['AI','OPC',''],memberCount:12,activity:10,score:99});
+ assert.equal(rich.coverUrl,'https://oss.example.com/cover.png');
+ assert.equal(rich.logo,'https://oss.example.com/logo.png');
+ assert.deepEqual(rich.tags,['AI','OPC'],'空标签被滤掉');
+ assert.equal(rich.memberCount,12);assert.equal(rich.activity,10);assert.equal(rich.score,99);
+ // 没有富字段的远程门派不带这些键（前端按缺失走样式色兜底）
+ const plain=mapRemoteSect({sectId:'s-plain',sectName:'素门派'});
+ assert.equal(plain.coverUrl,undefined);assert.equal(plain.tags,undefined);assert.equal(plain.memberCount,0);
  // 覆盖层必须跟踪 M2/M3 字段：远程站点不同步它们，补丁是唯一来源。
  const base={name:'甲',slogan:'旧',intro:'介绍',style:'jianghu',elders:[],disciples:[],joinPolicy:'apply'};
  const keys=Object.keys(diffPatch(base,{...base,joinPolicy:'open',notices:[{id:'n1',text:'公告'}],benefits:[{id:'b1',title:'权益'}],townLayout:{terrain:'lakeside'}}));

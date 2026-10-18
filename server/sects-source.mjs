@@ -60,6 +60,14 @@ export function mapRemoteSect(raw){
  // 加入方式：原子公社官网用 joinType，我们用 joinPolicy（值同为 open/apply/invite，见 docs/OFFICIAL-SITE.md）。
  // 不映射的话远程门派的加入方式会全部落成默认「申请制」。
  const joinPolicy=cleanName(pick(raw,['joinType','joinPolicy','join_policy']));
+ // 官网富字段（docs/OFFICIAL-SITE.md 实测）：封面/Logo/标签/成员数/活跃度/积分。
+ // 3D 牌坊用 coverUrl 挂封面图，面板用 tags/memberCount，都不依赖官网写回。
+ const coverUrl=cleanName(pick(raw,['coverUrl','cover','bannerUrl']));
+ const logo=cleanName(pick(raw,['logo','logoUrl','avatarUrl']));
+ const tags=asArray(pick(raw,['tags','tagList'])).map(t=>cleanName(t)).filter(Boolean).slice(0,8);
+ const memberCount=Number(pick(raw,['memberCount','members','member_count']))||0;
+ const activity=Number(pick(raw,['activity','activityScore','activity_score']))||0;
+ const score=Number(pick(raw,['score','sectScore','credit']))||0;
  return {
   id,name,
   slogan:cleanName(pick(raw,['slogan','tagline','motto']))||'',
@@ -70,6 +78,11 @@ export function mapRemoteSect(raw){
   createdAt,
   elders,disciples,
   joinPolicy:['open','apply','invite'].includes(joinPolicy)?joinPolicy:undefined,
+  // 数值字段总是带上（0=远程未报数），客户端按 0 走兜底；内容字段（封面/Logo/标签）有才带。
+  memberCount,activity,score,
+  ...(coverUrl?{coverUrl}:{}),
+  ...(logo?{logo}:{}),
+  ...(tags.length?{tags}:{}),
  };
 }
 // 响应形态：{sects:[…]} / {items:[…]} / {data:[…]} / 裸数组都认。

@@ -127,9 +127,9 @@
 | --- | --- | --- |
 | AI 私聊/大脑模型（`ATOM_LLM_BASE_URL` + Key） | 原子引擎 `https://atengin.atomclub.cn/v1` | **立即可用**：OpenAI 兼容，把 base 指向它、填 Key 即可；预算账本与降级逻辑已具备 |
 | 嵌入召回（`ATOM_EMBEDDING_*`） | 原子引擎 `/v1/embeddings` | 同上，配置即切换向量召回 |
-| 门派远程数据源（`ATOM_SECTS_SOURCE`） | 社区站 `/api/sects` | **契约基本匹配**：我们的 `mapRemoteSect` 已认 `name/sectName`、`founder/leader`、`elders/council`、`members` 别名；官网字段 `name/slogan/intro` 直接命中。**差异点**：官网用 `joinType(open/apply/invite)` 而我们用 `joinPolicy`（同义，需加别名）；官网独有 `memberCount/activity/score/hue/coverUrl/logo/tags`（我们模型没有，需扩契约或丢弃） |
+| 门派远程数据源（`ATOM_SECTS_SOURCE`） | 社区站 `/api/sects` | **✅ 已打通（2026-10-17 实测）**：一行配置 `ATOM_SECTS_SOURCE=https://atomclub.cn/api`，6 个真实门派进 3D 大殿、封面经同源代理渲染；`joinType→joinPolicy` 别名与富字段透传已落地，详见 [THREE_D_INTEGRATION.md](THREE_D_INTEGRATION.md)：我们的 `mapRemoteSect` 已认 `name/sectName`、`founder/leader`、`elders/council`、`members` 别名；官网字段 `name/slogan/intro` 直接命中。**差异点**：官网用 `joinType(open/apply/invite)` 而我们用 `joinPolicy`（同义，需加别名）；官网独有 `memberCount/activity/score/hue/coverUrl/logo/tags`（我们模型没有，需扩契约或丢弃） |
 | 门派大厅回跳（`VITE_SECT_HALL_URL`） | `https://atomclub.cn/sects/:id` | 配置即生效 |
-| 运营后台赛事导入工作台 | 社区站 `/api/events` | **可扩展**：活动字段（title/type/status/startAt/location/organizer/enrolled/capacity/desc）与我们的 editions 赛事结构可映射；建议加一个「从官网拉活动」的导入源（dry-run 预览→确认导入，复用现有闭环） |
+| 运营后台赛事导入工作台 | 社区站 `/api/events` | **可扩展（方案已定）**：活动字段（title/type/status/startAt/location/organizer/enrolled/capacity/desc）与我们的 editions 赛事结构可映射；建议加一个「从官网拉活动」的导入源（dry-run 预览→确认导入，复用现有闭环） |
 | 内容注入 | `/api/news`、`/api/teahouse/posts` | 可选：AI 资讯进「江湖此刻」或展示馆资讯位；茶楼热帖进小镇茶楼场景的话题气泡 |
 
 ### 4.2 需要与官方确认的事项（建议并入五个待拍板问题）

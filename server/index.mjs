@@ -62,7 +62,7 @@ const hub=createRoomHub({env:process.env,reclaimWindowMs});
 contentPlugin(process.env).configureServer(shim);
 authPlugin().configureServer(shim);
 memoryApiPlugin().configureServer(shim);
-followsApiPlugin().configureServer(shim);sectsApiPlugin().configureServer(shim);
+followsApiPlugin().configureServer(shim);sectsApiPlugin(process.env).configureServer(shim);
 roomsApiPlugin(hub,{env:process.env,isAdminRequest,noteAdminDenial}).configureServer(shim);
 chatPlugin(process.env).configureServer(shim);
 // 门派数据：配置 ATOM_SECTS_SOURCE 时从原子公社门派网站拉数据（TTL 同步 + 本地覆盖层）。
