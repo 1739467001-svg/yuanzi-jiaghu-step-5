@@ -206,7 +206,12 @@ function validateImportEditions(payload){
  for(const e of editions){
   if(!e.title||!e.subtitle||!e.description)issues.push(`${e.id} 缺少标题/副标题/介绍`);
   if(!Array.isArray(e.tracks)||!e.tracks.some(t=>typeof t==='string'&&t))issues.push(`${e.id} 缺少赛道`);
-  if(!Array.isArray(e.works)||!e.works.length)issues.push(`${e.id} 没有作品`);
+  if(!Array.isArray(e.works)||!e.works.length){
+   // 纯介绍版赛事（与星火计划同款：作品资料以官网为准，works 为空）——
+   // 判据是带任一介绍性字段（主办/赛程/奖项/权益/官网链接），否则仍要求有作品。
+   const introOnly=['organizers','schedule','awards','benefits','officialUrl'].some(k=>e[k]!==undefined&&e[k]!==null&&e[k]!=='');
+   if(!introOnly)issues.push(`${e.id} 没有作品（纯介绍版赛事需带 organizers/schedule/awards/benefits/officialUrl 之一）`);
+  }
   const wids=(e.works||[]).map(w=>w&&w.id);
   if(wids.some(id=>typeof id!=='string'||!id))issues.push(`${e.id} 存在没有 id 的作品`);
   if(new Set(wids.filter(Boolean)).size!==wids.filter(Boolean).length)issues.push(`${e.id} 作品 id 重复`);

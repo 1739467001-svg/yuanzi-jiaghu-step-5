@@ -8,7 +8,7 @@ import path from 'node:path';
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'atom-pub-'));
 process.env.ATOM_DATA_DIR=tmp;
 
-const {getLiveCatalog,getStateVersion,livePublishedWorks,liveQueryWorks,liveFindWork,anyLiveWork,setEditionStatus,setWorkStatus,rollbackEdition,getAudit,checkEditionPublishable,importDryRun,stablePage} = await import('../server/publication-store.mjs');
+const {getLiveCatalog,getStateVersion,livePublishedWorks,liveQueryWorks,liveFindWork,anyLiveWork,anyLiveEdition,setEditionStatus,setWorkStatus,rollbackEdition,getAudit,checkEditionPublishable,importDryRun,stablePage} = await import('../server/publication-store.mjs');
 
 test('baseline live catalog matches the bundled snapshot', () => {
  const catalog=getLiveCatalog();
@@ -130,6 +130,24 @@ test('applyImport adds a new edition, bumps the version, and writes an audit eve
  // 载荷显式指定发布状态时尊重载荷（之后latest审计变为本次，故上面先断言）。
  applyImport({editions:[{...sampleEdition('demo-cup-b'),publicationStatus:'已发布',works:[{...sampleEdition('demo-cup-b').works[0],publicationStatus:'已发布'}]}]},'tester','显式发布');
  assert.equal(anyLiveWork('demo-cup-b--sample').publicationStatus,'已发布','显式状态被尊重');
+});
+
+test('intro-only editions (no works, with organizers/schedule) import cleanly', () => {
+ // 纯介绍版赛事（与星火计划同款）：works 为空但带介绍字段——官网活动导入走这条。
+ const introOnly={
+  id:'intro-only',title:'纯介绍赛事',subtitle:'x',description:'y',tracks:['全部'],
+  works:[],organizers:{'主办':['原子公社']},schedule:[{'活动':'A','时间':'9月'}],
+  awards:{'分布':'技术沙龙 1 场'},benefits:['权益一'],officialUrl:'https://atomclub.cn/events',
+ };
+ const report=importCheck({editions:[introOnly]});
+ assert.equal(report.ok,true,JSON.stringify(report.issues));
+ const applied=applyImport({editions:[introOnly]},'tester','介绍版导入');
+ assert.ok(applied.stateVersion>0);
+ const live=anyLiveEdition('intro-only');
+ assert.ok(live,'介绍版赛事进入实时目录');
+ assert.equal(live.works.length,0);
+ // 没有介绍字段的空作品赛事仍然被拒（防止漏导作品）。
+ assert.throws(()=>applyImport({editions:[{id:'no-intro',title:'空赛事',subtitle:'x',description:'y',tracks:['全部'],works:[]}]}),/没有作品/);
 });
 
 test('applyImport rejects malformed payloads and keeps state untouched', () => {
