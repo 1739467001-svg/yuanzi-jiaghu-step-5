@@ -4,7 +4,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,AGENTS,THEMES} from './config.js';
 import {findPath,hallWalkable,terrainHeight,stepActor} from './engine.js';
 import {modelFor} from './config.js';
-import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard,peachIsland,zigzagBridge,riverPavilion} from './models.js';
+import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard,taskBoard,peachIsland,zigzagBridge,riverPavilion} from './models.js';
 import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
@@ -24,7 +24,8 @@ function bubbleTexture(text){
 }
 // 英雄帖示范条目：社区悬赏与共创任务，接口就绪后改为实时数据。
 const HERO_TOPICS=['征集：把一次踩坑写成新手友好教程','共创：给门派小镇补一套春天的材质','悬赏：帮茶会整理一份工具清单','讨论：AI 该替人做事还是陪人想事'];
-export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear',feed=null}){
+const TASK_TOPICS=['每日签到 +20币','连续签到 30 天 +300币','分享一篇茶帖 +60币','邀请 3 位侠客入社 +500币'];
+export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear',feed=null,economy=null}){
  const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
  // 天气、昵称、标签开关会随时变，但重跑大 effect 会重建整个场景；用 ref 让渲染循环每次读到最新值。
  const weatherRef=useRef(weather);weatherRef.current=weather;
@@ -82,6 +83,8 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   riverPavilion(base,4.5,10.5);
   // 论剑台 + 英雄帖（Agent 与 Agent 的公开辩论场）
   heroBoard(base,18.8,11.5,(feed?.topics||[]).length?feed.topics:HERO_TOPICS);
+  // 任务墙（官网任务中心，只读展示）：与英雄帖并列；无数据保持示范条目。
+  taskBoard(base,24.6,11.5,(economy?.taskTopics||[]).length?economy.taskTopics:TASK_TOPICS);
   // 村口桃林与桃园结义碑：走近触发一次
   oathSpot=createOathSpot(base,{x:-7,z:9,night,onEnter:()=>window.__atomOath?.({})});
   // 河岸垂柳与芦苇：水边的江湖意象

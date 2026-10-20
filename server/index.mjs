@@ -17,6 +17,7 @@ import {followsApiPlugin} from './follows-api.mjs';
 import {sectsApiPlugin} from './sects-api.mjs';
 import {configureSectSource} from './sects.mjs';
 import {configureOfficialFeed,officialFeedPlugin,feedTopics} from './official-feed.mjs';
+import {configureOfficialShop,officialShopPlugin} from './official-shop.mjs';
 import {isAdminRequest,noteAdminDenial} from './publication-store.mjs';
 import {usingSqlite} from './store.mjs';
 import {databaseFile} from './sqlite-db.mjs';
@@ -63,7 +64,7 @@ const hub=createRoomHub({env:process.env,reclaimWindowMs});
 contentPlugin(process.env).configureServer(shim);
 authPlugin().configureServer(shim);
 memoryApiPlugin().configureServer(shim);
-followsApiPlugin().configureServer(shim);sectsApiPlugin(process.env).configureServer(shim);officialFeedPlugin().configureServer(shim);
+followsApiPlugin().configureServer(shim);sectsApiPlugin(process.env).configureServer(shim);officialFeedPlugin().configureServer(shim);officialShopPlugin().configureServer(shim);
 roomsApiPlugin(hub,{env:process.env,isAdminRequest,noteAdminDenial}).configureServer(shim);
 chatPlugin(process.env).configureServer(shim);
 // 门派数据：配置 ATOM_SECTS_SOURCE 时从原子公社门派网站拉数据（TTL 同步 + 本地覆盖层）。
@@ -72,6 +73,9 @@ if(sectSync){sectSync.start();console.log(`门派同步: ${sectSync.base}（每 
 // 官网内容抓取（热帖/资讯）：配置 ATOM_OFFICIAL_SITE 后供英雄帖与 AI 闲聊话题（TTL + 失败沿用快照）。
 const officialFeedSync=configureOfficialFeed(process.env);
 if(officialFeedSync){officialFeedSync.start();console.log(`官网内容: ${officialFeedSync.base}（每 ${Math.round(officialFeedSync.ttlMs/1000)} 秒）`);}
+// 官网经济数据（商店/任务）：配置 ATOM_OFFICIAL_SITE 后供给任务墙与工坊商店面板（TTL + 失败沿用快照）。
+const officialShopSync=configureOfficialShop(process.env);
+if(officialShopSync){officialShopSync.start();console.log(`官网经济: ${officialShopSync.base}（每 ${Math.round(officialShopSync.ttlMs/1000)} 秒）`);}
 // 联机世界的 AI 侠客闲聊话题接官网热帖：每次抓取后把话题推进各房间的服务端引擎。
 if(officialFeedSync){
  officialFeedSync.onSync=snapshot=>{

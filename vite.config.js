@@ -11,6 +11,7 @@ import {followsApiPlugin} from './server/follows-api.mjs';
 import {sectsApiPlugin} from './server/sects-api.mjs';
 import {configureSectSource} from './server/sects.mjs';
 import {configureOfficialFeed,officialFeedPlugin,feedTopics} from './server/official-feed.mjs';
+import {configureOfficialShop,officialShopPlugin} from './server/official-shop.mjs';
 import {isAdminRequest,noteAdminDenial} from './server/publication-store.mjs';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('.',import.meta.url));
@@ -66,4 +67,7 @@ export default defineConfig(({mode})=>{
   };
   officialFeedSync.start();console.log('官网内容: '+officialFeedSync.base);
  }
- return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),sectsApiPlugin(env),roomsApiPlugin(hub,{env,isAdminRequest,noteAdminDenial}),officialFeedPlugin(),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});
+ // 官网经济数据（商店/任务）：dev/preview 同样生效，供给任务墙与工坊商店面板。
+ const officialShopSync=configureOfficialShop(env);
+ if(officialShopSync){officialShopSync.start();console.log('官网经济: '+officialShopSync.base);}
+ return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),sectsApiPlugin(env),roomsApiPlugin(hub,{env,isAdminRequest,noteAdminDenial}),officialFeedPlugin(),officialShopPlugin(),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});

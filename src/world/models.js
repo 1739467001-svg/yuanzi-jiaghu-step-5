@@ -206,6 +206,23 @@ export function riverPavilion(parent,x,z){
 }
 
 // 英雄帖：论剑台旁的悬赏墙——社区话题与共创任务的张贴处（数据就绪前先贴示范条目）。
+// 任务墙（官网任务中心，只读展示）：与英雄帖并列在论剑台旁。
+// 条目形如「每日签到 +20币」；无数据时保持示范条目。
+export function taskBoard(parent,x,z,tasks=[]){
+ const g=new T.Group();g.position.set(x,0,z);parent.add(g);
+ dmesh(new T.BoxGeometry(5.4,3.8,.5),'#7a5c3a','wood',g,0,1.9,0,3,.9);
+ dmesh(new T.BoxGeometry(5.8,.5,.7),'#5d4227','wood',g,0,4,0,2,.9);
+ textSign(g,'江 湖 任 务',0,4,.42,3.6,.7);
+ const list=(tasks||[]).slice(0,5);
+ list.forEach((t,i)=>{
+  const y=3.4-i*.66;
+  dmesh(new T.BoxGeometry(4,.52,.12),'#e8dcc0','plaster',g,0,y,.3,1,.9);
+  textSign(g,t,0,y,.4,3.7,.34,'#e8dcc0','#4a3a22');
+ });
+ if(!list.length)textSign(g,'官网任务将在此张贴',0,2.2,.4,4.2,.5,'#e9dfc4','#8a7a52');
+ for(const sx of [-1,1])cylinder(g,sx*2.9,1.9,0,.14,.18,3.8,'#6d4f33',8);
+ return g;
+}
 export function heroBoard(parent,x,z,topics=[]){
  const g=new T.Group();g.position.set(x,0,z);parent.add(g);
  dmesh(new T.BoxGeometry(6.6,4.4,.5),'#8a6b45','wood',g,0,2.2,0,3,.9);

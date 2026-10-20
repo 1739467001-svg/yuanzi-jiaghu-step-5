@@ -12,13 +12,19 @@ const CACHE_MAX=200;
 function hostOf(value){
  try{return new URL(value).host;}catch{return '';}
 }
-// 白名单：远程快照里各门派的 coverUrl/logo 主机 + 数据源主机。
+// 已登记的白名单主机：各数据源（门派快照、商店快照……）在同步时把自家图片主机登记进来，
+// 代理端点只服务这些主机 + 数据源主机——远程站点给什么图就代理什么，不是开放代理。
+const allowedHosts=new Set();
+export function allowImageHosts(hosts){
+ for(const host of hosts||[])if(host)allowedHosts.add(host);
+}
+// 白名单：已登记主机 + 远程快照里各门派的 coverUrl/logo 主机 + 数据源主机。
 export function coverHostAllowed(target,sects=[],sourceBase=''){
  if(typeof target!=='string'||!target)return false;
  let url;
  try{url=new URL(target);}catch{return false;}
  if(url.protocol!=='http:'&&url.protocol!=='https:')return false;
- const hosts=new Set();
+ const hosts=new Set(allowedHosts);
  const base=hostOf(sourceBase);
  if(base)hosts.add(base);
  for(const sect of sects||[]){

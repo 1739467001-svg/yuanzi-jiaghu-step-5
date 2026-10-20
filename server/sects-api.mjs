@@ -22,15 +22,17 @@ export function sectsApiPlugin(env=process.env){
  const plugin={name:'atom-sects-api',configureServer(server){
   server.middlewares.use(async(req,res,next)=>{
    const url=new URL(req.url,'http://localhost');
-   if(!url.pathname.startsWith('/api/sects'))return next();
+   // /api/image 是通用图片代理入口（封面/Logo/商店图标），与 /api/sects 同插件托管。
+   if(!url.pathname.startsWith('/api/sects')&&url.pathname!=='/api/image')return next();
    try{
     if(url.pathname==='/api/sects'&&req.method==='GET'){
      // 分页响应带上数据来源：接原子公社门派网站时，前端/运维能看出是不是远程数据。
      return send(res,200,{...pageSects(url.searchParams.get('page')||1,url.searchParams.get('size')||SECT_PAGE_SIZE),source:sectSourceStatus()});
     }
     if(url.pathname==='/api/sects/status'&&req.method==='GET')return send(res,200,sectSourceStatus());
-    // 封面/Logo 同源代理：OSS 不回 CORS 头，3D 牌坊的封面布走这里拿图（白名单 + 缓存，失败 404）。
-    if(url.pathname==='/api/sects/cover'&&req.method==='GET'){
+    // 封面/Logo/商店图标同源代理：OSS 不回 CORS 头，3D 牌坊的封面布与工坊面板的图标走这里拿图
+    // （白名单 + 缓存，失败 404）。/api/image 是通用入口，/api/sects/cover 是兼容别名。
+    if((url.pathname==='/api/image'||url.pathname==='/api/sects/cover')&&req.method==='GET'){
      const target=url.searchParams.get('url')||'';
      const source=sectSource();
      if(!coverHostAllowed(target,source?source.remote:[],String(env.ATOM_SECTS_SOURCE||''))){
