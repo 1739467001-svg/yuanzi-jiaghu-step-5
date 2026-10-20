@@ -66,7 +66,7 @@ export function findPath(from,to,isWalkable=walkable){
  let at=goal,result=[];while(at!==s){result.unshift(at.split(',').map(Number));at=previous.get(at);}return result;
 }
 export class WorldEngine{
- constructor(onEvent=()=>{}){this.time=0;this.onEvent=onEvent;this.paused=false;this.clock=8;this.lastPhase=phaseAt(this.clock).name;this.player={id:'you',name:'你',color:'#427ab5',x:-3,z:1,angle:0,path:[],state:'自在漫游'};this.agents=AGENTS.map((a,i)=>({...a,x:a.start[0],z:a.start[1],angle:0,path:[],state:'歇脚中',wait:2+i*1.7,step:i%2,memory:[],partner:null,task:null,views:[],viewed:new Set(),lastView:-999,debating:null,debateTopic:null}));this.works=[];this.debateCooldown=20;this.debateRound=0;this.weather='clear';}
+ constructor(onEvent=()=>{}){this.time=0;this.onEvent=onEvent;this.paused=false;this.clock=8;this.lastPhase=phaseAt(this.clock).name;this.player={id:'you',name:'你',color:'#427ab5',x:-3,z:1,angle:0,path:[],state:'自在漫游'};this.agents=AGENTS.map((a,i)=>({...a,x:a.start[0],z:a.start[1],angle:0,path:[],state:'歇脚中',wait:2+i*1.7,step:i%2,memory:[],partner:null,task:null,views:[],viewed:new Set(),lastView:-999,debating:null,debateTopic:null}));this.works=[];this.debateCooldown=20;this.debateRound=0;this.weather='clear';this.feedTopics=[];}
  phase(){return phaseAt(this.clock);}
  // 已发布作品由内容契约注入；观展与导览只读取发布状态为“已发布”的数据。
  setWorks(works){this.works=Array.isArray(works)?works.filter(w=>w&&w.id&&w.title&&w.publicationStatus==='已发布'):[];}
@@ -104,7 +104,7 @@ export class WorldEngine{
    if(other&&a.state!=='整理见闻'){a.partner=other.id;other.partner=a.id;a.state=`与${other.name}闲聊`;other.state=`与${a.name}闲聊`;a.wait=9;other.wait=9;a.angle=Math.atan2(other.x-a.x,other.z-a.z);other.angle=a.angle+Math.PI;
     // 话题可以来自一方最近的观展见闻，让 AI 的交流与真实作品自然相连。
     const seen=[a,other].map(x=>x.views[0]).find(Boolean);
-    const topic=seen&&a.step%2===0?`在展示馆看到的《${seen.title}》`:['开源分享','最近看到的作品','如何把想法做成原型'][Math.floor(this.time)%3];
+    const topic=seen&&a.step%2===0?`在展示馆看到的《${seen.title}》`:this.socialTopic(this.time);
     const text=`${a.name}与${other.name}聊起了${topic}`;
     a.memory.push(text);other.memory.push(text);a.memory=a.memory.slice(-20);other.memory=other.memory.slice(-20);this.onEvent({id:`${a.id}-${this.time}`,text,kind:'chat',time:Date.now()});continue;}
    // 计划一次观展：带目标作品前往展示馆；同一作品一个会话内只生成一次观感。
@@ -182,6 +182,13 @@ export class WorldEngine{
   setWeather(w){this.weather=WEATHERS.includes(w)?w:'clear';}
   get raining(){return this.weather==='rain'||this.weather==='nightRain';}
   get foggy(){return this.weather==='fog';}
+  // 官网内容话题（热帖/资讯，见 server/official-feed.mjs）：闲聊池 = 官网话题 + 内置话题，
+  // 官网不可用（未配置/抓取失败）时池里只有内置话题，行为与从前一致。
+  setFeed(topics){this.feedTopics=Array.isArray(topics)?topics.filter(t=>typeof t==='string'&&t.trim()).slice(0,12):[];}
+  socialTopic(time){
+   const pool=this.feedTopics.length?[...this.feedTopics,'开源分享','最近看到的作品','如何把想法做成原型']:['开源分享','最近看到的作品','如何把想法做成原型'];
+   return pool[Math.floor(time)%pool.length];
+  }
  debatePro(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.pro:'我看值得一试';}
  debateCon(topic){const t=DEBATE_TOPICS.find(x=>x.topic===topic);return t?t.con:'也要留个后手';}
  snapshot(){return this.agents.map(({id,name,state,x,z,memory,views})=>({id,name,state,x,z,memory:[...memory],views:views.map(v=>({...v}))}));}

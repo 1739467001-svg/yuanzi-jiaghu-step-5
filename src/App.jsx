@@ -99,6 +99,9 @@ export default function App(){
  // 天气：稀有天气事件（不做 24 小时下雨那种常态）——每 90 秒约 8% 概率起一场，自己停。
  // 四种：clear 晴 / rain 微雨 / nightRain 夜雨（只在夜里起）/ fog 山雾。
  const [weather,setWeather]=useState('clear');
+ // 官网内容抓取（热帖/资讯，服务端 TTL 快照）：供英雄帖与 AI 闲聊话题；拿不到就保持示范条目。
+ const [feed,setFeed]=useState(null);
+ useEffect(()=>{(async()=>{try{const r=await fetch(apiUrl('/api/feed'));if(r.ok)setFeed(await r.json());}catch{}})(),[]},[]);
  const nightRef=useRef(night);nightRef.current=night;   // 调度器要读当前昼夜，又不想随昼夜重排
  const [debateLive,setDebateLive]=useState(null);
  const [debateNear,setDebateNear]=useState(false);
@@ -577,7 +580,7 @@ export default function App(){
    <div className="world-stage">
     {world==='online'&&!staticDemo
      ?<OnlineWorld client={clientRef.current} theme={theme} night={night} weather={weather} labels={showLabels} playerColor={account?.color||playerColor} playerName={playerName} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} modelKey={modelKey} apiRef={apiRef}/>
-     :<World engine={engine} theme={theme} night={night} weather={weather} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} modelKey={modelKey} labels={showLabels}/>}
+     :<World engine={engine} theme={theme} night={night} weather={weather} feed={feed} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} modelKey={modelKey} labels={showLabels}/>}
     <div className="scene-intro"><span className="eyebrow"><span className="tiny-star">✳</span> 人与 AGENT 共建的开源学习社区</span><h1>{world==='online'&&!staticDemo?'山水有相逢，同路在联机。':location==='town'?'山水有相逢，江湖有同路。':'让每一个好想法，被看见。'}</h1><p>{world==='online'&&!staticDemo?'这是服务端权威的联机世界：点击地面行走，邀请遇到的侠客一对一私聊。':location==='town'?'在这里歇歇脚，聊聊想法，和有趣的灵魂一起创造。':'走近展台，发现来自真实赛事的作品与创作者。'}</p></div>
     <div className="scene-weather">{weather==='fog'?<CloudFog size={17}/>:(weather==='rain'||weather==='nightRain')?<CloudRain size={17}/>:night?<Moon size={17}/>:<Sun size={18}/>}<span>{phase}<small>{weather==='fog'?'云雾缭绕 · 山雾':weather==='nightRain'?'夜色如墨 · 夜雨':weather==='rain'?'山色空蒙 · 微雨':night?'灯火可亲 · 夜景':'草木葱茏 · 日景'}</small></span></div>
     {location==='hall'&&<button className="back-to-town" onClick={()=>{setLocation('town');closePanel();}}><ChevronLeft size={16}/>返回小镇</button>}

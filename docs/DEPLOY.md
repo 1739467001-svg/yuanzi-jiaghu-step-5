@@ -34,6 +34,8 @@ curl http://127.0.0.1:8080/api/content/health   # {"ok":true,...}
 | --- | --- | --- |
 | `PORT` / `HOST` | `8080` / `0.0.0.0` | 监听地址；只本机测试可设 `HOST=127.0.0.1` |
 | `ATOM_DATA_DIR` | `./data` | **账号、记忆、发布状态、审计、预算账本的存储目录**（持久化重点） |
+| `ATOM_OFFICIAL_SITE` | 空 | 官网内容抓取（热帖/资讯）：供给英雄帖与 AI 闲聊话题；TTL 快照，失败沿用上次。见 `docs/THREE_D_INTEGRATION.md` 3.2 |
+| `ATOM_FEED_TTL_MS` | `900000` | 官网内容抓取周期（毫秒，最小 30 秒） |
 | `ATOM_STORE` | `json` | 全部运行期存储的后端：`json`（默认）或 `sqlite`（`data/atom.db`，Node 内置）。切 SQLite 前先停服务跑 `npm run migrate:sqlite` 导入旧数据，详见 `docs/STORAGE.md` |
 | `ATOM_ADMIN_TOKEN` | `atom-local-demo` | 运营后台 `/admin.html` 的令牌，**上线前必须修改** |
 | `ATOM_ADMIN_TOKENS` | 空 | 多运营者令牌：`令牌:名称,令牌2:名称2`（名称可省略）。审计事件的 actor 取服务端从令牌解析的名称，不信任客户端提交的值 |
@@ -108,6 +110,19 @@ WantedBy=multi-user.target
 ```
 
 `.env` 里按上表配置（不要设置 `VITE_` 前缀的变量）。`systemctl enable --now atom-jianghu` 启动。
+
+## 5.5 配置真实模型（原子引擎）
+
+AI 私聊默认用本地资料检索（界面标注「本地资料演示」）。接真实模型：
+
+1. 在原子引擎控制台（`https://atengin.atomclub.cn`，登录后「令牌」页）创建 API Key；
+2. 配置并重启：`ATOM_LLM_BASE_URL=https://atengin.atomclub.cn/v1`、`ATOM_LLM_API_KEY=<Key>`、`ATOM_LLM_MODEL=<模型名，如 deepseek-v3 / qwen-plus>`；
+3. 先跑 `npm run test:e2e-model`（本地 mock 验证通道）再填真实 Key；
+4. 预算护栏：`ATOM_DAILY_BUDGET`（金额达 80% 降级、100% 停新调用）、`ATOM_DAILY_CALL_LIMIT`、`ATOM_MAX_CONCURRENT`，单价按 `ATOM_PRICE_*_PER_MTOK` 配；账本落 `data/usage-ledger.json`，重启不清费用；
+5. 语义检索（可选）：`ATOM_EMBEDDING_BASE_URL/API_KEY/MODEL` 指向同一引擎的 `/v1/embeddings`，记忆召回与作品检索切换向量余弦，未配置自动回退本地 TF-IDF；
+6. 未配置/调用失败/超额时自动回退本地检索并**在界面如实说明**，看展与真人聊天不受影响。
+
+引擎侧的模型清单、计费与限流见原子引擎文档站（`https://atengin.atomclub.cn/docs`）与 [OFFICIAL-SITE.md](OFFICIAL-SITE.md)。
 
 ## 6. 数据、备份与回滚
 

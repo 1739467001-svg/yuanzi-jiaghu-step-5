@@ -1087,6 +1087,17 @@ M3 里依赖外部系统的部分（Token 实际发放、OPC 权益核销、赠�
 
 仍待完成（P0 剩余 + P1/P2，见 THREE_D_INTEGRATION.md 分期表）：官方资讯/热帖进话题与英雄帖（official-feed 抓取模块）、模型/嵌入配置化文档；原子币对账与身份签发等官方确认项。
 
+## 阶段 55：官网内容进 3D（热帖/资讯）+ 模型配置化（2026-10-17 执行）
+
+P0 剩余两项（见 THREE_D_INTEGRATION.md 分期表）：
+
+- **官网内容抓取模块**（`server/official-feed.mjs`）：TTL 拉官网 `/api/teahouse/posts/hot` + `/api/news`，快照 + 失败沿用上次 + 磁盘缓存兜底（与门派同步同款降级）；`GET /api/feed` 公开话题。**英雄帖**（论剑台旁）从示范条目换成真实热帖（前 5 帖 + 前 3 资讯，标题截 18 字带作者）；**AI 闲聊话题**接官网帖子——本地引擎（`World.jsx` feed prop → `engine.setFeed`）与联机服务端引擎（`index.mjs`/`vite.config.js` 的 onSync 钩子把话题推进各房间）同一份数据；未配置时保持示范条目，行为与从前一致。
+- **模型配置化文档**（DEPLOY.md 5.5 节）：原子引擎接真实模型的六步（控制台建 Key → `ATOM_LLM_*` 指向 `atengin.atomclub.cn/v1` → mock 验证通道 → 预算护栏 → 嵌入向量 → 降级说明）；.env.example 与 DEPLOY.md 环境变量表补 `ATOM_OFFICIAL_SITE`/`ATOM_FEED_TTL_MS`。
+- 踩坑记录：客户端接线时 python 脚本中途断言失败导致签名改动没落盘（`feed is not defined` 页面白屏）——多步编辑要么整体落盘要么逐布验证，这次靠浏览器实测抓到。
+- 验收：`npm test` 198 项（official-feed 4 项：映射/截断/缓存/失败沿用 + 引擎话题）；真实官网实测 `/api/feed` 返回 10 热帖 + 10 资讯，英雄帖渲染真实条目（`artifacts/p0-hero-board-*.png`），零页面异常。
+
+至此 P0 三项全部完成。P1/P2 仍等官方确认项（原子币对账、身份签发）。
+
 ## 下一批候选（2026-10-03 起）
 
 - **多天气**：微雨之外补「夜雨」「山雾」两种稀有事件（雾用 `scene.fog` 就近收敛，夜间雨把雨色压暗），与微雨共用同一套调度与 ref 通道，注意别再犯「依赖数组漏 ref」与「行内注释吞代码」两个坑。——2026-10-09 阶段 48 实施中。

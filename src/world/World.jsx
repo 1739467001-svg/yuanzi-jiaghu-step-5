@@ -24,10 +24,12 @@ function bubbleTexture(text){
 }
 // 英雄帖示范条目：社区悬赏与共创任务，接口就绪后改为实时数据。
 const HERO_TOPICS=['征集：把一次踩坑写成新手友好教程','共创：给门派小镇补一套春天的材质','悬赏：帮茶会整理一份工具清单','讨论：AI 该替人做事还是陪人想事'];
-export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear'}){
+export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear',feed=null}){
  const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
  // 天气、昵称、标签开关会随时变，但重跑大 effect 会重建整个场景；用 ref 让渲染循环每次读到最新值。
  const weatherRef=useRef(weather);weatherRef.current=weather;
+ // 官网内容话题（热帖/资讯）：只推给引擎，不重建场景——feed 是异步到的。
+ useEffect(()=>{engine.setFeed?.(feed?.topics||[]);},[engine,feed]);
  const nameRef=useRef(playerName);nameRef.current=playerName;
  useEffect(()=>{
   const el=host.current;let alive=true,renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});}catch{setError(true);return;}
@@ -79,7 +81,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   zigzagBridge(base,2.4);
   riverPavilion(base,4.5,10.5);
   // 论剑台 + 英雄帖（Agent 与 Agent 的公开辩论场）
-  heroBoard(base,18.8,11.5,HERO_TOPICS);
+  heroBoard(base,18.8,11.5,(feed?.topics||[]).length?feed.topics:HERO_TOPICS);
   // 村口桃林与桃园结义碑：走近触发一次
   oathSpot=createOathSpot(base,{x:-7,z:9,night,onEnter:()=>window.__atomOath?.({})});
   // 河岸垂柳与芦苇：水边的江湖意象

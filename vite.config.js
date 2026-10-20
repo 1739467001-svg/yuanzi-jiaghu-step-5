@@ -10,6 +10,7 @@ import {configureEmbeddings} from './server/embeddings.mjs';
 import {followsApiPlugin} from './server/follows-api.mjs';
 import {sectsApiPlugin} from './server/sects-api.mjs';
 import {configureSectSource} from './server/sects.mjs';
+import {configureOfficialFeed,officialFeedPlugin,feedTopics} from './server/official-feed.mjs';
 import {isAdminRequest,noteAdminDenial} from './server/publication-store.mjs';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('.',import.meta.url));
@@ -57,4 +58,12 @@ export default defineConfig(({mode})=>{
  // 门派数据：配置 ATOM_SECTS_SOURCE 时从原子公社门派网站拉数据（dev/preview 同样生效）。
  const sectSync=configureSectSource(env);
  if(sectSync){sectSync.start();console.log('门派同步: '+sectSync.base);}
- return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),sectsApiPlugin(env),roomsApiPlugin(hub,{env,isAdminRequest,noteAdminDenial}),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});
+ // 官网内容抓取（热帖/资讯）：dev/preview 同样生效，供给英雄帖与闲聊话题。
+ const officialFeedSync=configureOfficialFeed(env);
+ if(officialFeedSync){
+  officialFeedSync.onSync=snapshot=>{
+   for(const world of hub.worlds.values())world.engine?.setFeed?.(feedTopics(snapshot));
+  };
+  officialFeedSync.start();console.log('官网内容: '+officialFeedSync.base);
+ }
+ return {base:process.env.VITE_BASE_PATH||'/',plugins:[react(),contentPlugin(env),authPlugin(env),memoryApiPlugin(),followsApiPlugin(),sectsApiPlugin(env),roomsApiPlugin(hub,{env,isAdminRequest,noteAdminDenial}),officialFeedPlugin(),chatPlugin(env),worldPlugin],optimizeDeps:{entries:['index.html','admin.html']},server:{port:5173,strictPort:true,host:'127.0.0.1'},build:{rollupOptions:{input:{main:root+'index.html',admin:root+'admin.html'},output:{manualChunks:{three:['three'],react:['react','react-dom']}}}}}});
