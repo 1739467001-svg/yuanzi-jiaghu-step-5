@@ -1,5 +1,6 @@
 import {useState,useMemo,useRef,useEffect} from 'react';
 import {apiUrl,worldWsUrl,missingWorldServer} from './net/endpoints.js';
+import {eventsFromCatalog,EVENTS_EDITION_ID} from './content/events.js';
 import {ArrowUpRight,ArrowRight,Compass,BookOpen,MessageCircle,Sun,Moon,Settings2,Volume2,VolumeX,Plus,Minus,LocateFixed,RotateCcw,ChevronRight,ChevronLeft,Search,Bookmark,MapPin,Users,Send,Sparkles,Leaf,Footprints,Check,Trash2,SlidersHorizontal,ExternalLink,PanelRightClose,PanelRightOpen,X,Clock,Sparkle,Landmark,Wifi,WifiOff,UserPlus,LogOut,ShieldOff,Coffee,Share2,CloudRain,CloudFog} from 'lucide-react';
 import World from './world/World.jsx';
 import {APPEARANCES} from './world/config.js';
@@ -102,6 +103,8 @@ export default function App(){
  // 官网内容抓取（热帖/资讯，服务端 TTL 快照）：供英雄帖与 AI 闲聊话题；拿不到就保持示范条目。
  const [feed,setFeed]=useState(null);
  useEffect(()=>{(async()=>{try{const r=await fetch(apiUrl('/api/feed'));if(r.ok)setFeed(await r.json());}catch{}})(),[]},[]);
+ // 官网活动展位（方案 B）：目录里「原子公社 · 社区活动」赛事的 schedule → 展示馆活动碑。
+ const eventSteles=useMemo(()=>eventsFromCatalog(catalogState.catalog),[catalogState.catalog]);
  // 官网经济数据（商店/任务，只读展示）：供给任务墙与工坊面板；拿不到就不显示。
  const [economy,setEconomy]=useState(null);
  useEffect(()=>{(async()=>{try{const r=await fetch(apiUrl('/api/economy'));if(r.ok)setEconomy(await r.json());}catch{}})(),[]},[]);
@@ -524,6 +527,8 @@ export default function App(){
  function closePanel(){if(panel==='chat')closeChat();else setPanel(null);}
  function openPanel(id){if(chatId)closeChat();if(id==='settings')setProfileDraft({name:account?account.name:(playerName==='少侠'?'':playerName),color:account?account.color:playerColor,model:modelKey});setPanel(id);}
  function enterHall(){if(chatId)closeChat();setLocation('hall');setPanel('gallery');setPlaceId(null);notice('已进入武林大会展示馆');}
+ // 点展示馆里的活动碑：切到「原子公社 · 社区活动」赛事页（近期活动全表）。
+ function openEventEdition(){if(chatId)closeChat();setLocation('hall');setEditionId(EVENTS_EDITION_ID);setTrack('全部');setSearch('');setPanel('gallery');setPlaceId(null);notice('官网近期活动');}
  function openWork(id){const w=allWorks.find(w=>w.id===id);if(!w)return;setWorkId(id);const url=new URL(window.location.href);url.searchParams.set('work',id);history.pushState({},'',url);setVisits(v=>[{id,time:Date.now()},...v.filter(x=>x.id!==id)].slice(0,50));}
  function closeWork(){setWorkId(null);const url=new URL(window.location.href);url.searchParams.delete('work');history.replaceState({},'',url);}
  function toggleBookmark(id){setBookmarks(v=>v.includes(id)?v.filter(x=>x!==id):[id,...v]);}
@@ -583,7 +588,7 @@ export default function App(){
    <div className="world-stage">
     {world==='online'&&!staticDemo
      ?<OnlineWorld client={clientRef.current} theme={theme} night={night} weather={weather} labels={showLabels} playerColor={account?.color||playerColor} playerName={playerName} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} onPlayers={players=>{window.__atomOnlinePlayers=players;setOnlinePlayers(players.filter(p=>!blocked.includes(p.id)));}} onPlace={openPlace} onActor={setActorCard} modelKey={modelKey} apiRef={apiRef}/>
-     :<World engine={engine} theme={theme} night={night} weather={weather} feed={feed} economy={economy} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} modelKey={modelKey} labels={showLabels}/>}
+     :<World engine={engine} theme={theme} night={night} weather={weather} feed={feed} economy={economy} events={eventSteles} onEvent={openEventEdition} location={location} sectPage={sectPageState} sectDetail={sectDetail} onSectEnter={openSect} onSectPage={sectPageTurn} onSectBack={backToSectsHall} works={sceneWorks} onPlace={openPlace} onAgent={startChat} onWork={openWork} onSnapshot={setAgents} apiRef={apiRef} playerColor={playerColor} playerName={playerName} modelKey={modelKey} labels={showLabels}/>}
     <div className="scene-intro"><span className="eyebrow"><span className="tiny-star">✳</span> 人与 AGENT 共建的开源学习社区</span><h1>{world==='online'&&!staticDemo?'山水有相逢，同路在联机。':location==='town'?'山水有相逢，江湖有同路。':'让每一个好想法，被看见。'}</h1><p>{world==='online'&&!staticDemo?'这是服务端权威的联机世界：点击地面行走，邀请遇到的侠客一对一私聊。':location==='town'?'在这里歇歇脚，聊聊想法，和有趣的灵魂一起创造。':'走近展台，发现来自真实赛事的作品与创作者。'}</p></div>
     <div className="scene-weather">{weather==='fog'?<CloudFog size={17}/>:(weather==='rain'||weather==='nightRain')?<CloudRain size={17}/>:night?<Moon size={17}/>:<Sun size={18}/>}<span>{phase}<small>{weather==='fog'?'云雾缭绕 · 山雾':weather==='nightRain'?'夜色如墨 · 夜雨':weather==='rain'?'山色空蒙 · 微雨':night?'灯火可亲 · 夜景':'草木葱茏 · 日景'}</small></span></div>
     {location==='hall'&&<button className="back-to-town" onClick={()=>{setLocation('town');closePanel();}}><ChevronLeft size={16}/>返回小镇</button>}

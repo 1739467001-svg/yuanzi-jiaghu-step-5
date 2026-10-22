@@ -47,7 +47,7 @@
 | 1 | 原子门派大殿 / 聚义阁内景 | 门派系统 | `GET /api/sects`、`/api/sects/:id` | ✅ **已打通**（本轮实测：6 个官网真实门派 + 封面代理进 3D） |
 | 2 | AI 侠客的大脑（私聊/观感/论剑） | 原子引擎模型服务 | `/v1/chat/completions` 等 37 个端点 | ✅ 配置即用（`ATOM_LLM_BASE_URL` 指向引擎 + Key） |
 | 3 | 记忆召回 / 作品检索的向量化 | 引擎 embeddings | `/v1/embeddings` | ✅ 配置即用（`ATOM_EMBEDDING_*`） |
-| 4 | 武林大会展示馆 / 赛事目录 | 活动系统（350 场） | `GET /api/events`、`/api/events/types`、`/api/events/stats` | ✅ **已打通**：`scripts/fetch-official-events.mjs` 抓取 → 后台导入 → 「原子公社 · 社区活动」赛事页（真实 organizers/赛程/奖项；纯介绍版形态） |
+| 4 | 武林大会展示馆 / 活动长廊 | 活动系统（350 场） | `GET /api/events`、`/api/events/types`、`/api/events/stats` | ✅ **已打通（方案 A + B）**：赛事页（真实 organizers/赛程/奖项）+ 3D 活动碑（两侧墙 8 座，类型着色，点碑/名牌打开活动全表） |
 | 4b | 欢迎卡 / 关于页 / 活动页的引流出口 | 官网各栏目 | `VITE_SITE_URL`、`VITE_SECT_HALL_URL` | ✅ **已打通**：「加入原子公社」CTA、官网入口组、门派大厅回跳（默认 atomclub.cn） |
 | 5 | 英雄帖 / 头顶气泡 / 茶楼话题 | 茶楼热帖 + AI 资讯 | `/api/teahouse/posts/hot`、`/api/news` | ✅ **已打通**：`server/official-feed.mjs` TTL 抓取（失败沿用快照）→ 英雄帖真实热帖 + AI 闲聊引用（本地/联机同源） |
 | 6 | 工坊商店面板 / 任务墙 | 原子币经济 | `/api/shop/items`、`/api/tasks`（均公开） | ✅ **展示态已打通**：工坊面板陈列真实周边（图标+定价+库存）与任务列表；论剑台旁 3D 任务墙贴真实任务。交易态（兑换/签到回写）待对账与身份接口 |

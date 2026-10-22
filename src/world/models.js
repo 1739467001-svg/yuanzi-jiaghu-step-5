@@ -206,6 +206,28 @@ export function riverPavilion(parent,x,z){
 }
 
 // 英雄帖：论剑台旁的悬赏墙——社区话题与共创任务的张贴处（数据就绪前先贴示范条目）。
+// 活动碑（官网活动 3D 展位，方案 B）：展示馆侧墙一列石碑，类型着色 + 标题 + 日期地点。
+// 点碑打开活动赛事页（kind:'event-stele' 由调用方绑定）。
+export function eventStele(parent,event,x,z,face=0){
+ const g=new T.Group();g.position.set(x,0,z);g.rotation.y=face;
+ g.userData={kind:'event-stele',index:event.index};
+ parent.add(g);
+ const color=event.color||'#8a7a52';
+ // 基座 + 碑身 + 类型色顶带
+ dmesh(new T.BoxGeometry(1.7,.3,1.1),'#b7b8a7','stone',g,0,.15,0,2,.9);
+ dmesh(new T.BoxGeometry(1.35,2.5,.28),'#e6dcc2','plaster',g,0,1.55,0,2,.92);
+ box(g,0,2.9,0,1.45,.22,.34,color);
+ box(g,0,2.9,.18,1.2,.1,.06,color);
+ // 标题（截 12 字）+ 日期 + 地点
+ textSign(g,event.title.slice(0,12),0,2.28,.16,1.25,.34,'#e6dcc2','#4a3f2a');
+ textSign(g,event.dateLabel||'',0,1.78,.16,1.1,.26,'#e6dcc2','#6b5f45');
+ if(event.location)textSign(g,event.location.slice(0,10),0,1.42,.16,1.0,.22,'#e6dcc2','#7a6f55');
+ // 状态小旗（报名中朱、进行中绿）
+ const sc=event.statusColor||'#8a9580';
+ cylinder(g,.62,2.62,0,.03,.03,1,'#6d5943',6);
+ box(g,.78,2.95,0,.3,.24,.03,sc);
+ return g;
+}
 // 任务墙（官网任务中心，只读展示）：与英雄帖并列在论剑台旁。
 // 条目形如「每日签到 +20币」；无数据时保持示范条目。
 export function taskBoard(parent,x,z,tasks=[]){

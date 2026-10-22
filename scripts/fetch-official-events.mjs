@@ -68,6 +68,7 @@ try{
    '时间':`${e.dateLabel||e.startAt||''}${e.timeLabel?' · '+e.timeLabel:''}`,
    '地点':[e.city,e.location].filter(Boolean).join(' · ')||'线上',
    '状态':e.status==='ongoing'?'进行中':e.status==='upcoming'?'报名中':'已结束',
+   '类型':e.type||'',
    ...(e.organizer?{'主办':e.organizer}:{}),
   })),
   awards:{

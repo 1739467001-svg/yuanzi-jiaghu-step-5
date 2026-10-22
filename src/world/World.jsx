@@ -4,7 +4,8 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {PLACES,AGENTS,THEMES} from './config.js';
 import {findPath,hallWalkable,terrainHeight,stepActor} from './engine.js';
 import {modelFor} from './config.js';
-import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard,taskBoard,peachIsland,zigzagBridge,riverPavilion} from './models.js';
+import {box,ball,cylinder,mesh,dmesh,material,building,tree,character,bridge,atomSculpture,textSign,lantern,willow,reeds,heroBoard,taskBoard,eventStele,peachIsland,zigzagBridge,riverPavilion} from './models.js';
+import {eventTypeColor,eventStatusColor} from '../content/events.js';
 import {animateCharacter} from './anim.js';
 import {createCharacter,applyFallbackMotion} from './glb.js';
 import {createHallAgents,advanceHallAgent,hallAgentLabel} from './hallAgents.js';
@@ -25,7 +26,7 @@ function bubbleTexture(text){
 // 英雄帖示范条目：社区悬赏与共创任务，接口就绪后改为实时数据。
 const HERO_TOPICS=['征集：把一次踩坑写成新手友好教程','共创：给门派小镇补一套春天的材质','悬赏：帮茶会整理一份工具清单','讨论：AI 该替人做事还是陪人想事'];
 const TASK_TOPICS=['每日签到 +20币','连续签到 30 天 +300币','分享一篇茶帖 +60币','邀请 3 位侠客入社 +500币'];
-export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear',feed=null,economy=null}){
+export default function World({engine,theme,night,location,works,onPlace,onAgent,onWork,onSnapshot,apiRef,playerColor,playerName='少侠',modelKey='character.default',labels=true,sectPage,sectDetail,onSectEnter,weather='clear',feed=null,economy=null,events=[],onEvent}){
  const host=useRef(),callbacks=useRef({}),[pins,setPins]=useState([]),[error,setError]=useState(false);callbacks.current={onPlace,onAgent,onWork,onSnapshot,onSectEnter};
  // 天气、昵称、标签开关会随时变，但重跑大 effect 会重建整个场景；用 ref 让渲染循环每次读到最新值。
  const weatherRef=useRef(weather);weatherRef.current=weather;
@@ -122,6 +123,15 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
     textSign(g,w.title.slice(0,12),0,.52,.77,2.4,.28);pinSources.push({id:w.id,kind:'work',name:w.title,point:new T.Vector3(x,3.7,z)});
     if(tc){const pl=new T.PointLight(tc,night?2.6:1.2,7);pl.position.set(x,2.6,z);scene.add(pl);}
    });
+   // 官网活动碑（方案 B）：展厅两侧墙一列石碑，类型着色；点碑打开活动赛事页。
+   const hallEvents=(events||[]).slice(0,8);
+   hallEvents.forEach((ev,i)=>{
+    const left=i%2===0;
+    const x=left?-10.2:10.2,z=-6+Math.floor(i/2)*4;
+    eventStele(base,{...ev,color:eventTypeColor(ev.type),statusColor:eventStatusColor(ev.status)},x,z,left?Math.PI/2:-Math.PI/2);
+    // 名牌：手机上点小碑不可靠，名牌与作品展位同机制（declutter 避让）。
+    pinSources.push({id:'event-'+ev.index,kind:'event',name:ev.title,point:new T.Vector3(x,3.5,z)});
+   });
    // 展厅里的 AI 侠客：在展位间行走、在展位前驻足观展（PRD H03 的 3D 呈现）。
    const hallAgentStates=createHallAgents(hallStands,AGENTS);
    hallAgents=hallAgentStates.map((ha,i)=>{
@@ -161,7 +171,7 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
      hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[tx,tz],()=>true);
      o.userData.faceTo?.(tx-sx,tz-sz);
     }
-    else if(kind==='sect-page'){const sp=o.userData;callbacks.current.onSectPage?.(sp.dir);}else if(kind==='sect-back')callbacks.current.onSectBack?.();else if(kind==='ground'){if(location==='town')engine.movePlayer(hit.point.x,hit.point.z);else hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[hit.point.x,hit.point.z],hallWalkable);}break;}
+    else if(kind==='sect-page'){const sp=o.userData;callbacks.current.onSectPage?.(sp.dir);}else if(kind==='event-stele')callbacks.current.onEvent?.(o.userData.index);else if(kind==='sect-back')callbacks.current.onSectBack?.();else if(kind==='ground'){if(location==='town')engine.movePlayer(hit.point.x,hit.point.z);else hallPlayer.path=findPath([hallPlayer.x,hallPlayer.z],[hit.point.x,hit.point.z],hallWalkable);}break;}
   };
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   let wasNarrow=null;
@@ -247,5 +257,5 @@ export default function World({engine,theme,night,location,works,onPlace,onAgent
   }frame=requestAnimationFrame(render);
   return()=>{alive=false;cancelAnimationFrame(frame);observer.disconnect();controls.dispose();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{m.map?.dispose();m.dispose();});}});renderer.dispose();el.removeChild(renderer.domElement);};
  },[engine,theme,night,location,works,playerColor,sectPage,sectDetail]);
- return <><div className="webgl-host" ref={host} data-testid="world-canvas"/>{error?<div className="webgl-error"><h2>当前设备暂不支持 3D</h2><p>仍可完整浏览赛事与作品。</p><button onClick={()=>onPlace('hall')}>打开比赛展示馆</button></div>:labels&&<div className="scene-labels">{pins.filter(p=>p.visible).map(p=><button key={p.id} className={`scene-pin ${p.kind}`} style={{left:p.x,top:p.y}} onClick={()=>p.kind==='place'?onPlace(p.id):p.kind==='sect'?onSectEnter?.(p.id):p.kind==='work'?onWork(p.id):p.kind==='agent'?onAgent(p.id):apiRef.current?.locate()}>{p.kind==='place'&&<span className="pin-dot"/>}{p.name}{p.kind==='place'&&<span className="pin-arrow">↗</span>}</button>)}</div>}</>;
+ return <><div className="webgl-host" ref={host} data-testid="world-canvas"/>{error?<div className="webgl-error"><h2>当前设备暂不支持 3D</h2><p>仍可完整浏览赛事与作品。</p><button onClick={()=>onPlace('hall')}>打开比赛展示馆</button></div>:labels&&<div className="scene-labels">{pins.filter(p=>p.visible).map(p=><button key={p.id} className={`scene-pin ${p.kind}`} style={{left:p.x,top:p.y}} onClick={()=>p.kind==='place'?onPlace(p.id):p.kind==='sect'?onSectEnter?.(p.id):p.kind==='work'?onWork(p.id):p.kind==='agent'?onAgent(p.id):p.kind==='event'?onEvent?.(Number(p.id.replace('event-',''))):apiRef.current?.locate()}>{p.kind==='place'&&<span className="pin-dot"/>}{p.name}{p.kind==='place'&&<span className="pin-arrow">↗</span>}</button>)}</div>}</>;
 }
